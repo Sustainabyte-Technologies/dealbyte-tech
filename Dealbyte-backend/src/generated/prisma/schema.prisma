@@ -1,0 +1,588 @@
+// Dealbyte — Costing & Proposal Automation System
+// Prisma Schema — All entities from Section 4 of the spec
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  ESTIMATION_LEAD
+  SALES_EXECUTIVE
+  MANAGER
+}
+
+enum DealStage {
+  ENQUIRY
+  QUOTED
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum QuoteStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProposalStatus {
+  DRAFT
+  REVIEWED
+  SENT
+}
+
+enum LineItemType {
+  MANPOWER
+  INSTRUMENT
+  HARDWARE
+  TRAVEL
+}
+
+enum ContentSection {
+  COMPANY_PROFILE
+  SCOPE_OF_WORK
+  TERMS
+}
+
+// ─── User ───────────────────────────────────────────────────────────────────────
+
+model User {
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  passwordHash     String
+  role             Role     @default(SALES_EXECUTIVE)
+  refreshTokenHash String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  ownedDeals        Deal[]            @relation("DealOwner")
+  createdQuotes     Quote[]           @relation("QuoteCreator")
+  approvalRequests  ApprovalRequest[] @relation("ApprovalRequester")
+  approvalDecisions ApprovalRequest[] @relation("ApprovalDecider")
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+// ─── Service ────────────────────────────────────────────────────────────────────
+
+model Service {
+  id                 String   @id @default(uuid())
+  name               String   @unique
+  category           String
+  description        String?
+  hasCostingTemplate Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  deals             Deal[]
+  quotes            Quote[]
+  contentBlocks     ContentBlock[]
+  proposalTemplates ProposalTemplate[]
+  costingTemplates  CostingTemplate[]
+  costingSheets     CostingSheet[]
+
+  @@map("services")
+}
+
+// ─── Rate Cards ─────────────────────────────────────────────────────────────────
+
+model ManpowerRate {
+  id            String   @id @default(uuid())
+  role          String
+  ratePerDay    Decimal  @db.Decimal(12, 2)
+  currency      String   @default("INR")
+  effectiveFrom DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  teamMembers TeamMember[]
+
+  @@map("manpower_rates")
+}
+
+model InstrumentRate {
+  id               String   @id @default(uuid())
+  instrumentName   String
+  rentalRatePerDay Decimal  @db.Decimal(12, 2)
+  effectiveFrom    DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("instrument_rates")
+}
+
+model HardwareItem {
+  id        String   @id @default(uuid())
+  name      String
+  unitCost  Decimal  @db.Decimal(12, 2)
+  category  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hardware_items")
+}
+
+// ─── Team Member ────────────────────────────────────────────────────────────────
+
+model TeamMember {
+  id             String   @id @default(uuid())
+  name           String
+  role           String
+  manpowerRateId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  manpowerRate ManpowerRate @relation(fields: [manpowerRateId], references: [id])
+
+  @@map("team_members")
+}
+
+// ─── Deal ───────────────────────────────────────────────────────────────────────
+
+model Deal {
+  id         String    @id @default(uuid())
+  clientName String
+  clientLogo String?
+  serviceId  String
+  ownerId    String
+  stage      DealStage @default(ENQUIRY)
+  value      Decimal?  @db.Decimal(14, 2)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Relations
+  service   Service    @relation(fields: [serviceId], references: [id])
+  owner     User       @relation("DealOwner", fields: [ownerId], references: [id])
+  quotes    Quote[]
+  proposals Proposal[]
+
+  @@index([stage])
+  @@index([ownerId])
+  @@map("deals")
+}
+
+// ─── Quote ──────────────────────────────────────────────────────────────────────
+
+model Quote {
+  id                   String      @id @default(uuid())
+  dealId               String
+  serviceId            String
+  proposalNumber       String?
+  proposalDate         DateTime?
+  clientLogo           String?
+  siteDays             Int
+  reportDays           Int
+  manpowerCost         Decimal     @default(0) @db.Decimal(14, 2)
+  instrumentCost       Decimal     @default(0) @db.Decimal(14, 2)
+  travelKms            Int?        @default(0)
+  travelRatePerKm      Decimal?    @default(4) @db.Decimal(10, 2)
+  foodRatePerPersonDay Decimal?    @default(300) @db.Decimal(10, 2)
+  foodTravelCost       Decimal     @default(0) @db.Decimal(14, 2)
+  subtotal             Decimal     @default(0) @db.Decimal(14, 2)
+  marginPct            Decimal     @default(40) @db.Decimal(5, 2)
+  marginAmount         Decimal     @default(0) @db.Decimal(14, 2)
+  bufferPct            Decimal     @default(10) @db.Decimal(5, 2)
+  bufferAmount         Decimal     @default(0) @db.Decimal(14, 2)
+  finalQuote           Decimal     @default(0) @db.Decimal(14, 2)
+  negotiationMarginPct Decimal?    @db.Decimal(5, 2)
+  status               QuoteStatus @default(DRAFT)
+  createdById          String
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  // Relations
+  deal             Deal              @relation(fields: [dealId], references: [id])
+  service          Service           @relation(fields: [serviceId], references: [id])
+  createdBy        User              @relation("QuoteCreator", fields: [createdById], references: [id])
+  lineItems        QuoteLineItem[]
+  approvalRequests ApprovalRequest[]
+  proposals        Proposal[]
+
+  @@index([status])
+  @@index([dealId])
+  @@map("quotes")
+}
+
+// ─── Quote Line Item ────────────────────────────────────────────────────────────
+
+model QuoteLineItem {
+  id          String       @id @default(uuid())
+  quoteId     String
+  type        LineItemType
+  refId       String? // References the manpower/instrument/hardware ID
+  description String
+  qty         Decimal      @db.Decimal(10, 2)
+  unitRate    Decimal      @db.Decimal(12, 2)
+  total       Decimal      @db.Decimal(14, 2)
+  createdAt   DateTime     @default(now())
+
+  // Relations
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@map("quote_line_items")
+}
+
+// ─── Approval Request ───────────────────────────────────────────────────────────
+
+model ApprovalRequest {
+  id            String         @id @default(uuid())
+  quoteId       String
+  requestedById String
+  approverId    String
+  reason        String?
+  status        ApprovalStatus @default(PENDING)
+  decidedAt     DateTime?
+  createdAt     DateTime       @default(now())
+
+  // Relations
+  quote       Quote @relation(fields: [quoteId], references: [id])
+  requestedBy User  @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  approver    User  @relation("ApprovalDecider", fields: [approverId], references: [id])
+
+  @@index([status])
+  @@map("approval_requests")
+}
+
+// ─── Content Block ──────────────────────────────────────────────────────────────
+
+model ContentBlock {
+  id        String         @id @default(uuid())
+  serviceId String
+  section   ContentSection
+  title     String
+  bodyText  String         @db.Text
+  tags      String[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  // Relations
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([serviceId])
+  @@map("content_blocks")
+}
+
+// ─── Proposal ───────────────────────────────────────────────────────────────────
+
+model Proposal {
+  id             String         @id @default(uuid())
+  quoteId        String
+  dealId         String
+  proposalNumber String?
+  proposalDate   DateTime?
+  clientLogo     String?
+  templateId     String?
+  status         ProposalStatus @default(DRAFT)
+  fileUrl        String?
+  generatedAt    DateTime       @default(now())
+  sentAt         DateTime?
+
+  // Relations
+  quote    Quote             @relation(fields: [quoteId], references: [id])
+  deal     Deal              @relation(fields: [dealId], references: [id])
+  template ProposalTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([status])
+  @@map("proposals")
+}
+
+// ─── Proposal Template ──────────────────────────────────────────────────────────
+
+model ProposalTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  serviceId String
+  fileUrl   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  service   Service    @relation(fields: [serviceId], references: [id])
+  proposals Proposal[]
+
+  @@map("proposal_templates")
+}
+
+// ─── Audit Log ──────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  action     String // CREATE, UPDATE, DELETE
+  entityType String // Quote, Deal, Proposal, etc.
+  entityId   String
+  details    Json? // Optional JSON payload with changed fields
+  timestamp  DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// ─── System Config ──────────────────────────────────────────────────────────────
+// Runtime-configurable settings (margin %, buffer %, thresholds)
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  label     String // Human-readable description
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_config")
+}
+
+// ─── Client ─────────────────────────────────────────────────────────────────────
+
+model Client {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  costingSheets CostingSheet[]
+
+  @@map("clients")
+}
+
+// ─── Costing Template ───────────────────────────────────────────────────────────
+
+model CostingTemplate {
+  id                String   @id @default(uuid())
+  serviceId         String?
+  serviceName       String // e.g. "Air Audit", "Energy Audit"
+  categoryName      String // e.g. "Energy Audit Services"
+  name              String // e.g. "Air Audit Standard Template"
+  manpowerRows      Json // Array of manpower line defaults
+  instrumentRows    Json // Array of instrument line defaults
+  extraExpenseRows  Json // Array of extra expense line defaults
+  siteWorkingDays   Int      @default(1)
+  reportWorkingDays Int      @default(1)
+  marginPct         Decimal  @default(40) @db.Decimal(5, 2)
+  bufferPct         Decimal  @default(10) @db.Decimal(5, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([serviceId])
+  @@index([serviceName])
+  @@map("costing_templates")
+}
+
+// ─── Costing Sheet ──────────────────────────────────────────────────────────────
+
+model CostingSheet {
+  id                      String   @id @default(uuid())
+  clientName              String
+  clientId                String?
+  serviceCategory         String // e.g. "IoT & Controls", "Energy Audit Services"
+  subService              String // e.g. "Energy Management Solution", "Air Audit"
+  serviceId               String?
+  templateId              String?
+  projectName             String?
+  siteName                String?
+  stationType             String? // e.g. "Local Station", "Outstation", "Both (Local & Outstation)"
+  outstationStartLocation String?
+  outstationEndLocation   String?
+  scopeDetails            String?
+  manpowerRows            Json
+  instrumentRows          Json
+  extraExpenseRows        Json
+  siteWorkingDays         Int      @default(1)
+  reportWorkingDays       Int      @default(1)
+  totalManpowerCost       Decimal  @db.Decimal(14, 2)
+  totalInstrumentCost     Decimal  @db.Decimal(14, 2)
+  totalExtraCost          Decimal  @db.Decimal(14, 2)
+  subtotalCost            Decimal  @db.Decimal(14, 2)
+  marginPct               Decimal  @db.Decimal(5, 2)
+  marginAmount            Decimal  @db.Decimal(14, 2)
+  bufferPct               Decimal  @db.Decimal(5, 2)
+  bufferAmount            Decimal  @db.Decimal(14, 2)
+  finalQuote              Decimal  @db.Decimal(14, 2)
+  status                  String   @default("SAVED")
+  createdById             String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relations
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  client  Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([clientName])
+  @@index([clientId])
+  @@index([subService])
+  @@index([serviceId])
+  @@index([projectName])
+  @@map("costing_sheets")
+}
+
+// ─── AIR AUDIT COSTING TABLES ───────────────────────────────────────────────────
+
+model AirAuditTemplate {
+  id                String   @id @default(uuid())
+  name              String   @default("Air Audit Master Template")
+  manpowerRows      Json
+  instrumentRows    Json
+  extraExpenseRows  Json
+  siteWorkingDays   Int      @default(1)
+  reportWorkingDays Int      @default(1)
+  marginPct         Decimal  @default(40) @db.Decimal(5, 2)
+  bufferPct         Decimal  @default(10) @db.Decimal(5, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("air_audit_templates")
+}
+
+model AirAuditCostingSheet {
+  id                  String   @id @default(uuid())
+  clientName          String
+  projectName         String?
+  siteName            String?
+  scopeDetails        String?
+  manpowerRows        Json
+  instrumentRows      Json
+  extraExpenseRows    Json
+  siteWorkingDays     Int      @default(1)
+  reportWorkingDays   Int      @default(1)
+  totalManpowerCost   Decimal  @db.Decimal(14, 2)
+  totalInstrumentCost Decimal  @db.Decimal(14, 2)
+  totalExtraCost      Decimal  @db.Decimal(14, 2)
+  subtotalCost        Decimal  @db.Decimal(14, 2)
+  marginPct           Decimal  @db.Decimal(5, 2)
+  marginAmount        Decimal  @db.Decimal(14, 2)
+  bufferPct           Decimal  @db.Decimal(5, 2)
+  bufferAmount        Decimal  @db.Decimal(14, 2)
+  finalQuote          Decimal  @db.Decimal(14, 2)
+  status              String   @default("SAVED")
+  createdById         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([clientName])
+  @@map("air_audit_costing_sheets")
+}
+
+// ─── ENERGY AUDIT COSTING TABLES ────────────────────────────────────────────────
+
+model EnergyAuditTemplate {
+  id                String   @id @default(uuid())
+  name              String   @default("Energy Audit Master Template")
+  manpowerRows      Json
+  instrumentRows    Json
+  extraExpenseRows  Json
+  siteWorkingDays   Int      @default(1)
+  reportWorkingDays Int      @default(1)
+  marginPct         Decimal  @default(40) @db.Decimal(5, 2)
+  bufferPct         Decimal  @default(10) @db.Decimal(5, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("energy_audit_templates")
+}
+
+model EnergyAuditCostingSheet {
+  id                  String   @id @default(uuid())
+  clientName          String
+  projectName         String?
+  siteName            String?
+  scopeDetails        String?
+  manpowerRows        Json
+  instrumentRows      Json
+  extraExpenseRows    Json
+  siteWorkingDays     Int      @default(1)
+  reportWorkingDays   Int      @default(1)
+  totalManpowerCost   Decimal  @db.Decimal(14, 2)
+  totalInstrumentCost Decimal  @db.Decimal(14, 2)
+  totalExtraCost      Decimal  @db.Decimal(14, 2)
+  subtotalCost        Decimal  @db.Decimal(14, 2)
+  marginPct           Decimal  @db.Decimal(5, 2)
+  marginAmount        Decimal  @db.Decimal(14, 2)
+  bufferPct           Decimal  @db.Decimal(5, 2)
+  bufferAmount        Decimal  @db.Decimal(14, 2)
+  finalQuote          Decimal  @db.Decimal(14, 2)
+  status              String   @default("SAVED")
+  createdById         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([clientName])
+  @@map("energy_audit_costing_sheets")
+}
+
+// ─── AIR AUDIT RECTIFICATION COSTING TABLES ────────────────────────────────────
+
+model AirAuditRectificationTemplate {
+  id                String   @id @default(uuid())
+  name              String   @default("Air Audit Rectification Master Template")
+  manpowerRows      Json
+  instrumentRows    Json
+  extraExpenseRows  Json
+  siteWorkingDays   Int      @default(1)
+  reportWorkingDays Int      @default(1)
+  marginPct         Decimal  @default(40) @db.Decimal(5, 2)
+  bufferPct         Decimal  @default(10) @db.Decimal(5, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("air_audit_rectification_templates")
+}
+
+model AirAuditRectificationCostingSheet {
+  id                  String   @id @default(uuid())
+  clientName          String
+  projectName         String?
+  siteName            String?
+  scopeDetails        String?
+  manpowerRows        Json
+  instrumentRows      Json
+  extraExpenseRows    Json
+  siteWorkingDays     Int      @default(1)
+  reportWorkingDays   Int      @default(1)
+  totalManpowerCost   Decimal  @db.Decimal(14, 2)
+  totalInstrumentCost Decimal  @db.Decimal(14, 2)
+  totalExtraCost      Decimal  @db.Decimal(14, 2)
+  subtotalCost        Decimal  @db.Decimal(14, 2)
+  marginPct           Decimal  @db.Decimal(5, 2)
+  marginAmount        Decimal  @db.Decimal(14, 2)
+  bufferPct           Decimal  @db.Decimal(5, 2)
+  bufferAmount        Decimal  @db.Decimal(14, 2)
+  finalQuote          Decimal  @db.Decimal(14, 2)
+  status              String   @default("SAVED")
+  createdById         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([clientName])
+  @@map("air_audit_rectification_costing_sheets")
+}

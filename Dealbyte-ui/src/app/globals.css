@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-navy: #0D1B3C;
+  --color-brand-navy-light: #162a56;
+  --color-brand-navy-dark: #071026;
+  --color-brand-mint: #3BD98E;
+  --color-brand-mint-light: #5ee5a5;
+  --color-brand-mint-dark: #22b571;
+}
+
+@layer base {
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-family: var(--font-sans, system-ui, sans-serif);
+  }
+}
+
+.bg-brand-navy {
+  background-color: #0D1B3C;
+}
+
+.text-brand-navy {
+  color: #0D1B3C;
+}
+
+.border-brand-navy {
+  border-color: #0D1B3C;
+}
+
+.bg-brand-mint {
+  background-color: #3BD98E;
+}
+
+.text-brand-mint {
+  color: #3BD98E;
+}
+
+.border-brand-mint {
+  border-color: #3BD98E;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  aside, nav, header, footer:not(.print-footer), .print\:hidden, [role="navigation"] {
+    display: none !important;
+  }
+  .proposal-page {
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    min-height: 100vh !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+  }
+}
