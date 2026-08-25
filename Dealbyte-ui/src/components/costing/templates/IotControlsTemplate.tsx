@@ -215,12 +215,14 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
           <table className="w-full text-xs text-left text-slate-600">
             <thead className="bg-[#4d9338] text-white font-extrabold uppercase text-[11px] tracking-wider">
               <tr>
-                <th className="py-3 px-4 w-20 text-center">Sl .No</th>
-                <th className="py-3 px-4 min-w-[320px]">Product Description</th>
-                <th className="py-3 px-4 w-32 text-center">Quantity</th>
-                <th className="py-3 px-4 w-44 text-right">Unit Price (₹)</th>
-                <th className="py-3 px-4 w-44 text-right">Total Price (₹)</th>
-                <th className="py-3 px-4 w-16 text-center">Action</th>
+                <th className="py-3 px-3 w-16 text-center">Sl .No</th>
+                <th className="py-3 px-4 min-w-[260px]">Product Description</th>
+                <th className="py-3 px-2 w-20 text-center">Quantity</th>
+                <th className="py-3 px-3 w-32 text-right">Unit Cost (₹)</th>
+                <th className="py-3 px-2 w-20 text-center">Margin %</th>
+                <th className="py-3 px-3 w-32 text-right">Unit Price (₹)</th>
+                <th className="py-3 px-3 w-36 text-right">Total Price (₹)</th>
+                <th className="py-3 px-2 w-14 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
@@ -228,7 +230,7 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
                 const rowTotal = Math.round(Number(r.quantity || 0) * Number(r.unitPrice || 0));
                 return (
                   <tr key={r.id} className="hover:bg-emerald-50/20 transition-colors">
-                    <td className="py-2.5 px-4 text-center font-bold text-slate-700">
+                    <td className="py-2.5 px-3 text-center font-bold text-slate-700">
                       <input
                         type="text"
                         value={r.slNo}
@@ -237,37 +239,61 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
                       />
                     </td>
                     <td className="py-2.5 px-4 font-semibold text-slate-900">
-                      <input
-                        type="text"
+                      <textarea
+                        rows={Math.max(1, Math.ceil((r.productDescription?.length || 1) / 36))}
                         value={r.productDescription}
                         onChange={(e) => updateIotControlsHardwareRow(r.id, 'productDescription', e.target.value)}
-                        className="w-full px-2 py-1 text-xs font-semibold text-slate-900 bg-transparent border border-transparent hover:border-slate-300 focus:border-emerald-500 focus:bg-white rounded-lg focus:outline-none transition"
+                        className="w-full px-2 py-1 text-xs font-semibold text-slate-900 bg-transparent border border-transparent hover:border-slate-300 focus:border-emerald-500 focus:bg-white rounded-lg focus:outline-none transition resize-none leading-snug whitespace-pre-wrap"
                       />
                     </td>
-                    <td className="py-2.5 px-4 text-center">
+                    <td className="py-2.5 px-2 text-center">
                       <input
                         type="number"
-                        min={1}
+                        min={0}
                         value={r.quantity}
                         onChange={(e) => updateIotControlsHardwareRow(r.id, 'quantity', Number(e.target.value))}
-                        className="w-20 px-2 py-1 text-xs font-bold text-center text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        className="w-16 px-2 py-1 text-xs font-bold text-center text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
                     </td>
-                    <td className="py-2.5 px-4 text-right">
+                    <td className="py-2.5 px-3 text-right">
                       <div className="relative">
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
                         <input
                           type="number"
-                          value={r.unitPrice}
-                          onChange={(e) => updateIotControlsHardwareRow(r.id, 'unitPrice', Number(e.target.value))}
-                          className="w-full pl-6 pr-2 py-1 text-xs font-bold text-right text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                          value={r.unitCost !== undefined ? r.unitCost : 0}
+                          onChange={(e) => updateIotControlsHardwareRow(r.id, 'unitCost', Number(e.target.value))}
+                          className="w-full pl-6 pr-2 py-1 text-xs font-bold text-right text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                         />
                       </div>
                     </td>
-                    <td className="py-2.5 px-4 text-right font-extrabold text-emerald-900 text-xs">
+                    <td className="py-2.5 px-2 text-center">
+                      <div className="inline-flex items-center justify-center gap-0.5 bg-emerald-50 border border-emerald-300 rounded-lg px-1.5 py-0.5">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={r.marginPct !== undefined ? r.marginPct : 40}
+                          onChange={(e) => updateIotControlsHardwareRow(r.id, 'marginPct', Number(e.target.value))}
+                          className="w-10 text-center font-bold text-emerald-800 bg-transparent text-xs focus:outline-none"
+                        />
+                        <span className="text-[10px] font-extrabold text-emerald-700">%</span>
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-600 text-xs">₹</span>
+                        <input
+                          type="number"
+                          value={r.unitPrice}
+                          onChange={(e) => updateIotControlsHardwareRow(r.id, 'unitPrice', Number(e.target.value))}
+                          className="w-full pl-6 pr-2 py-1 text-xs font-extrabold text-right text-emerald-700 bg-emerald-50/50 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-extrabold text-slate-900 text-xs">
                       ₹{formatMoney(rowTotal)}
                     </td>
-                    <td className="py-2.5 px-4 text-center">
+                    <td className="py-2.5 px-2 text-center">
                       <button
                         type="button"
                         onClick={() => removeIotControlsHardwareRow(r.id)}
@@ -281,12 +307,12 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
                 );
               })}
             </tbody>
-            <tfoot className="bg-[#4d9338] text-white font-extrabold border-t-2 border-emerald-700">
+            <tfoot className="bg-slate-100 font-extrabold text-slate-900 border-t-2 border-slate-300">
               <tr>
-                <td colSpan={4} className="py-3 px-5 text-right uppercase text-xs tracking-wider">
-                  Total Capex Investment
+                <td colSpan={6} className="py-3 px-4 text-right uppercase text-xs tracking-wider">
+                  Hardware Capex Total
                 </td>
-                <td className="py-3 px-4 text-right text-white text-sm font-black">
+                <td className="py-3 px-4 text-right text-emerald-800 text-sm font-black">
                   ₹{formatMoney(iotHardwareTotalPrice)}
                 </td>
                 <td></td>
@@ -298,22 +324,27 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
         {/* Bottom Add Row Bar */}
         <div className="p-3.5 px-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
           <span className="text-xs text-slate-500 font-medium">
-            Add more sensors, gateways, controllers, or commissioning deliverables
+            Add custom gateways, sensors, CTs, controllers or auxiliary hardware
           </span>
           <button
             type="button"
             onClick={addIotControlsHardwareRow}
             className="px-4 py-2 text-xs font-bold text-emerald-800 bg-emerald-100/70 hover:bg-emerald-200/80 border border-emerald-300 rounded-xl transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
-            <Plus className="h-4 w-4 text-emerald-700" /> + Add Hardware Component Row
+            <Plus className="h-4 w-4 text-emerald-700" /> + Add Hardware Item Row
           </button>
         </div>
       </div>
 
-      {/* STEP 2: MAN DAYS COSTING (AIR AUDIT COSTING ENGINE) */}
-      <AirAuditManpowerEngine {...props} stepNumber={2} />
+      {/* STEP 2: INSTALLATION & COMMISSIONING (AIR AUDIT MANPOWER ENGINE) */}
+      <AirAuditManpowerEngine
+        {...props}
+        stepNumber="Step 2"
+        stepTitle="IoT Field Implementation & Commissioning Scope"
+        stepSubtitle="On-site IoT controller deployment, sensor calibration, wiring, gateway mapping & telemetry testing"
+      />
 
-      {/* STEP 3: CLOUD PLATFORM & OPEX SERVICES */}
+      {/* STEP 3: CLOUD PLATFORM & ANALYTICS (OPEX) */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xs overflow-hidden">
         <div className="p-5 px-6 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
@@ -353,19 +384,19 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
               {iotControlsOpexRows.map((r) => (
                 <tr key={r.id} className="hover:bg-purple-50/20 transition-colors">
                   <td className="py-2.5 px-4 font-bold text-slate-900">
-                    <input
-                      type="text"
+                    <textarea
+                      rows={Math.max(1, Math.ceil((r.item?.length || 1) / 28))}
                       value={r.item}
                       onChange={(e) => updateIotControlsOpexRow(r.id, 'item', e.target.value)}
-                      className="w-full px-2.5 py-1 text-xs font-bold text-slate-900 bg-transparent border border-transparent hover:border-slate-300 focus:border-purple-500 focus:bg-white rounded-lg focus:outline-none transition"
+                      className="w-full px-2.5 py-1 text-xs font-bold text-slate-900 bg-transparent border border-transparent hover:border-slate-300 focus:border-purple-500 focus:bg-white rounded-lg focus:outline-none transition resize-none leading-snug whitespace-pre-wrap"
                     />
                   </td>
                   <td className="py-2.5 px-4">
-                    <input
-                      type="text"
+                    <textarea
+                      rows={Math.max(1, Math.ceil((r.description?.length || 1) / 45))}
                       value={r.description}
                       onChange={(e) => updateIotControlsOpexRow(r.id, 'description', e.target.value)}
-                      className="w-full px-2.5 py-1 text-xs text-slate-700 bg-transparent border border-transparent hover:border-slate-300 focus:border-purple-500 focus:bg-white rounded-lg focus:outline-none transition"
+                      className="w-full px-2.5 py-1 text-xs text-slate-700 bg-transparent border border-transparent hover:border-slate-300 focus:border-purple-500 focus:bg-white rounded-lg focus:outline-none transition resize-none leading-snug whitespace-pre-wrap"
                     />
                   </td>
                   <td className="py-2.5 px-4 text-right">

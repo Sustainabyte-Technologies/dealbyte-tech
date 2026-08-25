@@ -16,14 +16,20 @@ import {
   EmsCostingTemplate,
   WeldingIotTemplate,
   IotControlsTemplate,
+  CpmCostingTemplate,
   DEFAULT_CLIENT_OPTIONS,
   PRESET_TEAM_MEMBERS,
+  getActiveTeamMembers,
   STANDARD_INSTRUMENT_CATALOG,
   INITIAL_EMS_GATEWAY_HARDWARE_ROWS,
   INITIAL_EMS_ELECTRICAL_HARDWARE_ROWS,
   INITIAL_EMS_MANPOWER_ROWS,
   INITIAL_EMS_PLATFORM_ROWS,
   INITIAL_EMS_RECURRING_ROWS,
+  INITIAL_WATER_MANAGEMENT_GATEWAY_HARDWARE_ROWS,
+  INITIAL_WATER_MANAGEMENT_ELECTRICAL_HARDWARE_ROWS,
+  INITIAL_WATER_MANAGEMENT_PLATFORM_ROWS,
+  INITIAL_WATER_MANAGEMENT_RECURRING_ROWS,
   INITIAL_WELDING_HARDWARE_ROWS,
   INITIAL_WELDING_SOFTWARE_ROWS,
   INITIAL_WELDING_CLOUD_ROWS,
@@ -33,6 +39,12 @@ import {
   INITIAL_IOT_CONTROLS_TRAVEL_ROWS,
   INITIAL_IOT_CONTROLS_OPEX_ROWS,
   INITIAL_IOT_CONTROLS_ROI_STATE,
+  INITIAL_CPM_HARDWARE_ROWS,
+  INITIAL_CPM_ELECTRICAL_ROWS,
+  INITIAL_CPM_COMMISSIONING_MANPOWER_ROWS,
+  INITIAL_CPM_INSTALLATION_ROWS,
+  INITIAL_CPM_INSTALLATION_MANPOWER_ROWS,
+  INITIAL_CPM_CLOUD_ROWS,
   DEFAULT_SITE_OPTIONS,
   DEFAULT_SITE_LOCATIONS,
   SiteLocation,
@@ -41,6 +53,7 @@ import {
   ENERGY_AUDIT_SUB_SERVICES,
   PROJECTS_SUB_SERVICES,
   IOT_SERVICES_SUB_SERVICES,
+  CHILLER_MANAGEMENT_SUB_SERVICES,
   WELDING_IOT_SUB_SERVICES,
   HARDWARE_SUB_SERVICES,
   calcPriceFromCost,
@@ -60,6 +73,8 @@ import {
   IotControlsTravelRow,
   IotControlsOpexRow,
   IotControlsRoiState,
+  CpmHardwareRow,
+  CpmCloudRow,
 } from '@/components/costing';
 
 function CostingSheetContent() {
@@ -173,10 +188,10 @@ function CostingSheetContent() {
     return mainCategoryService === 'Custom' && subServiceOption === 'Custom'
       ? `${activeCategoryName} - ${activeSubServiceName}`
       : mainCategoryService === 'Custom'
-      ? activeCategoryName
-      : subServiceOption === 'Custom'
-      ? `${activeCategoryName} - ${activeSubServiceName}`
-      : `${mainCategoryService} - ${activeSubServiceName}`;
+        ? activeCategoryName
+        : subServiceOption === 'Custom'
+          ? `${activeCategoryName} - ${activeSubServiceName}`
+          : `${mainCategoryService} - ${activeSubServiceName}`;
   }, [mainCategoryService, subServiceOption, activeCategoryName, activeSubServiceName]);
 
   const activeFullServiceName = useMemo(() => {
@@ -200,6 +215,24 @@ function CostingSheetContent() {
     );
   }, [activeSubServiceName, activeCategoryName, isWeldingIotActive]);
 
+  const isWaterManagementActive = useMemo(() => {
+    const subLower = (activeSubServiceName || '').toLowerCase();
+    const catLower = (activeCategoryName || '').toLowerCase();
+    return subLower.includes('water') || catLower.includes('water');
+  }, [activeSubServiceName, activeCategoryName]);
+
+  const isCpmActive = useMemo(() => {
+    const subLower = (activeSubServiceName || '').toLowerCase();
+    const catLower = (activeCategoryName || '').toLowerCase();
+    return (
+      catLower.includes('chiller') ||
+      subLower.includes('cpm') ||
+      subLower.includes('chiller plant') ||
+      subLower.includes('chiller management') ||
+      subLower.includes('chiller automation')
+    );
+  }, [activeSubServiceName, activeCategoryName]);
+
   const isEmsActive = useMemo(() => {
     const subLower = (activeSubServiceName || '').toLowerCase();
     const catLower = (activeCategoryName || '').toLowerCase();
@@ -207,15 +240,18 @@ function CostingSheetContent() {
       (catLower.includes('iot') ||
         catLower.includes('control') ||
         catLower.includes('energy management') ||
+        catLower.includes('water') ||
         subLower.includes('ems') ||
+        subLower.includes('water') ||
         subLower.includes('optibyte') ||
         subLower.includes('energy management') ||
         subLower.includes('iot & control') ||
         subLower.includes('iot controls')) &&
       !isWeldingIotActive &&
-      !isIotControlsActive
+      !isIotControlsActive &&
+      !isCpmActive
     );
-  }, [activeSubServiceName, activeCategoryName, isWeldingIotActive, isIotControlsActive]);
+  }, [activeSubServiceName, activeCategoryName, isWeldingIotActive, isIotControlsActive, isCpmActive]);
 
   // Standard Audit State
   const [clientName, setClientName] = useState<string>('Apollo Tyres Ltd');
@@ -226,7 +262,7 @@ function CostingSheetContent() {
   const [outstationStartLocation, setOutstationStartLocation] = useState<string>('Chennai');
   const [outstationEndLocation, setOutstationEndLocation] = useState<string>('Site Location');
   const [outstationDistanceKms, setOutstationDistanceKms] = useState<number>(0);
-  const [selectedSites, setSelectedSites] = useState<string[]>(['Gestamp']);
+  const [selectedSites, setSelectedSites] = useState<string[]>([]);
   const [customSiteLocations, setCustomSiteLocations] = useState<SiteLocation[]>([]);
   const [showAddCustomSite, setShowAddCustomSite] = useState<boolean>(false);
   const [customSiteNameInput, setCustomSiteNameInput] = useState<string>('');
@@ -252,9 +288,7 @@ function CostingSheetContent() {
   }, [showSiteDropdown]);
 
   const [manpowerRows, setManpowerRows] = useState<ManpowerRow[]>([
-    { id: 'm1', name: 'Gowtham', roleLevel: 'SENIOR_ENERGY', foodRatePerDay: 600, siteWorkCost: 6000, reportWorkCost: 4200, siteWorkingDays: 0, reportWorkingDays: 1 },
-    { id: 'm2', name: 'Pradeep', roleLevel: 'JUNIOR_ENERGY', foodRatePerDay: 400, siteWorkCost: 3000, reportWorkCost: 2300, siteWorkingDays: 2, reportWorkingDays: 0 },
-    { id: 'm3', name: 'Karthikeyan', roleLevel: 'JUNIOR_ENERGY', foodRatePerDay: 400, siteWorkCost: 3000, reportWorkCost: 2300, siteWorkingDays: 2, reportWorkingDays: 0 },
+    { id: 'm1', name: 'Gowtham', roleLevel: 'SENIOR_ENERGY', foodRatePerDay: 600, siteWorkCost: 6000, reportWorkCost: 4200, siteWorkingDays: 0, reportWorkingDays: 0 },
   ]);
 
   const [instrumentRows, setInstrumentRows] = useState<InstrumentRow[]>([
@@ -262,7 +296,7 @@ function CostingSheetContent() {
     { id: 'i2', name: 'Ultrasonic flow meter', rentalCost: 7000, sets: 0, siteWorkingDays: 0 },
     { id: 'i3', name: 'Aquastic Ultrasonic leakage detector', rentalCost: 4000, sets: 0, siteWorkingDays: 0 },
     { id: 'i4', name: 'Air Flow Meter', rentalCost: 4500, sets: 0, siteWorkingDays: 0 },
-    { id: 'i5', name: 'Thermal Camera', rentalCost: 1000, sets: 1, siteWorkingDays: 2 },
+    { id: 'i5', name: 'Thermal Camera', rentalCost: 1000, sets: 0, siteWorkingDays: 0 },
     { id: 'i6', name: 'Digital Clamp Meter', rentalCost: 1000, sets: 0, siteWorkingDays: 0 },
     { id: 'i7', name: 'Earth Meggar', rentalCost: 1000, sets: 0, siteWorkingDays: 0 },
     { id: 'i8', name: 'Lux Meter', rentalCost: 500, sets: 0, siteWorkingDays: 0 },
@@ -274,8 +308,9 @@ function CostingSheetContent() {
     { id: 'i14', name: 'Others / Custom Instrument', rentalCost: 1000, sets: 0, siteWorkingDays: 0 },
   ]);
 
-  const [insideChennaiDistanceKms, setInsideChennaiDistanceKms] = useState<number>(60);
+  const [insideChennaiDistanceKms, setInsideChennaiDistanceKms] = useState<number>(0);
   const [insideChennaiRatePerKm, setInsideChennaiRatePerKm] = useState<number>(5);
+  const [manualInsideChennaiDays, setManualInsideChennaiDays] = useState<number | null>(null);
   const [manualInsideChennaiOverride, setManualInsideChennaiOverride] = useState<number | null>(null);
 
   const [outsideChennaiBusCost, setOutsideChennaiBusCost] = useState<number>(0);
@@ -288,7 +323,7 @@ function CostingSheetContent() {
   const [isCustomAccommodationRate, setIsCustomAccommodationRate] = useState<boolean>(false);
   const [customAccommodationRate, setCustomAccommodationRate] = useState<number>(1500);
   const [manualAccommodationDays, setManualAccommodationDays] = useState<number | null>(null);
-  const [accommodationRooms, setAccommodationRooms] = useState<number>(1);
+  const [accommodationRooms, setAccommodationRooms] = useState<number>(0);
   const [manualAccommodationOverride, setManualAccommodationOverride] = useState<number | null>(null);
 
   const [juniorFoodRate, setJuniorFoodRate] = useState<number>(400);
@@ -317,6 +352,7 @@ function CostingSheetContent() {
   const [profitPct, setProfitPct] = useState<number>(40);
   const [bufferPct, setBufferPct] = useState<number>(10);
   const [negotiationMarginPct, setNegotiationMarginPct] = useState<number>(20);
+  const [roundingNearest, setRoundingNearest] = useState<number>(100);
 
   // EMS Specific State
   const [emsGatewayHardwareRows, setEmsGatewayHardwareRows] = useState<EmsHardwareRow[]>(INITIAL_EMS_GATEWAY_HARDWARE_ROWS);
@@ -338,12 +374,38 @@ function CostingSheetContent() {
   const [iotControlsOpexRows, setIotControlsOpexRows] = useState<IotControlsOpexRow[]>(INITIAL_IOT_CONTROLS_OPEX_ROWS);
   const [iotControlsRoiState, setIotControlsRoiState] = useState<IotControlsRoiState>(INITIAL_IOT_CONTROLS_ROI_STATE);
 
+  // Chiller Plant Management (CPM) Specific State
+  const [cpmHardwareRows, setCpmHardwareRows] = useState<CpmHardwareRow[]>(INITIAL_CPM_HARDWARE_ROWS);
+  const [cpmElectricalRows, setCpmElectricalRows] = useState<CpmHardwareRow[]>(INITIAL_CPM_ELECTRICAL_ROWS);
+  const [cpmCommissioningManpowerRows, setCpmCommissioningManpowerRows] = useState<ManpowerRow[]>(INITIAL_CPM_COMMISSIONING_MANPOWER_ROWS);
+  const [cpmInstallationRows, setCpmInstallationRows] = useState<CpmHardwareRow[]>(INITIAL_CPM_INSTALLATION_ROWS);
+  const [cpmInstallationManpowerRows, setCpmInstallationManpowerRows] = useState<ManpowerRow[]>(INITIAL_CPM_INSTALLATION_MANPOWER_ROWS);
+  const [cpmCloudRows, setCpmCloudRows] = useState<CpmCloudRow[]>(INITIAL_CPM_CLOUD_ROWS);
+
   // Helper row handlers
   const updateManpowerRow = (id: string, field: keyof ManpowerRow, val: any) => {
-    setManpowerRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
+    setManpowerRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        if (field === 'roleLevel') {
+          const newRole = val as ManpowerRow['roleLevel'];
+          if (newRole === 'SENIOR_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 6000, reportWorkCost: 4200, foodRatePerDay: 600 };
+          } else if (newRole === 'JUNIOR_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 3000, reportWorkCost: 2300, foodRatePerDay: 400 };
+          } else if (newRole === 'IOT_ENGINEER') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 3500, reportWorkCost: 0, foodRatePerDay: 500 };
+          } else if (newRole === 'TRAINEE_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 1500, reportWorkCost: 0, foodRatePerDay: 300 };
+          }
+          return { ...r, roleLevel: newRole };
+        }
+        return { ...r, [field]: val };
+      })
+    );
   };
   const addManpowerRow = (roleLevel: ManpowerRow['roleLevel'] = 'JUNIOR_ENERGY', presetName?: string) => {
-    const preset = presetName ? PRESET_TEAM_MEMBERS.find((p) => p.name === presetName) : null;
+    const preset = presetName ? getActiveTeamMembers().find((p) => p.name === presetName) : null;
     const newRow: ManpowerRow = {
       id: `m_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       name: preset ? preset.name : roleLevel === 'SENIOR_ENERGY' ? 'Senior Engineer' : 'Junior Engineer',
@@ -351,7 +413,7 @@ function CostingSheetContent() {
       foodRatePerDay: preset ? preset.foodRatePerDay : roleLevel === 'SENIOR_ENERGY' ? 600 : 400,
       siteWorkCost: preset ? preset.siteWorkCost : roleLevel === 'SENIOR_ENERGY' ? 6000 : 3000,
       reportWorkCost: preset ? preset.reportWorkCost : roleLevel === 'SENIOR_ENERGY' ? 4200 : 2300,
-      siteWorkingDays: 2,
+      siteWorkingDays: 0,
       reportWorkingDays: 0,
     };
     setManpowerRows((prev) => [...prev, newRow]);
@@ -369,8 +431,8 @@ function CostingSheetContent() {
       id: `i_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       name: catalogItem ? catalogItem.name : 'Custom Instrument',
       rentalCost: catalogItem ? catalogItem.rentalCost : 1000,
-      sets: 1,
-      siteWorkingDays: 2,
+      sets: 0,
+      siteWorkingDays: 0,
     };
     setInstrumentRows((prev) => [...prev, newRow]);
   };
@@ -387,8 +449,8 @@ function CostingSheetContent() {
       category,
       description: category === 'FOOD' ? 'Extra Meal Allowance' : category === 'TRAVEL' ? 'Extra Conveyance / Cab' : category === 'ACCOMMODATION' ? 'Extra Night Stay' : 'Site Consumables',
       rate: category === 'FOOD' ? 500 : category === 'TRAVEL' ? 2000 : 1500,
-      qty: 1,
-      days: 1,
+      qty: 0,
+      days: 0,
     };
     setExtraExpenses((prev) => [...prev, newRow]);
   };
@@ -400,11 +462,20 @@ function CostingSheetContent() {
   const updateEmsGatewayHardwareRow = (id: string, field: keyof EmsHardwareRow, val: any) => {
     setEmsGatewayHardwareRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
   };
-  const addEmsGatewayHardwareRow = () => {
+  const addEmsGatewayHardwareRow = (preset?: Partial<EmsHardwareRow>) => {
     const nextCode = `1${String.fromCharCode(97 + emsGatewayHardwareRows.length)}`;
     setEmsGatewayHardwareRows((prev) => [
       ...prev,
-      { id: `ems_h1_${Date.now()}`, code: nextCode, category: 'Sustainabyte Edge IoT Gateway Hardware', description: 'New Gateway Component', qty: 1, uom: 'Nos', unitCost: 5000, marginPct: 40 },
+      {
+        id: `ems_h1_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+        code: nextCode,
+        category: preset?.category || 'Sustainabyte Edge IoT Gateway Hardware',
+        description: preset?.description || 'New Gateway Component',
+        qty: preset?.qty ?? 0,
+        uom: preset?.uom || 'Nos',
+        unitCost: preset?.unitCost ?? 0,
+        marginPct: preset?.marginPct ?? 40,
+      },
     ]);
   };
   const removeEmsGatewayHardwareRow = (id: string) => {
@@ -414,11 +485,20 @@ function CostingSheetContent() {
   const updateEmsElectricalHardwareRow = (id: string, field: keyof EmsHardwareRow, val: any) => {
     setEmsElectricalHardwareRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
   };
-  const addEmsElectricalHardwareRow = () => {
+  const addEmsElectricalHardwareRow = (preset?: Partial<EmsHardwareRow>) => {
     const nextCode = `2${String.fromCharCode(97 + emsElectricalHardwareRows.length)}`;
     setEmsElectricalHardwareRows((prev) => [
       ...prev,
-      { id: `ems_h2_${Date.now()}`, code: nextCode, category: 'Electrical Hardware', description: 'New Electrical Accessory', qty: 1, uom: 'Nos', unitCost: 1000, marginPct: 40 },
+      {
+        id: `ems_h2_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+        code: nextCode,
+        category: preset?.category || 'Electrical Hardware',
+        description: preset?.description || 'New Electrical Accessory',
+        qty: preset?.qty ?? 0,
+        uom: preset?.uom || 'Nos',
+        unitCost: preset?.unitCost ?? 0,
+        marginPct: preset?.marginPct ?? 40,
+      },
     ]);
   };
   const removeEmsElectricalHardwareRow = (id: string) => {
@@ -426,18 +506,36 @@ function CostingSheetContent() {
   };
 
   const updateEmsManpowerRow = (id: string, field: keyof ManpowerRow, val: any) => {
-    setEmsManpowerRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
+    setEmsManpowerRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        if (field === 'roleLevel') {
+          const newRole = val as ManpowerRow['roleLevel'];
+          if (newRole === 'SENIOR_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 6000, reportWorkCost: 0, foodRatePerDay: 600 };
+          } else if (newRole === 'JUNIOR_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 3000, reportWorkCost: 0, foodRatePerDay: 400 };
+          } else if (newRole === 'IOT_ENGINEER') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 3500, reportWorkCost: 0, foodRatePerDay: 500 };
+          } else if (newRole === 'TRAINEE_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 1500, reportWorkCost: 0, foodRatePerDay: 300 };
+          }
+          return { ...r, roleLevel: newRole };
+        }
+        return { ...r, [field]: val };
+      })
+    );
   };
   const addEmsManpowerRow = (roleLevel: ManpowerRow['roleLevel'] = 'IOT_ENGINEER', presetName?: string) => {
-    const preset = presetName ? PRESET_TEAM_MEMBERS.find((p) => p.name === presetName) : null;
+    const preset = presetName ? getActiveTeamMembers().find((p) => p.name === presetName) : null;
     const newRow: ManpowerRow = {
       id: `ems_m_${Date.now()}`,
-      name: preset ? preset.name : 'Engineering Specialist',
+      name: preset ? preset.name : roleLevel === 'SENIOR_ENERGY' ? 'Senior Engineer' : roleLevel === 'JUNIOR_ENERGY' ? 'Junior Engineer' : 'Engineering Specialist',
       roleLevel: preset ? preset.roleLevel : roleLevel,
-      foodRatePerDay: preset ? preset.foodRatePerDay : 400,
-      siteWorkCost: preset ? preset.siteWorkCost : 3500,
-      reportWorkCost: preset ? preset.reportWorkCost : 2500,
-      siteWorkingDays: 2,
+      foodRatePerDay: preset ? preset.foodRatePerDay : roleLevel === 'SENIOR_ENERGY' ? 600 : roleLevel === 'JUNIOR_ENERGY' ? 400 : 500,
+      siteWorkCost: preset ? preset.siteWorkCost : roleLevel === 'SENIOR_ENERGY' ? 6000 : roleLevel === 'JUNIOR_ENERGY' ? 3000 : 3500,
+      reportWorkCost: preset ? preset.reportWorkCost : 0,
+      siteWorkingDays: 0,
       reportWorkingDays: 0,
     };
     setEmsManpowerRows((prev) => [...prev, newRow]);
@@ -452,7 +550,7 @@ function CostingSheetContent() {
   const addEmsPlatformRow = () => {
     setEmsPlatformRows((prev) => [
       ...prev,
-      { id: `ems_p_${Date.now()}`, description: 'New Platform Setup Deliverable', qty: 1, uom: 'Nodes', unitCost: 500, marginPct: 40 },
+      { id: `ems_p_${Date.now()}`, description: 'New Platform Setup Deliverable', qty: 0, uom: 'Nodes', unitCost: 1000, marginPct: 40 },
     ]);
   };
   const removeEmsPlatformRow = (id: string) => {
@@ -465,7 +563,7 @@ function CostingSheetContent() {
   const addEmsRecurringRow = () => {
     setEmsRecurringRows((prev) => [
       ...prev,
-      { id: `ems_r_${Date.now()}`, code: `1${String.fromCharCode(97 + emsRecurringRows.length)}`, description: 'New Recurring Cloud Feature', qty: 1, uom: 'Nodes', unitCostPerMonth: 100, marginPct: 40 },
+      { id: `ems_r_${Date.now()}`, code: `1${String.fromCharCode(97 + emsRecurringRows.length)}`, description: 'New Recurring Cloud Feature', qty: 0, uom: 'Nodes', unitCostPerMonth: 0, marginPct: 40 },
     ]);
   };
   const removeEmsRecurringRow = (id: string) => {
@@ -478,7 +576,10 @@ function CostingSheetContent() {
       prev.map((r) => {
         if (r.id !== id) return r;
         if (field === 'unitCost') {
-          return { ...r, unitCost: Number(val || 0) };
+          const cost = Number(val || 0);
+          const margin = r.marginPct !== undefined ? r.marginPct : profitPct || 40;
+          const unitPrice = Math.round(calcPriceFromCost(cost, margin));
+          return { ...r, unitCost: cost, unitPrice };
         }
         if (field === 'unitPrice') {
           return { ...r, unitPrice: Number(val || 0) };
@@ -490,7 +591,7 @@ function CostingSheetContent() {
   const addWeldingHardwareRow = () => {
     setWeldingHardwareRows((prev) => [
       ...prev,
-      { id: `wh_${Date.now()}`, slNo: weldingHardwareRows.length + 1, componentName: 'New Hardware Component', qty: 1, unitCost: 1000, unitPrice: 1667 },
+      { id: `wh_${Date.now()}`, slNo: weldingHardwareRows.length + 1, componentName: 'New Hardware Component', qty: 0, unitCost: 0, unitPrice: 0 },
     ]);
   };
   const removeWeldingHardwareRow = (id: string) => {
@@ -498,12 +599,30 @@ function CostingSheetContent() {
   };
 
   const updateWeldingSoftwareRow = (id: string, field: keyof WeldingSoftwareRow, val: any) => {
-    setWeldingSoftwareRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
+    setWeldingSoftwareRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        if (field === 'qty') {
+          const qty = isNaN(Number(val)) || val === '' ? 0 : Number(val);
+          const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : 20000;
+          return { ...r, qty, unitPrice, price: Math.round(qty * unitPrice) };
+        }
+        if (field === 'unitPrice') {
+          const unitPrice = Number(val || 0);
+          const qty = r.qty !== undefined ? Number(r.qty) : 0;
+          return { ...r, unitPrice, price: Math.round(qty * unitPrice) };
+        }
+        if (field === 'price') {
+          return { ...r, price: Number(val || 0) };
+        }
+        return { ...r, [field]: val };
+      })
+    );
   };
   const addWeldingSoftwareRow = () => {
     setWeldingSoftwareRows((prev) => [
       ...prev,
-      { id: `ws_${Date.now()}`, item: 'Custom Software Module', description: 'Custom logic & algorithm development', uom: 'per kit', price: 10000 },
+      { id: `ws_${Date.now()}`, item: 'Custom Software Module', description: 'Custom logic & algorithm development', qty: 0, uom: 'Units', unitPrice: 20000, price: 0 },
     ]);
   };
   const removeWeldingSoftwareRow = (id: string) => {
@@ -514,6 +633,34 @@ function CostingSheetContent() {
     setWeldingCloudRows((prev) =>
       prev.map((r) => {
         if (r.id !== id) return r;
+        if (field === 'qty') {
+          const qty = isNaN(Number(val)) || val === '' ? 0 : Number(val);
+          const unitMonthlyPrice = r.unitMonthlyPrice !== undefined ? Number(r.unitMonthlyPrice) : (r.monthlyPrice && r.qty ? Math.round(r.monthlyPrice / r.qty) : (r.monthlyPrice || 1000));
+          const unitMonthlyCost = r.unitMonthlyCost !== undefined ? Number(r.unitMonthlyCost) : Math.round(unitMonthlyPrice * 0.6);
+          const monthlyCost = Math.round(qty * unitMonthlyCost);
+          const monthlyPrice = Math.round(qty * unitMonthlyPrice);
+          const yearlyPrice = monthlyPrice * 12;
+          return { ...r, qty, unitMonthlyPrice, unitMonthlyCost, monthlyCost, monthlyPrice, yearlyPrice };
+        }
+        if (field === 'unitMonthlyPrice') {
+          const unitMonthlyPrice = Number(val || 0);
+          const unitMonthlyCost = r.unitMonthlyCost !== undefined ? Number(r.unitMonthlyCost) : Math.round(unitMonthlyPrice * 0.6);
+          const qty = r.qty !== undefined ? Number(r.qty) : 0;
+          const monthlyCost = Math.round(qty * unitMonthlyCost);
+          const monthlyPrice = Math.round(qty * unitMonthlyPrice);
+          const yearlyPrice = monthlyPrice * 12;
+          return { ...r, unitMonthlyPrice, unitMonthlyCost, monthlyCost, monthlyPrice, yearlyPrice };
+        }
+        if (field === 'unitMonthlyCost') {
+          const unitMonthlyCost = Number(val || 0);
+          const margin = r.marginPct !== undefined ? r.marginPct : profitPct || 40;
+          const unitMonthlyPrice = Math.round(calcPriceFromCost(unitMonthlyCost, margin));
+          const qty = r.qty !== undefined ? Number(r.qty) : 0;
+          const monthlyCost = Math.round(qty * unitMonthlyCost);
+          const monthlyPrice = Math.round(qty * unitMonthlyPrice);
+          const yearlyPrice = monthlyPrice * 12;
+          return { ...r, unitMonthlyCost, unitMonthlyPrice, monthlyCost, monthlyPrice, yearlyPrice };
+        }
         if (field === 'monthlyCost') {
           const cost = Number(val || 0);
           const margin = r.marginPct !== undefined ? r.marginPct : profitPct || 40;
@@ -522,9 +669,12 @@ function CostingSheetContent() {
         }
         if (field === 'marginPct') {
           const margin = Number(val || 0);
-          const cost = r.monthlyCost !== undefined ? r.monthlyCost : Math.round(Number(r.monthlyPrice || 0) * 0.6);
-          const monthlyPrice = Math.round(calcPriceFromCost(cost, margin));
-          return { ...r, marginPct: margin, monthlyCost: cost, monthlyPrice, yearlyPrice: monthlyPrice * 12 };
+          const unitCost = r.unitMonthlyCost !== undefined ? r.unitMonthlyCost : Math.round(Number(r.unitMonthlyPrice || 0) * 0.6);
+          const unitMonthlyPrice = Math.round(calcPriceFromCost(unitCost, margin));
+          const qty = r.qty !== undefined ? Number(r.qty) : 0;
+          const monthlyCost = Math.round(qty * unitCost);
+          const monthlyPrice = Math.round(qty * unitMonthlyPrice);
+          return { ...r, marginPct: margin, unitMonthlyCost: unitCost, unitMonthlyPrice, monthlyCost, monthlyPrice, yearlyPrice: monthlyPrice * 12 };
         }
         if (field === 'monthlyPrice') {
           const monthlyPrice = Number(val || 0);
@@ -544,12 +694,12 @@ function CostingSheetContent() {
     );
   };
   const addWeldingCloudRow = () => {
-    const cost = 300;
+    const unitCost = 0;
     const margin = profitPct || 40;
-    const monthlyPrice = Math.round(calcPriceFromCost(cost, margin));
+    const unitPrice = Math.round(calcPriceFromCost(unitCost, margin));
     setWeldingCloudRows((prev) => [
       ...prev,
-      { id: `wc_${Date.now()}`, component: 'Cloud Storage / MQTT', description: 'Additional cloud analytics storage', type: 'Cloud', monthlyCost: cost, marginPct: margin, monthlyPrice, yearlyPrice: monthlyPrice * 12 },
+      { id: `wc_${Date.now()}`, component: 'Cloud Storage / MQTT', description: 'Additional cloud analytics storage', type: 'Cloud', qty: 0, uom: 'Nos', unitMonthlyCost: unitCost, marginPct: margin, unitMonthlyPrice: unitPrice, monthlyCost: 0, monthlyPrice: 0, yearlyPrice: 0 },
     ]);
   };
   const removeWeldingCloudRow = (id: string) => {
@@ -569,26 +719,26 @@ function CostingSheetContent() {
           const cost = Number(val || 0);
           const margin = r.marginPct !== undefined ? r.marginPct : profitPct || 40;
           const unitPrice = Math.round(calcPriceFromCost(cost, margin));
-          const qty = Number(r.qty ?? 1) || 1;
+          const qty = r.qty !== undefined && r.qty !== null ? Number(r.qty) : 0;
           return { ...r, unitCost: cost, unitPrice, price: Math.round(qty * unitPrice) };
         }
         if (field === 'marginPct') {
           const margin = Number(val || 0);
-          const cost = r.unitCost !== undefined ? r.unitCost : Math.round((r.unitPrice ?? r.price ?? 15000) * 0.6);
+          const cost = r.unitCost !== undefined ? r.unitCost : Math.round((r.unitPrice ?? r.price ?? 0) * 0.6);
           const unitPrice = Math.round(calcPriceFromCost(cost, margin));
-          const qty = Number(r.qty ?? 1) || 1;
+          const qty = r.qty !== undefined && r.qty !== null ? Number(r.qty) : 0;
           return { ...r, marginPct: margin, unitCost: cost, unitPrice, price: Math.round(qty * unitPrice) };
         }
         if (field === 'unitPrice') {
           const unitPrice = Number(val || 0);
           const cost = r.unitCost !== undefined ? r.unitCost : Math.round(unitPrice * 0.6);
           const marginPct = unitPrice > 0 && cost > 0 && unitPrice >= cost ? Math.round((1 - cost / unitPrice) * 100) : (r.marginPct ?? 40);
-          const qty = Number(r.qty ?? 1) || 1;
+          const qty = r.qty !== undefined && r.qty !== null ? Number(r.qty) : 0;
           return { ...r, unitPrice, unitCost: cost, marginPct, price: Math.round(qty * unitPrice) };
         }
         if (field === 'price') {
           const price = Number(val || 0);
-          const qty = Number(r.qty ?? 1) || 1;
+          const qty = r.qty !== undefined && r.qty !== null ? Number(r.qty) : 0;
           const unitPrice = qty > 0 ? Math.round(price / qty) : price;
           return { ...r, price, unitPrice };
         }
@@ -597,12 +747,12 @@ function CostingSheetContent() {
     );
   };
   const addWeldingInstallationRow = () => {
-    const unitCost = 9000;
+    const unitCost = 15000;
     const margin = profitPct || 40;
     const unitPrice = Math.round(calcPriceFromCost(unitCost, margin));
     setWeldingInstallationRows((prev) => [
       ...prev,
-      { id: `wi_${Date.now()}`, item: 'Additional Site Calibration', qty: 1, uom: 'per kit', unitCost, marginPct: margin, unitPrice, price: unitPrice },
+      { id: `wi_${Date.now()}`, item: 'Additional Site Calibration', qty: 0, uom: 'Nos', unitCost, marginPct: margin, unitPrice, price: 0 },
     ]);
   };
   const removeWeldingInstallationRow = (id: string) => {
@@ -620,9 +770,9 @@ function CostingSheetContent() {
     );
     setWeldingInstallationRows((prev) =>
       prev.map((r) => {
-        const unitCost = r.unitCost !== undefined ? r.unitCost : Math.round(Number(r.unitPrice ?? r.price ?? 15000) * 0.6);
+        const unitCost = r.unitCost !== undefined ? r.unitCost : Math.round(Number(r.unitPrice ?? r.price ?? 0) * 0.6);
         const unitPrice = Math.round(calcPriceFromCost(unitCost, margin));
-        const qty = Number(r.qty ?? 1) || 1;
+        const qty = r.qty !== undefined && r.qty !== null ? Number(r.qty) : 0;
         return { ...r, unitCost, marginPct: margin, unitPrice, price: Math.round(qty * unitPrice) };
       })
     );
@@ -631,12 +781,41 @@ function CostingSheetContent() {
 
   // IoT Controls Row Handlers
   const updateIotControlsHardwareRow = (id: string, field: keyof IotControlsHardwareRow, val: any) => {
-    setIotControlsHardwareRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: val } : r)));
+    setIotControlsHardwareRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const updated = { ...r, [field]: val };
+        if (field === 'unitCost') {
+          const margin = updated.marginPct !== undefined ? updated.marginPct : 40;
+          const cost = Number(val) || 0;
+          updated.unitPrice = cost > 0 ? Math.round(calcPriceFromCost(cost, margin)) : 0;
+        } else if (field === 'marginPct') {
+          const margin = Number(val) || 0;
+          const cost = Number(updated.unitCost) || 0;
+          updated.unitPrice = cost > 0 ? Math.round(calcPriceFromCost(cost, margin)) : Number(updated.unitPrice || 0);
+        } else if (field === 'unitPrice') {
+          const price = Number(val) || 0;
+          const margin = updated.marginPct !== undefined ? updated.marginPct : 40;
+          if (updated.unitCost === undefined || updated.unitCost === 0) {
+            updated.unitCost = Math.round(price * ((100 - margin) / 100));
+          }
+        }
+        return updated;
+      })
+    );
   };
   const addIotControlsHardwareRow = () => {
     setIotControlsHardwareRows((prev) => [
       ...prev,
-      { id: `ich_${Date.now()}`, slNo: `${iotControlsHardwareRows.length + 1}`, productDescription: 'New Controller / Sensor Component', quantity: 1, unitPrice: 5000 },
+      {
+        id: `ich_${Date.now()}`,
+        slNo: `${iotControlsHardwareRows.length + 1}`,
+        productDescription: 'New Controller / Sensor Component',
+        quantity: 0,
+        unitCost: 0,
+        marginPct: 40,
+        unitPrice: 0,
+      },
     ]);
   };
   const removeIotControlsHardwareRow = (id: string) => {
@@ -649,7 +828,7 @@ function CostingSheetContent() {
   const addIotControlsOpexRow = () => {
     setIotControlsOpexRows((prev) => [
       ...prev,
-      { id: `ico_${Date.now()}`, item: 'Additional Cloud Analytics & Support', yearlyPrice: 25000, description: 'Annual server hosting, remote diagnostics & SLA monitoring' },
+      { id: `ico_${Date.now()}`, item: 'Additional Cloud Analytics & Support', yearlyPrice: 0, description: 'Annual server hosting, remote diagnostics & SLA monitoring' },
     ]);
   };
   const removeIotControlsOpexRow = (id: string) => {
@@ -660,8 +839,218 @@ function CostingSheetContent() {
     setIotControlsRoiState((prev) => ({ ...prev, [field]: val }));
   };
 
+  // CPM Row Handlers
+  const updateCpmHardwareRow = (id: string, field: keyof CpmHardwareRow, val: any) => {
+    setCpmHardwareRows((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          return { ...r, [field]: val };
+        }
+        return r;
+      })
+    );
+  };
+
+  const addCpmHardwareRow = (preset?: Partial<CpmHardwareRow>) => {
+    const newRow: CpmHardwareRow = {
+      id: `cpm_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      slNo: cpmHardwareRows.length + 1,
+      brand: preset?.brand || '',
+      itemDescription: preset?.itemDescription || 'New CPM Hardware Component',
+      modelNo: preset?.modelNo || '',
+      qty: preset?.qty ?? 0,
+      uom: preset?.uom || 'Nos',
+      unitCost: preset?.unitCost ?? 0,
+      marginPct: preset?.marginPct ?? profitPct ?? 40,
+    };
+    setCpmHardwareRows((prev) => [...prev, newRow]);
+  };
+
+  const removeCpmHardwareRow = (id: string) => {
+    setCpmHardwareRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const updateCpmElectricalRow = (id: string, field: keyof CpmHardwareRow, val: any) => {
+    setCpmElectricalRows((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          return { ...r, [field]: val };
+        }
+        return r;
+      })
+    );
+  };
+
+  const addCpmElectricalRow = (preset?: Partial<CpmHardwareRow>) => {
+    const newRow: CpmHardwareRow = {
+      id: `cpm_e_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      slNo: 11 + cpmElectricalRows.length,
+      brand: preset?.brand || 'Generic/OEM',
+      itemDescription: preset?.itemDescription || 'New Electrical Consumable',
+      modelNo: preset?.modelNo || '',
+      qty: preset?.qty ?? 0,
+      uom: preset?.uom || 'Mtr',
+      unitCost: preset?.unitCost ?? 50,
+      marginPct: preset?.marginPct ?? profitPct ?? 40,
+    };
+    setCpmElectricalRows((prev) => [...prev, newRow]);
+  };
+
+  const removeCpmElectricalRow = (id: string) => {
+    setCpmElectricalRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const updateCpmInstallationRow = (id: string, field: keyof CpmHardwareRow, val: any) => {
+    setCpmInstallationRows((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          return { ...r, [field]: val };
+        }
+        return r;
+      })
+    );
+  };
+
+  const addCpmInstallationRow = (preset?: Partial<CpmHardwareRow>) => {
+    const newRow: CpmHardwareRow = {
+      id: `cpm_inst_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      slNo: cpmInstallationRows.length + 1,
+      brand: preset?.brand || '',
+      itemDescription: preset?.itemDescription || 'New Installation Deliverable',
+      modelNo: preset?.modelNo || '',
+      qty: preset?.qty ?? 0,
+      uom: preset?.uom || 'Job',
+      unitCost: preset?.unitCost ?? 115000,
+      marginPct: preset?.marginPct ?? profitPct ?? 40,
+    };
+    setCpmInstallationRows((prev) => [...prev, newRow]);
+  };
+
+  const removeCpmInstallationRow = (id: string) => {
+    setCpmInstallationRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const updateCpmCommissioningManpowerRow = (id: string, field: keyof ManpowerRow, val: any) => {
+    setCpmCommissioningManpowerRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        if (field === 'roleLevel') {
+          const newRole = val as ManpowerRow['roleLevel'];
+          if (newRole === 'SENIOR_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 80000, reportWorkCost: 0, foodRatePerDay: 600 };
+          } else if (newRole === 'JUNIOR_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 3000, reportWorkCost: 0, foodRatePerDay: 400 };
+          } else if (newRole === 'IOT_ENGINEER') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 3500, reportWorkCost: 0, foodRatePerDay: 500 };
+          } else if (newRole === 'TRAINEE_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 1500, reportWorkCost: 0, foodRatePerDay: 300 };
+          }
+          return { ...r, roleLevel: newRole };
+        }
+        return { ...r, [field]: val };
+      })
+    );
+  };
+
+  const addCpmCommissioningManpowerRow = (roleLevel: ManpowerRow['roleLevel'] = 'SENIOR_ENERGY', presetName?: string) => {
+    const preset = presetName ? getActiveTeamMembers().find((p) => p.name === presetName) : null;
+    const newRow: ManpowerRow = {
+      id: `cpm_comm_m_${Date.now()}`,
+      name: preset ? preset.name : roleLevel === 'SENIOR_ENERGY' ? 'Vijayan' : roleLevel === 'IOT_ENGINEER' ? 'IoT Engineer' : 'Energy Engineer',
+      roleLevel: preset ? preset.roleLevel : roleLevel,
+      foodRatePerDay: preset ? preset.foodRatePerDay : roleLevel === 'SENIOR_ENERGY' ? 600 : 400,
+      siteWorkCost: preset && preset.name === 'Vijayan' ? 80000 : preset ? preset.siteWorkCost : roleLevel === 'SENIOR_ENERGY' ? 80000 : 3000,
+      reportWorkCost: 0,
+      siteWorkingDays: 0,
+      reportWorkingDays: 0,
+    };
+    setCpmCommissioningManpowerRows((prev) => [...prev, newRow]);
+  };
+
+  const removeCpmCommissioningManpowerRow = (id: string) => {
+    setCpmCommissioningManpowerRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const updateCpmInstallationManpowerRow = (id: string, field: keyof ManpowerRow, val: any) => {
+    setCpmInstallationManpowerRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        if (field === 'roleLevel') {
+          const newRole = val as ManpowerRow['roleLevel'];
+          if (newRole === 'SENIOR_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 6000, reportWorkCost: 0, foodRatePerDay: 600 };
+          } else if (newRole === 'JUNIOR_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 2500, reportWorkCost: 0, foodRatePerDay: 400 };
+          } else if (newRole === 'IOT_ENGINEER') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 3500, reportWorkCost: 0, foodRatePerDay: 500 };
+          } else if (newRole === 'TRAINEE_ENERGY') {
+            return { ...r, roleLevel: newRole, siteWorkCost: 1500, reportWorkCost: 0, foodRatePerDay: 300 };
+          }
+          return { ...r, roleLevel: newRole };
+        }
+        return { ...r, [field]: val };
+      })
+    );
+  };
+
+  const addCpmInstallationManpowerRow = (roleLevel: ManpowerRow['roleLevel'] = 'IOT_ENGINEER', presetName?: string) => {
+    const preset = presetName ? getActiveTeamMembers().find((p) => p.name === presetName) : null;
+    const newRow: ManpowerRow = {
+      id: `cpm_inst_m_${Date.now()}`,
+      name: preset ? preset.name : roleLevel === 'IOT_ENGINEER' ? 'Lead Installation Engineer' : roleLevel === 'JUNIOR_ENERGY' ? 'Electrical & Cabling Technician' : 'Site Technician',
+      roleLevel: preset ? preset.roleLevel : roleLevel,
+      foodRatePerDay: preset ? preset.foodRatePerDay : roleLevel === 'IOT_ENGINEER' ? 500 : 400,
+      siteWorkCost: preset ? preset.siteWorkCost : roleLevel === 'IOT_ENGINEER' ? 3500 : 2500,
+      reportWorkCost: 0,
+      siteWorkingDays: 0,
+      reportWorkingDays: 0,
+    };
+    setCpmInstallationManpowerRows((prev) => [...prev, newRow]);
+  };
+
+  const removeCpmInstallationManpowerRow = (id: string) => {
+    setCpmInstallationManpowerRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const updateCpmCloudRow = (id: string, field: keyof CpmCloudRow, val: any) => {
+    setCpmCloudRows((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          return { ...r, [field]: val };
+        }
+        return r;
+      })
+    );
+  };
+
+  const addCpmCloudRow = (preset?: Partial<CpmCloudRow>) => {
+    const newRow: CpmCloudRow = {
+      id: `cpm_cloud_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      itemDescription: preset?.itemDescription || 'New Cloud SaaS Deliverable',
+      billingCycle: preset?.billingCycle || 'Annual',
+      qty: preset?.qty ?? 0,
+      uom: preset?.uom || 'Year',
+      unitCost: preset?.unitCost ?? 0,
+      marginPct: preset?.marginPct ?? profitPct ?? 40,
+    };
+    setCpmCloudRows((prev) => [...prev, newRow]);
+  };
+
+  const removeCpmCloudRow = (id: string) => {
+    setCpmCloudRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const applyCpmGlobalMargin = (marginPct: number) => {
+    setCpmHardwareRows((prev) => prev.map((r) => ({ ...r, marginPct })));
+    setCpmElectricalRows((prev) => prev.map((r) => ({ ...r, marginPct })));
+    setCpmInstallationRows((prev) => prev.map((r) => ({ ...r, marginPct })));
+    setCpmCloudRows((prev) => prev.map((r) => ({ ...r, marginPct })));
+    setProfitPct(marginPct);
+    toast.success(`Applied ${marginPct}% margin across CPM components & Services`);
+  };
+
   // Calculations & Math Engines
-  const activeManpowerRows = isEmsActive || isIotControlsActive ? emsManpowerRows : manpowerRows;
+  const activeManpowerRows = isEmsActive || isIotControlsActive || isCpmActive ? emsManpowerRows : manpowerRows;
   const maxSiteWorkingDays = useMemo(() => {
     return Math.max(...activeManpowerRows.map((r) => Number(r.siteWorkingDays || 0)), 0);
   }, [activeManpowerRows]);
@@ -670,8 +1059,12 @@ function CostingSheetContent() {
   const isOutstationActive = stationType === 'Outstation' || stationType === 'Both (Local & Outstation)';
 
   const activeAccommodationRate = isCustomAccommodationRate ? customAccommodationRate : selectedAccommodationTier;
+  const totalSiteMandaysComputed = useMemo(() => {
+    return activeManpowerRows.reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [activeManpowerRows]);
+
   const activeAccommodationDays = manualAccommodationDays !== null ? manualAccommodationDays : maxSiteWorkingDays;
-  const calculatedAccommodationCost = !isOutstationActive ? 0 : activeAccommodationDays * accommodationRooms * activeAccommodationRate;
+  const calculatedAccommodationCost = !isOutstationActive ? 0 : activeAccommodationDays * activeAccommodationRate;
   const finalAccommodationCost = !isOutstationActive ? 0 : (manualAccommodationOverride !== null ? manualAccommodationOverride : calculatedAccommodationCost);
 
   const juniorSiteDaysComputed = useMemo(() => {
@@ -717,15 +1110,16 @@ function CostingSheetContent() {
   const finalCustomFoodCost = manualCustomFoodOverride !== null ? manualCustomFoodOverride : activeCustomDays * customFoodRate;
   const totalFoodCost = finalJuniorFoodCost + finalSeniorFoodCost + finalIotFoodCost + finalTraineeFoodCost + finalCustomFoodCost;
 
-  const calculatedInsideChennaiTravel = insideChennaiDistanceKms * insideChennaiRatePerKm;
+  const activeInsideChennaiDays = manualInsideChennaiDays !== null ? manualInsideChennaiDays : (maxSiteWorkingDays || 1);
+  const calculatedInsideChennaiTravel = insideChennaiDistanceKms * insideChennaiRatePerKm * activeInsideChennaiDays;
   const finalInsideChennaiTravel = !isLocalStationActive ? 0 : manualInsideChennaiOverride !== null ? manualInsideChennaiOverride : calculatedInsideChennaiTravel;
 
-  const calculatedOutsideChennaiTravel = outsideChennaiBusCost + outsideChennaiCabCost + outsideChennaiTrainCost + outsideChennaiFlightCost;
+  const calculatedOutsideChennaiTravel = (outsideChennaiBusCost + outsideChennaiCabCost + outsideChennaiTrainCost + outsideChennaiFlightCost) * 2;
   const finalOutsideChennaiTravel = !isOutstationActive ? 0 : manualOutsideChennaiOverride !== null ? manualOutsideChennaiOverride : calculatedOutsideChennaiTravel;
   const totalTravelCost = finalInsideChennaiTravel + finalOutsideChennaiTravel;
 
   const customExpensesTotal = useMemo(() => {
-    return extraExpenses.reduce((sum, e) => sum + Number(e.rate || 0) * Number(e.qty || 1) * Number(e.days || 1), 0);
+    return extraExpenses.reduce((sum, e) => sum + Number(e.rate || 0) * Number(e.qty || 0) * Number(e.days || 0), 0);
   }, [extraExpenses]);
 
   // Standard Audit Totals
@@ -743,7 +1137,7 @@ function CostingSheetContent() {
   const instrumentRentalCost = useMemo(() => {
     return instrumentRows.reduce((sum, r) => {
       const sets = Number(r.sets || 0);
-      const days = sets > 0 ? (Number(r.siteWorkingDays || 0) > 0 ? Number(r.siteWorkingDays) : (maxSiteWorkingDays || 1)) : 0;
+      const days = sets > 0 ? (Number(r.siteWorkingDays || 0) > 0 ? Number(r.siteWorkingDays) : (maxSiteWorkingDays || 0)) : 0;
       return sum + Number(r.rentalCost || 0) * sets * days;
     }, 0);
   }, [instrumentRows, maxSiteWorkingDays]);
@@ -752,22 +1146,27 @@ function CostingSheetContent() {
   const costTotal = manWorkingCost + instrumentRentalCost + totalFoodCost + totalTravelCost + finalAccommodationCost + customExpensesTotal;
 
   // Energy Audit Services Margin & Buffer Formulas:
+  // Step 5 Itemized Deliverables & Customer Price (using roundToNearest with Math.ceil)
+  const roundToNearest = (val: number, nearest: number = 100): number => {
+    const step = Number(nearest) || 1;
+    return Math.ceil(val / step) * step;
+  };
+
   // Profit Margin = (Total Cost / 0.6) - Total Cost
   // Price = Total Cost + Profit Margin
   // Quote Buffer = (Total Price / 0.9) - Total Price
-  // Final Quote Amount = Total Price / 0.9
-  const isEnergyAuditCosting = activeCategoryName === 'Energy Audit Services' || (!isEmsActive && !isIotControlsActive && !isWeldingIotActive);
-  const profitAmount = isEnergyAuditCosting
-    ? (profitPct === 40 || !profitPct
-        ? Math.round((costTotal / 0.6) - costTotal)
-        : Math.round((costTotal / (Math.max(10, 100 - profitPct) / 100)) - costTotal))
-    : Math.round(costTotal * (profitPct / 100));
+  // Final Quote Amount = Total Price / 0.9 (with round off)
+  const isEnergyAuditCosting = activeCategoryName === 'Energy Audit Services' || (!isEmsActive && !isIotControlsActive && !isWeldingIotActive && !isCpmActive);
+  const profitAmount = (profitPct === 40 || !profitPct)
+    ? Math.round((costTotal / 0.6) - costTotal)
+    : Math.round((costTotal / (Math.max(10, 100 - profitPct) / 100)) - costTotal);
   const basePrice = costTotal + profitAmount;
+  const rawQuoteAmount = bufferPct === 10 || !bufferPct
+    ? Math.round(basePrice / 0.9)
+    : Math.round(basePrice / (Math.max(10, 100 - bufferPct) / 100));
   const ourQuoteAmount = isEnergyAuditCosting
-    ? (bufferPct === 10 || !bufferPct
-        ? Math.round(basePrice / 0.9)
-        : Math.round(basePrice / (Math.max(10, 100 - bufferPct) / 100)))
-    : Math.round(basePrice * (1 + bufferPct / 100));
+    ? roundToNearest(rawQuoteAmount, roundingNearest)
+    : rawQuoteAmount;
 
   // EMS Totals
   const emsGatewayHardwareTotalCost = useMemo(() => {
@@ -812,20 +1211,42 @@ function CostingSheetContent() {
 
   const emsSteps1To4TotalCost = emsHardwareTotalCost + emsManpowerTotalCost + emsPlatformTotalCost + emsRecurringYearlyTotalCost;
   const emsSteps1To4TotalPrice = emsHardwareTotalPrice + emsManpowerTotalPrice + emsPlatformTotalPrice + emsRecurringYearlyTotalPrice;
-  const emsBufferAmount = Math.round(emsSteps1To4TotalPrice * (bufferPct / 100));
-  const emsPriceWithBuffer = emsSteps1To4TotalPrice + emsBufferAmount;
-  const emsRoundedCustomerCost = roundToHundred(emsPriceWithBuffer);
+
+  const emsItem1a = emsGatewayHardwareRows[0];
+  const emsItem1Price = emsItem1a ? emsItem1a.qty * calcPriceFromCost(emsItem1a.unitCost, emsItem1a.marginPct) : 0;
+  const emsItem1Cust = roundToNearest(emsItem1Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+
+  const emsItem1bRows = emsGatewayHardwareRows.slice(1);
+  const emsItem2Price = emsItem1bRows.reduce((sum, r) => sum + r.qty * calcPriceFromCost(r.unitCost, r.marginPct), 0);
+  const emsItem2Cust = roundToNearest(emsItem2Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+
+  const emsItem3Price = emsElectricalHardwareTotalPrice;
+  const emsItem3Cust = roundToNearest(emsItem3Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+
+  const emsItem4Price = emsManpowerTotalPrice;
+  const emsItem4Cust = roundToNearest(emsItem4Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+
+  const emsItem5Price = emsPlatformTotalPrice;
+  const emsItem5Cust = roundToNearest(emsItem5Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+
+  const emsItem6Price = emsRecurringYearlyTotalPrice;
+  const emsItem6Cust = roundToNearest(emsItem6Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+
+  const emsTotalStep5CustomerPrice = emsItem1Cust + emsItem2Cust + emsItem3Cust + emsItem4Cust + emsItem5Cust + emsItem6Cust;
+  const emsBufferAmount = emsTotalStep5CustomerPrice - emsSteps1To4TotalPrice;
+  const emsPriceWithBuffer = emsTotalStep5CustomerPrice;
+  const emsRoundedCustomerCost = emsTotalStep5CustomerPrice;
 
   // Welding IoT Totals
   const weldingHardwareTotalCost = useMemo(() => {
     return weldingHardwareRows.reduce((sum, r) => {
-      const qty = typeof r.qty === 'number' ? r.qty : isNaN(Number(r.qty)) ? 1 : Number(r.qty);
+      const qty = typeof r.qty === 'number' ? r.qty : isNaN(Number(r.qty)) ? 0 : Number(r.qty);
       return sum + qty * Number(r.unitCost || 0);
     }, 0);
   }, [weldingHardwareRows]);
   const weldingHardwareTotalPrice = useMemo(() => {
     return weldingHardwareRows.reduce((sum, r) => {
-      const qty = typeof r.qty === 'number' ? r.qty : isNaN(Number(r.qty)) ? 1 : Number(r.qty);
+      const qty = typeof r.qty === 'number' ? r.qty : isNaN(Number(r.qty)) ? 0 : Number(r.qty);
       return sum + qty * Number(r.unitPrice || 0);
     }, 0);
   }, [weldingHardwareRows]);
@@ -851,7 +1272,7 @@ function CostingSheetContent() {
 
   const weldingInstallationTotalCost = useMemo(() => {
     return weldingInstallationRows.reduce((sum, r) => {
-      const qty = Number(r.qty ?? 1) || 1;
+      const qty = r.qty !== undefined && r.qty !== null ? Number(r.qty) : 0;
       const unitCost = r.unitCost !== undefined ? Number(r.unitCost) : Math.round(Number(r.unitPrice ?? r.price ?? 0) * 0.6);
       return sum + qty * unitCost;
     }, 0);
@@ -859,7 +1280,7 @@ function CostingSheetContent() {
 
   const weldingInstallationTotalPrice = useMemo(() => {
     return weldingInstallationRows.reduce((sum, r) => {
-      const qty = Number(r.qty ?? 1) || 1;
+      const qty = r.qty !== undefined && r.qty !== null ? Number(r.qty) : 0;
       const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : Number(r.price || 0);
       return sum + qty * unitPrice;
     }, 0);
@@ -870,6 +1291,172 @@ function CostingSheetContent() {
   const weldingPriceWithBuffer = weldingSteps1To4TotalPrice + weldingBufferAmount;
   const weldingGrandTotal = roundToHundred(weldingPriceWithBuffer);
   const weldingTotalInternalCost = weldingHardwareTotalCost + Math.round(weldingSoftwareTotalPrice * 0.6) + weldingCloudTotalYearlyCost + weldingInstallationTotalCost;
+
+  // Chiller Plant Management (CPM) Totals
+  const cpmHardwareTotalCost = useMemo(() => {
+    return cpmHardwareRows.reduce((sum, r) => sum + Number(r.qty || 0) * Number(r.unitCost || 0), 0);
+  }, [cpmHardwareRows]);
+
+  const cpmHardwareTotalPrice = useMemo(() => {
+    return cpmHardwareRows.reduce(
+      (sum, r) => sum + Math.round(Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), Number(r.marginPct !== undefined ? r.marginPct : 40))),
+      0
+    );
+  }, [cpmHardwareRows]);
+
+  const cpmElectricalTotalCost = useMemo(() => {
+    return cpmElectricalRows.reduce((sum, r) => sum + Number(r.qty || 0) * Number(r.unitCost || 0), 0);
+  }, [cpmElectricalRows]);
+
+  const cpmElectricalTotalPrice = useMemo(() => {
+    return cpmElectricalRows.reduce(
+      (sum, r) => sum + Math.round(Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), Number(r.marginPct !== undefined ? r.marginPct : 40))),
+      0
+    );
+  }, [cpmElectricalRows]);
+
+  const cpmInstallationTotalCost = useMemo(() => {
+    return cpmInstallationRows.reduce((sum, r) => sum + Number(r.qty || 0) * Number(r.unitCost || 0), 0);
+  }, [cpmInstallationRows]);
+
+  const cpmInstallationTotalPrice = useMemo(() => {
+    return cpmInstallationRows.reduce(
+      (sum, r) => sum + Math.round(Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), Number(r.marginPct !== undefined ? r.marginPct : profitPct || 40))),
+      0
+    );
+  }, [cpmInstallationRows, profitPct]);
+
+  const cpmInstJuniorDaysComputed = useMemo(() => {
+    return cpmInstallationManpowerRows
+      .filter((r) => r.roleLevel === 'JUNIOR_ENERGY')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmInstallationManpowerRows]);
+
+  const cpmInstSeniorDaysComputed = useMemo(() => {
+    return cpmInstallationManpowerRows
+      .filter((r) => r.roleLevel === 'SENIOR_ENERGY')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmInstallationManpowerRows]);
+
+  const cpmInstIotDaysComputed = useMemo(() => {
+    return cpmInstallationManpowerRows
+      .filter((r) => r.roleLevel === 'IOT_ENGINEER')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmInstallationManpowerRows]);
+
+  const cpmInstTraineeDaysComputed = useMemo(() => {
+    return cpmInstallationManpowerRows
+      .filter((r) => r.roleLevel === 'TRAINEE_ENERGY')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmInstallationManpowerRows]);
+
+  const cpmInstCustomDaysComputed = useMemo(() => {
+    return cpmInstallationManpowerRows
+      .filter((r) => r.roleLevel === 'CUSTOM')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmInstallationManpowerRows]);
+
+  const cpmCommJuniorDaysComputed = useMemo(() => {
+    return cpmCommissioningManpowerRows
+      .filter((r) => r.roleLevel === 'JUNIOR_ENERGY')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmCommissioningManpowerRows]);
+
+  const cpmCommSeniorDaysComputed = useMemo(() => {
+    return cpmCommissioningManpowerRows
+      .filter((r) => r.roleLevel === 'SENIOR_ENERGY')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmCommissioningManpowerRows]);
+
+  const cpmCommIotDaysComputed = useMemo(() => {
+    return cpmCommissioningManpowerRows
+      .filter((r) => r.roleLevel === 'IOT_ENGINEER')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmCommissioningManpowerRows]);
+
+  const cpmCommTraineeDaysComputed = useMemo(() => {
+    return cpmCommissioningManpowerRows
+      .filter((r) => r.roleLevel === 'TRAINEE_ENERGY')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmCommissioningManpowerRows]);
+
+  const cpmCommCustomDaysComputed = useMemo(() => {
+    return cpmCommissioningManpowerRows
+      .filter((r) => r.roleLevel === 'CUSTOM')
+      .reduce((sum, r) => sum + Number(r.siteWorkingDays || 0), 0);
+  }, [cpmCommissioningManpowerRows]);
+
+  const cpmCommMaxSiteDays = useMemo(() => {
+    return Math.max(...cpmCommissioningManpowerRows.map((r) => Number(r.siteWorkingDays || 0)), 0);
+  }, [cpmCommissioningManpowerRows]);
+
+  const cpmCommManpowerBaseCost = useMemo(() => {
+    return cpmCommissioningManpowerRows.reduce((sum, r) => {
+      const siteCost = Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0);
+      const reportCost = Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0);
+      return sum + siteCost + reportCost;
+    }, 0);
+  }, [cpmCommissioningManpowerRows]);
+
+  const cpmCommJuniorFoodCost = cpmCommJuniorDaysComputed * juniorFoodRate;
+  const cpmCommSeniorFoodCost = cpmCommSeniorDaysComputed * seniorFoodRate;
+  const cpmCommIotFoodCost = cpmCommIotDaysComputed * iotFoodRate;
+  const cpmCommTraineeFoodCost = cpmCommTraineeDaysComputed * (traineeFoodRate || 400);
+  const cpmCommCustomFoodCost = cpmCommCustomDaysComputed * (customFoodRate || 500);
+  const cpmCommTotalFoodCost = cpmCommJuniorFoodCost + cpmCommSeniorFoodCost + cpmCommIotFoodCost + cpmCommTraineeFoodCost + cpmCommCustomFoodCost;
+
+  const cpmCommInsideChennaiTravel = isLocalStationActive ? insideChennaiDistanceKms * insideChennaiRatePerKm * cpmCommMaxSiteDays : 0;
+  const cpmCommOutsideChennaiTravel = isOutstationActive ? (outsideChennaiBusCost + outsideChennaiCabCost + outsideChennaiTrainCost + outsideChennaiFlightCost) : 0;
+  const cpmCommTotalTravelCost = cpmCommInsideChennaiTravel + cpmCommOutsideChennaiTravel;
+  const cpmCommAccommodationCost = isOutstationActive ? cpmCommMaxSiteDays * activeAccommodationRate : 0;
+  const cpmCommSiteExpensesTotalCost = cpmCommTotalFoodCost + cpmCommTotalTravelCost + cpmCommAccommodationCost + customExpensesTotal;
+
+  const cpmCommissioningTotalCost = cpmCommManpowerBaseCost + cpmCommSiteExpensesTotalCost;
+  const cpmCommissioningTotalPrice = Math.round(calcPriceFromCost(cpmCommissioningTotalCost, profitPct || 40));
+
+  const cpmInstMaxSiteDays = useMemo(() => {
+    return Math.max(...cpmInstallationManpowerRows.map((r) => Number(r.siteWorkingDays || 0)), 0);
+  }, [cpmInstallationManpowerRows]);
+
+  const cpmInstManpowerBaseCost = useMemo(() => {
+    return cpmInstallationManpowerRows.reduce((sum, r) => {
+      const siteCost = Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0);
+      const reportCost = Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0);
+      return sum + siteCost + reportCost;
+    }, 0);
+  }, [cpmInstallationManpowerRows]);
+
+  const cpmInstJuniorFoodCost = cpmInstJuniorDaysComputed * juniorFoodRate;
+  const cpmInstSeniorFoodCost = cpmInstSeniorDaysComputed * seniorFoodRate;
+  const cpmInstIotFoodCost = cpmInstIotDaysComputed * iotFoodRate;
+  const cpmInstTraineeFoodCost = cpmInstTraineeDaysComputed * (traineeFoodRate || 400);
+  const cpmInstCustomFoodCost = cpmInstCustomDaysComputed * (customFoodRate || 500);
+  const cpmInstTotalFoodCost = cpmInstJuniorFoodCost + cpmInstSeniorFoodCost + cpmInstIotFoodCost + cpmInstTraineeFoodCost + cpmInstCustomFoodCost;
+
+  const cpmInstInsideChennaiTravel = isLocalStationActive ? insideChennaiDistanceKms * insideChennaiRatePerKm * cpmInstMaxSiteDays : 0;
+  const cpmInstOutsideChennaiTravel = isOutstationActive ? (outsideChennaiBusCost + outsideChennaiCabCost + outsideChennaiTrainCost + outsideChennaiFlightCost) : 0;
+  const cpmInstTotalTravelCost = cpmInstInsideChennaiTravel + cpmInstOutsideChennaiTravel;
+  const cpmInstAccommodationCost = isOutstationActive ? cpmInstMaxSiteDays * activeAccommodationRate : 0;
+  const cpmInstSiteExpensesTotalCost = cpmInstTotalFoodCost + cpmInstTotalTravelCost + cpmInstAccommodationCost + customExpensesTotal;
+
+  const cpmInstManpowerTotalCost = cpmInstManpowerBaseCost + cpmInstSiteExpensesTotalCost;
+  const cpmInstManpowerTotalPrice = Math.round(calcPriceFromCost(cpmInstManpowerTotalCost, profitPct || 40));
+
+  const cpmCloudTotalCost = useMemo(() => {
+    return cpmCloudRows.reduce((sum, r) => sum + Number(r.qty || 0) * Number(r.unitCost || 0), 0);
+  }, [cpmCloudRows]);
+
+  const cpmCloudTotalPrice = useMemo(() => {
+    return cpmCloudRows.reduce(
+      (sum, r) => sum + Math.round(Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), Number(r.marginPct !== undefined ? r.marginPct : 40))),
+      0
+    );
+  }, [cpmCloudRows]);
+
+  const cpmSteps1To5TotalPrice = cpmHardwareTotalPrice + cpmElectricalTotalPrice + cpmCommissioningTotalPrice + cpmInstManpowerTotalPrice + cpmCloudTotalPrice;
+  const cpmBufferAmount = Math.round(cpmSteps1To5TotalPrice / Math.max(0.01, (100 - (bufferPct || 10)) / 100)) - cpmSteps1To5TotalPrice;
+  const cpmPriceWithBuffer = cpmSteps1To5TotalPrice + cpmBufferAmount;
+  const cpmRoundedCustomerCost = roundToNearest(cpmPriceWithBuffer, roundingNearest);
 
   // IoT Controls Totals & ROI
   const iotHardwareTotalPrice = useMemo(() => {
@@ -1023,9 +1610,8 @@ function CostingSheetContent() {
               key={siteObj.name}
               type="button"
               onClick={() => toggleSiteSelection(siteObj.name)}
-              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
-                isSelected ? 'bg-sky-50 text-sky-900 font-bold border border-sky-200' : 'text-slate-700 hover:bg-slate-50'
-              }`}
+              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${isSelected ? 'bg-sky-50 text-sky-900 font-bold border border-sky-200' : 'text-slate-700 hover:bg-slate-50'
+                }`}
             >
               <div className="flex items-center gap-1.5">
                 {isSelected ? (
@@ -1105,7 +1691,9 @@ function CostingSheetContent() {
 
   // Sync All Site Days Helper
   const syncAllSiteDays = (days: number) => {
-    if (isEmsActive || isIotControlsActive) {
+    if (isCpmActive) {
+      setCpmCommissioningManpowerRows((prev) => prev.map((r) => ({ ...r, siteWorkingDays: days })));
+    } else if (isEmsActive || isIotControlsActive) {
       setEmsManpowerRows((prev) => prev.map((r) => ({ ...r, siteWorkingDays: days })));
     } else {
       setManpowerRows((prev) => prev.map((r) => ({ ...r, siteWorkingDays: days })));
@@ -1117,19 +1705,28 @@ function CostingSheetContent() {
   // Reset defaults
   const resetToModelDefaults = () => {
     setManpowerRows([
-      { id: 'm1', name: 'Gowtham', roleLevel: 'SENIOR_ENERGY', foodRatePerDay: 600, siteWorkCost: 6000, reportWorkCost: 4200, siteWorkingDays: 0, reportWorkingDays: 1 },
-      { id: 'm2', name: 'Pradeep', roleLevel: 'JUNIOR_ENERGY', foodRatePerDay: 400, siteWorkCost: 3000, reportWorkCost: 2300, siteWorkingDays: 2, reportWorkingDays: 0 },
-      { id: 'm3', name: 'Karthikeyan', roleLevel: 'JUNIOR_ENERGY', foodRatePerDay: 400, siteWorkCost: 3000, reportWorkCost: 2300, siteWorkingDays: 2, reportWorkingDays: 0 },
+      { id: 'm1', name: 'Gowtham', roleLevel: 'SENIOR_ENERGY', foodRatePerDay: 600, siteWorkCost: 6000, reportWorkCost: 4200, siteWorkingDays: 0, reportWorkingDays: 0 },
     ]);
-    setInsideChennaiDistanceKms(240);
+    setInsideChennaiDistanceKms(0);
     setInsideChennaiRatePerKm(5);
-    setManualInsideChennaiOverride(1200);
+    setManualInsideChennaiOverride(null);
     setProfitPct(40);
     setBufferPct(10);
     toast.success('Reset standard costing to model defaults!');
   };
 
   const resetEmsDefaults = () => {
+    if (isWaterManagementActive) {
+      setEmsGatewayHardwareRows(INITIAL_WATER_MANAGEMENT_GATEWAY_HARDWARE_ROWS);
+      setEmsElectricalHardwareRows(INITIAL_WATER_MANAGEMENT_ELECTRICAL_HARDWARE_ROWS);
+      setEmsManpowerRows(INITIAL_EMS_MANPOWER_ROWS);
+      setEmsPlatformRows(INITIAL_WATER_MANAGEMENT_PLATFORM_ROWS);
+      setEmsRecurringRows(INITIAL_WATER_MANAGEMENT_RECURRING_ROWS);
+      setProfitPct(40);
+      setBufferPct(10);
+      toast.success('Reset Water Management costing to model defaults!');
+      return;
+    }
     setEmsGatewayHardwareRows(INITIAL_EMS_GATEWAY_HARDWARE_ROWS);
     setEmsElectricalHardwareRows(INITIAL_EMS_ELECTRICAL_HARDWARE_ROWS);
     setEmsManpowerRows(INITIAL_EMS_MANPOWER_ROWS);
@@ -1161,8 +1758,82 @@ function CostingSheetContent() {
     toast.success('Reset IoT Controls & Hardware costing to reference defaults!');
   };
 
+  const resetCpmDefaults = () => {
+    setCpmHardwareRows(INITIAL_CPM_HARDWARE_ROWS);
+    setCpmElectricalRows(INITIAL_CPM_ELECTRICAL_ROWS);
+    setCpmCommissioningManpowerRows(INITIAL_CPM_COMMISSIONING_MANPOWER_ROWS);
+    setCpmInstallationRows(INITIAL_CPM_INSTALLATION_ROWS);
+    setCpmCloudRows(INITIAL_CPM_CLOUD_ROWS);
+    setProfitPct(40);
+    setBufferPct(10);
+    toast.success('Reset CPM costing to reference model defaults!');
+  };
+
   // CSV Export
   const exportCSV = () => {
+    if (isCpmActive) {
+      const csvLines = [
+        `Chiller Plant Management (CPM) Costing Sheet - ${clientName} (${activeFullServiceName})`,
+        `Date: ${new Date().toLocaleDateString('en-IN')}`,
+        ``,
+        `STEP 1: PRODUCT DESCRIPTION & HARDWARE CAPEX MATRIX`,
+        `Sl.No,Brand,Item Description,Model No,Qty,UoM,Unit Cost (₹),Total Cost (₹),Margin %,Selling Price (₹)`,
+        ...cpmHardwareRows.map(
+          (r, idx) =>
+            `${idx + 1},"${r.brand}","${r.itemDescription.replace(/"/g, '""')}","${r.modelNo}",${r.qty},${r.uom},${r.unitCost},${r.qty * r.unitCost},${r.marginPct}%,${Math.round(r.qty * calcPriceFromCost(r.unitCost, r.marginPct))}`
+        ),
+        ``,
+        `STEP 2: ELECTRICAL HARDWARE & CONSUMABLES MATRIX`,
+        `Sl.No,Brand,Item Description,Model No,Qty,UoM,Unit Cost (₹),Total Cost (₹),Margin %,Selling Price (₹)`,
+        ...cpmElectricalRows.map(
+          (r, idx) =>
+            `${11 + idx},"${r.brand}","${r.itemDescription.replace(/"/g, '""')}","${r.modelNo}",${r.qty},${r.uom},${r.unitCost},${r.qty * r.unitCost},${r.marginPct}%,${Math.round(r.qty * calcPriceFromCost(r.unitCost, r.marginPct))}`
+        ),
+        ``,
+        `STEP 3: TESTING AND COMMISSIONING SCOPE`,
+        `Sl.No,Name,Role Level,Daily Cost (₹),Food Rate (₹),Site Days,Report Days,Total Cost (₹),Selling Price (₹)`,
+        ...cpmCommissioningManpowerRows.map((r, idx) => {
+          const cost = (Number(r.siteWorkCost || 0) + Number(r.foodRatePerDay || 0)) * Number(r.siteWorkingDays || 0) + Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0);
+          return `${idx + 1},"${r.name}","${r.roleLevel}",${r.siteWorkCost},${r.foodRatePerDay},${r.siteWorkingDays},${r.reportWorkingDays},${cost},${Math.round(calcPriceFromCost(cost, profitPct || 40))}`;
+        }),
+        ``,
+        `STEP 4: INSTALLATION CHARGES MANDAYS & LOGISTICS SCOPE`,
+        `Sl.No,Name,Role Level,Daily Cost (₹),Food Rate (₹),Site Days,Report Days,Total Cost (₹),Selling Price (₹)`,
+        ...cpmInstallationManpowerRows.map((r, idx) => {
+          const cost = (Number(r.siteWorkCost || 0) + Number(r.foodRatePerDay || 0)) * Number(r.siteWorkingDays || 0) + Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0);
+          return `${idx + 1},"${r.name}","${r.roleLevel}",${r.siteWorkCost},${r.foodRatePerDay},${r.siteWorkingDays},${r.reportWorkingDays},${cost},${Math.round(calcPriceFromCost(cost, profitPct || 40))}`;
+        }),
+        ``,
+        `STEP 5: SOFTWARE COST (CLOUD BASIS) & SAAS SUBSCRIPTIONS`,
+        `Sl.No,Module Description,Qty,UoM,Unit Cost (₹),Total Cost (₹),Margin %,Selling Price (₹)`,
+        ...cpmCloudRows.map((r, idx) => {
+          const cost = Number(r.qty || 0) * Number(r.unitCost || 0);
+          const price = Math.round(Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), Number(r.marginPct ?? 40)));
+          return `${idx + 1},"${r.itemDescription.replace(/"/g, '""')}",${r.qty},${r.uom},${r.unitCost},${cost},${r.marginPct}%,${price}`;
+        }),
+        ``,
+        `Total Hardware Capex Cost (₹),${cpmHardwareTotalCost.toFixed(2)}`,
+        `Total Hardware Capex Price (₹),${cpmHardwareTotalPrice.toFixed(2)}`,
+        `Total Electrical Consumables Cost (₹),${cpmElectricalTotalCost.toFixed(2)}`,
+        `Total Electrical Consumables Price (₹),${cpmElectricalTotalPrice.toFixed(2)}`,
+        `Total Testing & Commissioning Cost (₹),${cpmCommissioningTotalCost.toFixed(2)}`,
+        `Total Testing & Commissioning Price (₹),${cpmCommissioningTotalPrice.toFixed(2)}`,
+        `Total Installation Charges Cost (₹),${cpmInstManpowerTotalCost.toFixed(2)}`,
+        `Total Installation Charges Price (₹),${cpmInstManpowerTotalPrice.toFixed(2)}`,
+        `Total Software Cost (Cloud Basis) Cost (₹),${cpmCloudTotalCost.toFixed(2)}`,
+        `Total Software Cost (Cloud Basis) Price (₹),${cpmCloudTotalPrice.toFixed(2)}`,
+        `Final Customer Quotation with ${bufferPct}% Buffer (₹),₹${cpmRoundedCustomerCost}`,
+      ];
+      const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvLines.join('\n'));
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `CPM_Costing_${clientName.replace(/\s+/g, '_')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`Exported CPM sheet for ${clientName}`);
+      return;
+    }
     if (isIotControlsActive) {
       const csvLines = [
         `IoT Controls & Hardware Costing Sheet - ${clientName} (${activeFullServiceName})`,
@@ -1170,9 +1841,9 @@ function CostingSheetContent() {
         `Site: ${selectedSites.join(', ') || 'N/A'}`,
         ``,
         `STEP 1: PRODUCT DESCRIPTION & HARDWARE CAPEX MATRIX`,
-        `Sl.No,Product Description,Quantity,Unit Price (₹),Total Price (₹)`,
-        ...iotControlsHardwareRows.map((r) => `${r.slNo},"${r.productDescription.replace(/"/g, '""')}",${r.quantity},${r.unitPrice},${(r.quantity * r.unitPrice).toFixed(2)}`),
-        `,,,Total Capex Investment,${iotHardwareTotalPrice.toFixed(2)}`,
+        `Sl.No,Product Description,Quantity,Unit Cost (₹),Margin %,Unit Price (₹),Total Price (₹)`,
+        ...iotControlsHardwareRows.map((r) => `${r.slNo},"${r.productDescription.replace(/"/g, '""')}",${r.quantity},${r.unitCost || 0},${r.marginPct ?? 40}%,${r.unitPrice},${(r.quantity * r.unitPrice).toFixed(2)}`),
+        `,,,,,Total Capex Investment,${iotHardwareTotalPrice.toFixed(2)}`,
         ``,
         `STEP 2: MAN DAYS COSTING`,
         `Sl.No,Designation / Scope,Mandays,Rate/Day (₹),Total Cost (₹)`,
@@ -1207,9 +1878,9 @@ function CostingSheetContent() {
         `,,,Hardware Total Price,${weldingHardwareTotalPrice.toFixed(2)}`,
         ``,
         `STEP 2: SOFTWARE DEVELOPMENT`,
-        `Item,Description,Price (₹)`,
-        ...weldingSoftwareRows.map((r) => `"${r.item}","${r.description.replace(/"/g, '""')}",${r.price}`),
-        `,Software Total,${weldingSoftwareTotalPrice.toFixed(2)}`,
+        `Item,Description,Unit / UoM,Price (₹)`,
+        ...weldingSoftwareRows.map((r) => `"${r.item}","${r.description.replace(/"/g, '""')}","${r.uom || 'per kit'}",${r.price}`),
+        `,,Software Total,${weldingSoftwareTotalPrice.toFixed(2)}`,
         ``,
         `STEP 3: CLOUD CHARGES`,
         `Component,Description,Type,Monthly Cost (₹),Margin %,Monthly Price (₹),Yearly Price (₹)`,
@@ -1335,31 +2006,31 @@ function CostingSheetContent() {
     const emsHardwareRowsCombined = [...emsGatewayHardwareRows, ...emsElectricalHardwareRows];
     const payload = isIotControlsActive
       ? {
-          id: editId || undefined,
-          clientId: selectedClientId || undefined,
-          clientName: clientName || 'General Client',
-          serviceCategory: activeCategoryName,
-          subService: activeSubServiceName,
-          projectName: activeProjectName || undefined,
-          siteName: selectedSites.join(', ') || undefined,
-          stationType,
-          outstationStartLocation,
-          outstationEndLocation,
-          isIotControls: true,
-          iotControlsHardwareRows,
-          emsManpowerRows,
-          extraExpenses,
-          iotControlsMandaysRows,
-          iotControlsTravelRows,
-          iotControlsOpexRows,
-          iotControlsRoiState,
-          subtotalCost: iotTotalProjectCost,
-          marginPct: profitPct,
-          bufferPct: bufferPct,
-          finalQuote: iotHardwareTotalPrice,
-        }
+        id: editId || undefined,
+        clientId: selectedClientId || undefined,
+        clientName: clientName || 'General Client',
+        serviceCategory: activeCategoryName,
+        subService: activeSubServiceName,
+        projectName: activeProjectName || undefined,
+        siteName: selectedSites.join(', ') || undefined,
+        stationType,
+        outstationStartLocation,
+        outstationEndLocation,
+        isIotControls: true,
+        iotControlsHardwareRows,
+        emsManpowerRows,
+        extraExpenses,
+        iotControlsMandaysRows,
+        iotControlsTravelRows,
+        iotControlsOpexRows,
+        iotControlsRoiState,
+        subtotalCost: iotTotalProjectCost,
+        marginPct: profitPct,
+        bufferPct: bufferPct,
+        finalQuote: iotHardwareTotalPrice,
+      }
       : isWeldingIotActive
-      ? {
+        ? {
           id: editId || undefined,
           clientId: selectedClientId || undefined,
           clientName: clientName || 'General Client',
@@ -1380,56 +2051,60 @@ function CostingSheetContent() {
           bufferPct: bufferPct,
           finalQuote: weldingGrandTotal,
         }
-      : isEmsActive
-      ? {
-          id: editId || undefined,
-          clientId: selectedClientId || undefined,
-          clientName: clientName || 'General Client',
-          serviceCategory: activeCategoryName,
-          subService: activeSubServiceName,
-          projectName: activeProjectName || undefined,
-          siteName: selectedSites.join(', ') || undefined,
-          stationType,
-          outstationStartLocation,
-          outstationEndLocation,
-          isEms: true,
-          emsHardwareRows: emsHardwareRowsCombined,
-          emsGatewayHardwareRows,
-          emsElectricalHardwareRows,
-          emsManpowerRows,
-          emsPlatformRows,
-          emsRecurringRows,
-          subtotalCost: emsSteps1To4TotalCost,
-          marginPct: profitPct,
-          bufferPct: bufferPct,
-          finalQuote: emsRoundedCustomerCost,
-        }
-      : {
-          id: editId || undefined,
-          clientId: selectedClientId || undefined,
-          clientName: clientName || 'General Client',
-          serviceCategory: activeCategoryName,
-          subService: activeSubServiceName,
-          projectName: activeProjectName || undefined,
-          siteName: selectedSites.join(', ') || undefined,
-          stationType,
-          outstationStartLocation,
-          outstationEndLocation,
-          manpowerRows,
-          instrumentRows,
-          extraExpenseRows: extraExpenses,
-          siteWorkingDays: maxSiteWorkingDays || 1,
-          reportWorkingDays: 1,
-          totalManpowerCost: manWorkingCost,
-          totalInstrumentCost: instrumentRentalCost,
-          totalExtraCost: totalFoodCost + totalTravelCost + finalAccommodationCost + customExpensesTotal,
-          subtotalCost: costTotal,
-          marginPct: profitPct,
-          marginAmount: profitAmount,
-          bufferPct: bufferPct,
-          bufferAmount: ourQuoteAmount - basePrice,
-          finalQuote: ourQuoteAmount,
-        };
+        : isEmsActive
+          ? {
+            id: editId || undefined,
+            clientId: selectedClientId || undefined,
+            clientName: clientName || 'General Client',
+            serviceCategory: activeCategoryName,
+            subService: activeSubServiceName,
+            projectName: activeProjectName || undefined,
+            siteName: selectedSites.join(', ') || undefined,
+            stationType,
+            outstationStartLocation,
+            outstationEndLocation,
+            isEms: true,
+            emsHardwareRows: emsHardwareRowsCombined,
+            emsGatewayHardwareRows,
+            emsElectricalHardwareRows,
+            emsManpowerRows,
+            emsPlatformRows,
+            emsRecurringRows,
+            totalManpowerCost: emsManpowerTotalCost,
+            totalExtraCost: emsSiteExpensesTotalCost,
+            subtotalCost: emsSteps1To4TotalCost,
+            marginPct: profitPct,
+            bufferPct: bufferPct,
+            bufferAmount: emsBufferAmount,
+            finalQuote: emsTotalStep5CustomerPrice,
+            roundingNearest: roundingNearest,
+          }
+          : {
+            id: editId || undefined,
+            clientId: selectedClientId || undefined,
+            clientName: clientName || 'General Client',
+            serviceCategory: activeCategoryName,
+            subService: activeSubServiceName,
+            projectName: activeProjectName || undefined,
+            siteName: selectedSites.join(', ') || undefined,
+            stationType,
+            outstationStartLocation,
+            outstationEndLocation,
+            manpowerRows,
+            instrumentRows,
+            extraExpenseRows: extraExpenses,
+            siteWorkingDays: maxSiteWorkingDays || 1,
+            reportWorkingDays: 1,
+            totalManpowerCost: manWorkingCost,
+            totalInstrumentCost: instrumentRentalCost,
+            totalExtraCost: totalFoodCost + totalTravelCost + finalAccommodationCost + customExpensesTotal,
+            subtotalCost: costTotal,
+            marginPct: profitPct,
+            marginAmount: profitAmount,
+            bufferPct: bufferPct,
+            bufferAmount: ourQuoteAmount - basePrice,
+            finalQuote: ourQuoteAmount,
+          };
 
     try {
       if (isIotControlsActive || isWeldingIotActive || isEmsActive) {
@@ -1451,25 +2126,25 @@ function CostingSheetContent() {
     const emsHardwareRowsCombined = [...emsGatewayHardwareRows, ...emsElectricalHardwareRows];
     const payload = isIotControlsActive
       ? {
-          serviceName: activeSubServiceName,
-          categoryName: activeCategoryName,
-          name: `${activeSubServiceName} Master Template`,
-          isIotControls: true,
-          stationType,
-          outstationStartLocation,
-          outstationEndLocation,
-          iotControlsHardwareRows,
-          emsManpowerRows,
-          extraExpenses,
-          iotControlsMandaysRows,
-          iotControlsTravelRows,
-          iotControlsOpexRows,
-          iotControlsRoiState,
-          marginPct: profitPct,
-          bufferPct: bufferPct,
-        }
+        serviceName: activeSubServiceName,
+        categoryName: activeCategoryName,
+        name: `${activeSubServiceName} Master Template`,
+        isIotControls: true,
+        stationType,
+        outstationStartLocation,
+        outstationEndLocation,
+        iotControlsHardwareRows,
+        emsManpowerRows,
+        extraExpenses,
+        iotControlsMandaysRows,
+        iotControlsTravelRows,
+        iotControlsOpexRows,
+        iotControlsRoiState,
+        marginPct: profitPct,
+        bufferPct: bufferPct,
+      }
       : isWeldingIotActive
-      ? {
+        ? {
           serviceName: activeSubServiceName,
           categoryName: activeCategoryName,
           name: `${activeSubServiceName} Master Template`,
@@ -1484,39 +2159,39 @@ function CostingSheetContent() {
           marginPct: profitPct,
           bufferPct: bufferPct,
         }
-      : isEmsActive
-      ? {
-          serviceName: activeSubServiceName,
-          categoryName: activeCategoryName,
-          name: `${activeSubServiceName} EMS Master Template`,
-          isEms: true,
-          stationType,
-          outstationStartLocation,
-          outstationEndLocation,
-          emsHardwareRows: emsHardwareRowsCombined,
-          emsGatewayHardwareRows,
-          emsElectricalHardwareRows,
-          emsManpowerRows,
-          emsPlatformRows,
-          emsRecurringRows,
-          marginPct: profitPct,
-          bufferPct: bufferPct,
-        }
-      : {
-          serviceName: activeSubServiceName,
-          categoryName: activeCategoryName,
-          name: `${activeSubServiceName} Master Template`,
-          stationType,
-          outstationStartLocation,
-          outstationEndLocation,
-          manpowerRows,
-          instrumentRows,
-          extraExpenseRows: extraExpenses,
-          siteWorkingDays: maxSiteWorkingDays || 1,
-          reportWorkingDays: 1,
-          marginPct: profitPct,
-          bufferPct: bufferPct,
-        };
+        : isEmsActive
+          ? {
+            serviceName: activeSubServiceName,
+            categoryName: activeCategoryName,
+            name: `${activeSubServiceName} EMS Master Template`,
+            isEms: true,
+            stationType,
+            outstationStartLocation,
+            outstationEndLocation,
+            emsHardwareRows: emsHardwareRowsCombined,
+            emsGatewayHardwareRows,
+            emsElectricalHardwareRows,
+            emsManpowerRows,
+            emsPlatformRows,
+            emsRecurringRows,
+            marginPct: profitPct,
+            bufferPct: bufferPct,
+          }
+          : {
+            serviceName: activeSubServiceName,
+            categoryName: activeCategoryName,
+            name: `${activeSubServiceName} Master Template`,
+            stationType,
+            outstationStartLocation,
+            outstationEndLocation,
+            manpowerRows,
+            instrumentRows,
+            extraExpenseRows: extraExpenses,
+            siteWorkingDays: maxSiteWorkingDays || 1,
+            reportWorkingDays: 1,
+            marginPct: profitPct,
+            bufferPct: bufferPct,
+          };
 
     try {
       if (isIotControlsActive || isWeldingIotActive || isEmsActive) {
@@ -1671,6 +2346,9 @@ function CostingSheetContent() {
     setInsideChennaiDistanceKms,
     insideChennaiRatePerKm,
     setInsideChennaiRatePerKm,
+    manualInsideChennaiDays,
+    setManualInsideChennaiDays,
+    activeInsideChennaiDays,
     manualInsideChennaiOverride,
     setManualInsideChennaiOverride,
     finalInsideChennaiTravel,
@@ -1706,6 +2384,68 @@ function CostingSheetContent() {
     customExpensesTotal,
   };
 
+  // CPM Step 3: Dedicated Testing & Commissioning Manpower Engine Props
+  const cpmCommissioningManpowerProps = {
+    ...airAuditManpowerProps,
+    emsManpowerRows: cpmCommissioningManpowerRows,
+    setEmsManpowerRows: setCpmCommissioningManpowerRows,
+    updateEmsManpowerRow: updateCpmCommissioningManpowerRow,
+    addEmsManpowerRow: addCpmCommissioningManpowerRow,
+    removeEmsManpowerRow: removeCpmCommissioningManpowerRow,
+    emsManpowerBaseCost: cpmCommManpowerBaseCost,
+    emsManpowerTotalCost: cpmCommissioningTotalCost,
+    emsManpowerTotalPrice: cpmCommissioningTotalPrice,
+    emsSiteExpensesTotalCost: cpmCommSiteExpensesTotalCost,
+    juniorSiteDaysComputed: cpmCommJuniorDaysComputed,
+    seniorSiteDaysComputed: cpmCommSeniorDaysComputed,
+    iotSiteDaysComputed: cpmCommIotDaysComputed,
+    traineeSiteDaysComputed: cpmCommTraineeDaysComputed,
+    customSiteDaysComputed: cpmCommCustomDaysComputed,
+    activeJuniorDays: cpmCommJuniorDaysComputed,
+    activeSeniorDays: cpmCommSeniorDaysComputed,
+    activeIotDays: cpmCommIotDaysComputed,
+    activeTraineeDays: cpmCommTraineeDaysComputed,
+    activeCustomDays: cpmCommCustomDaysComputed,
+    finalJuniorFoodCost: cpmCommJuniorFoodCost,
+    finalSeniorFoodCost: cpmCommSeniorFoodCost,
+    finalIotFoodCost: cpmCommIotFoodCost,
+    finalTraineeFoodCost: cpmCommTraineeFoodCost,
+    finalCustomFoodCost: cpmCommCustomFoodCost,
+    totalFoodCost: cpmCommTotalFoodCost,
+    maxSiteWorkingDays: cpmCommMaxSiteDays,
+  };
+
+  // CPM Step 4: Dedicated Installation Charges Manpower Engine Props
+  const cpmInstallationManpowerProps = {
+    ...airAuditManpowerProps,
+    emsManpowerRows: cpmInstallationManpowerRows,
+    setEmsManpowerRows: setCpmInstallationManpowerRows,
+    updateEmsManpowerRow: updateCpmInstallationManpowerRow,
+    addEmsManpowerRow: addCpmInstallationManpowerRow,
+    removeEmsManpowerRow: removeCpmInstallationManpowerRow,
+    emsManpowerBaseCost: cpmInstManpowerBaseCost,
+    emsManpowerTotalCost: cpmInstManpowerTotalCost,
+    emsManpowerTotalPrice: cpmInstManpowerTotalPrice,
+    emsSiteExpensesTotalCost: cpmInstSiteExpensesTotalCost,
+    juniorSiteDaysComputed: cpmInstJuniorDaysComputed,
+    seniorSiteDaysComputed: cpmInstSeniorDaysComputed,
+    iotSiteDaysComputed: cpmInstIotDaysComputed,
+    traineeSiteDaysComputed: cpmInstTraineeDaysComputed,
+    customSiteDaysComputed: cpmInstCustomDaysComputed,
+    activeJuniorDays: cpmInstJuniorDaysComputed,
+    activeSeniorDays: cpmInstSeniorDaysComputed,
+    activeIotDays: cpmInstIotDaysComputed,
+    activeTraineeDays: cpmInstTraineeDaysComputed,
+    activeCustomDays: cpmInstCustomDaysComputed,
+    finalJuniorFoodCost: cpmInstJuniorFoodCost,
+    finalSeniorFoodCost: cpmInstSeniorFoodCost,
+    finalIotFoodCost: cpmInstIotFoodCost,
+    finalTraineeFoodCost: cpmInstTraineeFoodCost,
+    finalCustomFoodCost: cpmInstCustomFoodCost,
+    totalFoodCost: cpmInstTotalFoodCost,
+    maxSiteWorkingDays: cpmInstMaxSiteDays,
+  };
+
   return (
     <div className="space-y-8 pb-12">
       {/* Header Section */}
@@ -1734,13 +2474,54 @@ function CostingSheetContent() {
         exportCSV={exportCSV}
         dynamicEnergyAuditSubServices={dynamicEnergyAuditSubServices}
         dynamicIotServicesSubServices={dynamicIotServicesSubServices}
+        dynamicChillerManagementSubServices={CHILLER_MANAGEMENT_SUB_SERVICES}
         dynamicWeldingIotSubServices={dynamicWeldingIotSubServices}
         dynamicHardwareSubServices={dynamicHardwareSubServices}
         dynamicProjectsSubServices={dynamicProjectsSubServices}
       />
 
       {/* Main Tabular Template Engine Switcher */}
-      {isIotControlsActive ? (
+      {isCpmActive ? (
+        <CpmCostingTemplate
+          activeSubServiceName={activeSubServiceName}
+          cpmHardwareRows={cpmHardwareRows}
+          updateCpmHardwareRow={updateCpmHardwareRow}
+          addCpmHardwareRow={addCpmHardwareRow}
+          removeCpmHardwareRow={removeCpmHardwareRow}
+          cpmHardwareTotalCost={cpmHardwareTotalCost}
+          cpmHardwareTotalPrice={cpmHardwareTotalPrice}
+          cpmElectricalRows={cpmElectricalRows}
+          updateCpmElectricalRow={updateCpmElectricalRow}
+          addCpmElectricalRow={addCpmElectricalRow}
+          removeCpmElectricalRow={removeCpmElectricalRow}
+          cpmElectricalTotalCost={cpmElectricalTotalCost}
+          cpmElectricalTotalPrice={cpmElectricalTotalPrice}
+          cpmCommissioningProps={cpmCommissioningManpowerProps}
+          cpmCommissioningTotalCost={cpmCommissioningTotalCost}
+          cpmCommissioningTotalPrice={cpmCommissioningTotalPrice}
+          cpmInstallationProps={cpmInstallationManpowerProps}
+          cpmInstManpowerTotalCost={cpmInstManpowerTotalCost}
+          cpmInstManpowerTotalPrice={cpmInstManpowerTotalPrice}
+          cpmCloudRows={cpmCloudRows}
+          updateCpmCloudRow={updateCpmCloudRow}
+          addCpmCloudRow={addCpmCloudRow}
+          removeCpmCloudRow={removeCpmCloudRow}
+          cpmCloudTotalCost={cpmCloudTotalCost}
+          cpmCloudTotalPrice={cpmCloudTotalPrice}
+          cpmSteps1To5TotalPrice={cpmSteps1To5TotalPrice}
+          cpmBufferAmount={cpmBufferAmount}
+          cpmPriceWithBuffer={cpmPriceWithBuffer}
+          cpmRoundedCustomerCost={cpmRoundedCustomerCost}
+          bufferPct={bufferPct}
+          setBufferPct={setBufferPct}
+          profitPct={profitPct}
+          setProfitPct={setProfitPct}
+          resetCpmDefaults={resetCpmDefaults}
+          applyCpmGlobalMargin={applyCpmGlobalMargin}
+          roundingNearest={roundingNearest}
+          setRoundingNearest={setRoundingNearest}
+        />
+      ) : isIotControlsActive ? (
         <IotControlsTemplate
           {...airAuditManpowerProps}
           activeSubServiceName={activeSubServiceName}
@@ -1883,6 +2664,8 @@ function CostingSheetContent() {
           bufferPct={bufferPct}
           setBufferPct={setBufferPct}
           resetEmsDefaults={resetEmsDefaults}
+          roundingNearest={roundingNearest}
+          setRoundingNearest={setRoundingNearest}
         />
       ) : (
         <StandardAuditTemplate
@@ -1969,6 +2752,9 @@ function CostingSheetContent() {
           setInsideChennaiDistanceKms={setInsideChennaiDistanceKms}
           insideChennaiRatePerKm={insideChennaiRatePerKm}
           setInsideChennaiRatePerKm={setInsideChennaiRatePerKm}
+          manualInsideChennaiDays={manualInsideChennaiDays}
+          setManualInsideChennaiDays={setManualInsideChennaiDays}
+          activeInsideChennaiDays={activeInsideChennaiDays}
           manualInsideChennaiOverride={manualInsideChennaiOverride}
           setManualInsideChennaiOverride={setManualInsideChennaiOverride}
           finalInsideChennaiTravel={finalInsideChennaiTravel}
@@ -2009,6 +2795,8 @@ function CostingSheetContent() {
           totalFoodCost={totalFoodCost}
           totalTravelCost={totalTravelCost}
           customExpensesTotal={customExpensesTotal}
+          roundingNearest={roundingNearest}
+          setRoundingNearest={setRoundingNearest}
         />
       )}
 

@@ -8,3 +8,5 @@ export * from './templates/StandardAuditTemplate';
 export * from './templates/EmsCostingTemplate';
 export * from './templates/WeldingIotTemplate';
 export * from './templates/IotControlsTemplate';
+export * from './templates/CpmCostingTemplate';
+

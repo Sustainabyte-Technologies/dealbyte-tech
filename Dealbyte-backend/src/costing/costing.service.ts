@@ -544,6 +544,7 @@ export class CostingService {
           emsManpowerRows: dto.emsManpowerRows || [],
           emsPlatformRows: dto.emsPlatformRows || [],
           emsRecurringRows: dto.emsRecurringRows || [],
+          roundingNearest: dto.roundingNearest || 100,
         }
       : (dto.instrumentRows || []);
 

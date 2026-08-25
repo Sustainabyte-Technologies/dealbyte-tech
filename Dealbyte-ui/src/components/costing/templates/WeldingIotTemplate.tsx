@@ -194,11 +194,11 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
                     {r.slNo || idx + 1}
                   </td>
                   <td className="py-2.5 px-4">
-                    <input
-                      type="text"
+                    <textarea
+                      rows={Math.max(1, Math.ceil((r.componentName?.length || 1) / 38))}
                       value={r.componentName}
                       onChange={(e) => updateWeldingHardwareRow(r.id, 'componentName', e.target.value)}
-                      className="w-full px-2.5 py-1 text-xs font-semibold text-slate-900 bg-transparent border border-transparent hover:border-slate-300 focus:border-indigo-500 focus:bg-white rounded-lg focus:outline-none transition"
+                      className="w-full px-2.5 py-1 text-xs font-semibold text-slate-900 bg-transparent border border-transparent hover:border-slate-300 focus:border-indigo-500 focus:bg-white rounded-lg focus:outline-none transition resize-none leading-snug whitespace-pre-wrap"
                     />
                   </td>
                   <td className="py-2.5 px-4 text-center">
@@ -309,9 +309,11 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
           <table className="w-full text-xs text-left text-slate-600">
             <thead className="bg-slate-100/70 text-slate-700 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4 w-52">Component</th>
-                <th className="py-3 px-4 min-w-[340px]">Description & Logic Addition</th>
-                <th className="py-3 px-4 w-44 text-right">Price (₹)</th>
+                <th className="py-3 px-4 w-48">Component</th>
+                <th className="py-3 px-4 min-w-[300px]">Description &amp; Logic Addition</th>
+                <th className="py-3 px-4 w-36 text-center">Units / Qty</th>
+                <th className="py-3 px-4 w-36 text-right">Unit Price (₹)</th>
+                <th className="py-3 px-4 w-40 text-right bg-indigo-50/50 text-indigo-950">Total Price (₹)</th>
                 <th className="py-3 px-4 w-16 text-center">Action</th>
               </tr>
             </thead>
@@ -334,16 +336,54 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
                       className="w-full px-2.5 py-1 text-xs text-slate-700 bg-transparent border border-transparent hover:border-slate-300 focus:border-indigo-500 focus:bg-white rounded-lg focus:outline-none transition resize-none"
                     />
                   </td>
-                  <td className="py-2.5 px-4 text-right">
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-indigo-600 text-xs">₹</span>
+                  <td className="py-2.5 px-4 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = Number(r.qty || 0);
+                          updateWeldingSoftwareRow(r.id, 'qty', Math.max(0, cur - 1));
+                        }}
+                        className="w-6 h-6 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 font-black text-slate-700 cursor-pointer transition text-xs select-none"
+                        title="Decrement Units"
+                      >
+                        -
+                      </button>
                       <input
                         type="number"
-                        value={r.price}
-                        onChange={(e) => updateWeldingSoftwareRow(r.id, 'price', Number(e.target.value))}
-                        className="w-full pl-6 pr-2 py-1 text-xs font-extrabold text-right text-indigo-900 bg-indigo-50/50 border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        min={0}
+                        value={r.qty === undefined || r.qty === null ? 0 : r.qty}
+                        onChange={(e) => updateWeldingSoftwareRow(r.id, 'qty', e.target.value === '' ? 0 : Number(e.target.value))}
+                        onFocus={(e) => e.target.select()}
+                        className="w-14 text-center font-extrabold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg px-1 py-1 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = Number(r.qty || 0);
+                          updateWeldingSoftwareRow(r.id, 'qty', cur + 1);
+                        }}
+                        className="w-6 h-6 flex items-center justify-center rounded-lg bg-indigo-100 hover:bg-indigo-200 border border-indigo-300 font-black text-indigo-800 cursor-pointer transition text-xs select-none"
+                        title="Increment Units"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-4 text-right">
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={r.unitPrice !== undefined ? r.unitPrice : 20000}
+                        onChange={(e) => updateWeldingSoftwareRow(r.id, 'unitPrice', Number(e.target.value))}
+                        className="w-full pl-6 pr-2 py-1 text-xs font-bold text-right text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
+                  </td>
+                  <td className="py-2.5 px-4 text-right font-black text-indigo-900 bg-indigo-50/40">
+                    ₹{formatMoney(r.price || 0)}
                   </td>
                   <td className="py-2.5 px-4 text-center">
                     <button
@@ -360,10 +400,10 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
             </tbody>
             <tfoot className="bg-slate-100 font-extrabold text-slate-900 border-t-2 border-slate-300">
               <tr>
-                <td colSpan={2} className="py-3 px-4 text-right uppercase text-xs tracking-wider">
+                <td colSpan={4} className="py-3 px-4 text-right uppercase text-xs tracking-wider">
                   Software Total
                 </td>
-                <td className="py-3 px-4 text-right text-indigo-900 text-sm font-black">
+                <td className="py-3 px-4 text-right text-indigo-900 text-sm font-black bg-indigo-100/50">
                   ₹{formatMoney(weldingSoftwareTotalPrice)}
                 </td>
                 <td></td>
@@ -417,10 +457,11 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
           <table className="w-full text-xs text-left text-slate-600">
             <thead className="bg-slate-100/70 text-slate-700 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4 min-w-[200px]">Component</th>
-                <th className="py-3 px-4 min-w-[220px]">Description</th>
-                <th className="py-3 px-4 w-28 text-center">Type / Tier</th>
-                <th className="py-3 px-4 w-32 text-right">Monthly Cost (₹)</th>
+                <th className="py-3 px-4 min-w-[180px]">Component</th>
+                <th className="py-3 px-4 min-w-[200px]">Description</th>
+                <th className="py-3 px-4 w-24 text-center">Type / Tier</th>
+                <th className="py-3 px-4 w-32 text-center">Units / Qty</th>
+                <th className="py-3 px-4 w-32 text-right">Unit / Mo Cost (₹)</th>
                 <th className="py-3 px-4 w-24 text-center">Margin %</th>
                 <th className="py-3 px-4 w-32 text-right">Monthly (₹)</th>
                 <th className="py-3 px-4 w-36 text-right">Yearly (₹)</th>
@@ -432,6 +473,7 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
                 const monthlyPrice = Number(r.monthlyPrice || 0);
                 const monthlyCost = r.monthlyCost !== undefined ? r.monthlyCost : Math.round(monthlyPrice * 0.6);
                 const yearlyPrice = r.yearlyPrice !== undefined ? r.yearlyPrice : monthlyPrice * 12;
+                const unitCost = r.unitMonthlyCost !== undefined ? r.unitMonthlyCost : (r.monthlyCost && r.qty ? Math.round(r.monthlyCost / r.qty) : 600);
 
                 return (
                   <tr key={r.id} className="hover:bg-purple-50/20 transition-colors">
@@ -444,11 +486,11 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
                       />
                     </td>
                     <td className="py-2.5 px-4">
-                      <input
-                        type="text"
+                      <textarea
+                        rows={Math.max(1, Math.ceil((r.description?.length || 1) / 35))}
                         value={r.description}
                         onChange={(e) => updateWeldingCloudRow(r.id, 'description', e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs text-slate-700 bg-transparent border border-transparent hover:border-slate-300 focus:border-purple-500 focus:bg-white rounded-lg focus:outline-none transition"
+                        className="w-full px-2.5 py-1 text-xs text-slate-700 bg-transparent border border-transparent hover:border-slate-300 focus:border-purple-500 focus:bg-white rounded-lg focus:outline-none transition resize-none leading-snug whitespace-pre-wrap"
                       />
                     </td>
                     <td className="py-2.5 px-4 text-center">
@@ -456,16 +498,50 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
                         type="text"
                         value={r.type}
                         onChange={(e) => updateWeldingCloudRow(r.id, 'type', e.target.value)}
-                        className="w-24 px-2 py-1 text-xs font-bold text-center text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                        className="w-20 px-2 py-1 text-xs font-bold text-center text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
                       />
+                    </td>
+                    <td className="py-2.5 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cur = Number(r.qty || 0);
+                            updateWeldingCloudRow(r.id, 'qty', Math.max(0, cur - 1));
+                          }}
+                          className="w-6 h-6 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 font-black text-slate-700 cursor-pointer transition text-xs select-none"
+                          title="Decrement Units"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min={0}
+                          value={r.qty === undefined || r.qty === null ? 0 : r.qty}
+                          onChange={(e) => updateWeldingCloudRow(r.id, 'qty', e.target.value === '' ? 0 : Number(e.target.value))}
+                          onFocus={(e) => e.target.select()}
+                          className="w-12 text-center font-extrabold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg px-1 py-1 focus:ring-2 focus:ring-purple-500 focus:outline-none text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cur = Number(r.qty || 0);
+                            updateWeldingCloudRow(r.id, 'qty', cur + 1);
+                          }}
+                          className="w-6 h-6 flex items-center justify-center rounded-lg bg-purple-100 hover:bg-purple-200 border border-purple-300 font-black text-purple-800 cursor-pointer transition text-xs select-none"
+                          title="Increment Units"
+                        >
+                          +
+                        </button>
+                      </div>
                     </td>
                     <td className="py-2.5 px-4 text-right">
                       <div className="relative">
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
                         <input
                           type="number"
-                          value={monthlyCost}
-                          onChange={(e) => updateWeldingCloudRow(r.id, 'monthlyCost', Number(e.target.value))}
+                          value={unitCost}
+                          onChange={(e) => updateWeldingCloudRow(r.id, 'unitMonthlyCost', Number(e.target.value))}
                           className="w-full pl-6 pr-2 py-1 text-xs font-bold text-right text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
                         />
                       </div>
@@ -483,18 +559,10 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
                         <span className="text-[11px] font-bold text-slate-500">%</span>
                       </div>
                     </td>
-                    <td className="py-2.5 px-4 text-right">
-                      <div className="relative">
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-purple-600 text-xs">₹</span>
-                        <input
-                          type="number"
-                          value={monthlyPrice}
-                          onChange={(e) => updateWeldingCloudRow(r.id, 'monthlyPrice', Number(e.target.value))}
-                          className="w-full pl-6 pr-2 py-1 text-xs font-extrabold text-right text-purple-900 bg-purple-50/50 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                        />
-                      </div>
+                    <td className="py-2.5 px-4 text-right font-bold text-purple-950">
+                      ₹{formatMoney(monthlyPrice)}
                     </td>
-                    <td className="py-2.5 px-4 text-right font-extrabold text-purple-900 text-sm">
+                    <td className="py-2.5 px-4 text-right font-extrabold text-purple-900 text-sm bg-purple-50/40">
                       ₹{formatMoney(yearlyPrice)}
                     </td>
                     <td className="py-2.5 px-4 text-center">
@@ -513,7 +581,7 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
             </tbody>
             <tfoot className="bg-slate-100 font-extrabold text-slate-900 border-t-2 border-slate-300">
               <tr>
-                <td colSpan={3} className="py-3 px-4 text-right uppercase text-xs tracking-wider">
+                <td colSpan={4} className="py-3 px-4 text-right uppercase text-xs tracking-wider">
                   Cloud Total
                 </td>
                 <td className="py-3 px-4 text-right text-slate-700 font-bold">
@@ -525,7 +593,7 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
                 <td className="py-3 px-4 text-right text-purple-900 font-extrabold">
                   ₹{formatMoney(weldingCloudTotalMonthly)}/mo
                 </td>
-                <td className="py-3 px-4 text-right text-purple-900 text-sm font-black">
+                <td className="py-3 px-4 text-right text-purple-900 text-sm font-black bg-purple-100/50">
                   ₹{formatMoney(weldingCloudTotalYearly)}/yr
                 </td>
                 <td></td>
@@ -590,7 +658,7 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
               {weldingInstallationRows.map((r) => {
-                const qty = Number(r.qty ?? 1) || 1;
+                const qty = r.qty !== undefined && r.qty !== null ? Number(r.qty) : 0;
                 const unitPrice = r.unitPrice !== undefined ? r.unitPrice : (r.price || 0);
                 const unitCost = r.unitCost !== undefined ? r.unitCost : Math.round(unitPrice * 0.6);
                 const rowTotalPrice = qty * unitPrice;
@@ -598,21 +666,46 @@ export const WeldingIotTemplate: React.FC<WeldingIotTemplateProps> = ({
                 return (
                   <tr key={r.id} className="hover:bg-emerald-50/20 transition-colors">
                     <td className="py-2.5 px-4 font-bold text-slate-900">
-                      <input
-                        type="text"
+                      <textarea
+                        rows={Math.max(1, Math.ceil((r.item?.length || 1) / 35))}
                         value={r.item}
                         onChange={(e) => updateWeldingInstallationRow(r.id, 'item', e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs font-bold text-slate-900 bg-transparent border border-transparent hover:border-slate-300 focus:border-emerald-500 focus:bg-white rounded-lg focus:outline-none transition"
+                        className="w-full px-2.5 py-1 text-xs font-bold text-slate-900 bg-transparent border border-transparent hover:border-slate-300 focus:border-emerald-500 focus:bg-white rounded-lg focus:outline-none transition resize-none leading-snug whitespace-pre-wrap"
                       />
                     </td>
                     <td className="py-2.5 px-4 text-center">
-                      <input
-                        type="number"
-                        min={1}
-                        value={r.qty !== undefined ? r.qty : 1}
-                        onChange={(e) => updateWeldingInstallationRow(r.id, 'qty', Number(e.target.value))}
-                        className="w-20 px-2 py-1 text-xs font-black text-center text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cur = Number(r.qty || 0);
+                            updateWeldingInstallationRow(r.id, 'qty', Math.max(0, cur - 1));
+                          }}
+                          className="w-6 h-6 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 font-black text-slate-700 cursor-pointer transition text-xs select-none"
+                          title="Decrement Qty"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min={0}
+                          value={r.qty === undefined || r.qty === null ? 0 : r.qty}
+                          onChange={(e) => updateWeldingInstallationRow(r.id, 'qty', e.target.value === '' ? 0 : Number(e.target.value))}
+                          onFocus={(e) => e.target.select()}
+                          className="w-12 text-center font-extrabold text-slate-900 bg-slate-50 border border-slate-200 rounded-lg px-1 py-1 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cur = Number(r.qty || 0);
+                            updateWeldingInstallationRow(r.id, 'qty', cur + 1);
+                          }}
+                          className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 font-black text-emerald-800 cursor-pointer transition text-xs select-none"
+                          title="Increment Qty"
+                        >
+                          +
+                        </button>
+                      </div>
                     </td>
                     <td className="py-2.5 px-4 text-right">
                       <div className="relative">

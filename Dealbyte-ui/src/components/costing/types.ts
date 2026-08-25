@@ -95,7 +95,9 @@ export interface WeldingSoftwareRow {
   id: string;
   item: string;
   description: string;
-  uom: string;
+  qty?: number;
+  uom?: string;
+  unitPrice?: number;
   price: number;
 }
 
@@ -104,8 +106,12 @@ export interface WeldingCloudRow {
   component: string;
   description: string;
   type: string;
+  qty?: number;
+  uom?: string;
+  unitMonthlyCost?: number;
   monthlyCost?: number;
   marginPct?: number;
+  unitMonthlyPrice?: number;
   monthlyPrice: number;
   yearlyPrice: number;
 }
@@ -127,6 +133,8 @@ export interface IotControlsHardwareRow {
   slNo: string;
   productDescription: string;
   quantity: number;
+  unitCost?: number;
+  marginPct?: number;
   unitPrice: number;
 }
 
@@ -167,3 +175,28 @@ export interface IotControlsRoiState {
   acSchedulingAssumption: string;
   opexAssumption: string;
 }
+
+// ─── Chiller Plant Management (CPM) Interfaces ───
+export interface CpmHardwareRow {
+  id: string;
+  slNo: number;
+  brand: string;
+  itemDescription: string;
+  modelNo: string;
+  qty: number;
+  uom: string;
+  unitCost: number;
+  marginPct: number;
+}
+
+export interface CpmCloudRow {
+  id: string;
+  itemDescription: string;
+  billingCycle?: string;
+  qty: number;
+  uom: string;
+  unitCost: number;
+  marginPct: number;
+}
+
+

@@ -39,6 +39,7 @@ export interface CostingHeaderProps {
   exportCSV: () => void;
   dynamicEnergyAuditSubServices: string[];
   dynamicIotServicesSubServices: string[];
+  dynamicChillerManagementSubServices?: string[];
   dynamicWeldingIotSubServices: string[];
   dynamicHardwareSubServices: string[];
   dynamicProjectsSubServices: string[];
@@ -69,16 +70,27 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
   exportCSV,
   dynamicEnergyAuditSubServices,
   dynamicIotServicesSubServices,
+  dynamicChillerManagementSubServices = ['CPM (Chiller Plant Management)', 'CPM', 'Chiller Plant Monitoring', 'Chiller Automation & Optimization', 'Custom'],
   dynamicWeldingIotSubServices,
   dynamicHardwareSubServices,
   dynamicProjectsSubServices,
 }) => {
+  const [isClientOpen, setIsClientOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+  const clientDropdownRef = useRef<HTMLDivElement>(null);
+
   const [isSubServiceOpen, setIsSubServiceOpen] = useState(false);
   const [subServiceSearch, setSubServiceSearch] = useState('');
   const subServiceDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (
+        clientDropdownRef.current &&
+        !clientDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsClientOpen(false);
+      }
       if (
         subServiceDropdownRef.current &&
         !subServiceDropdownRef.current.contains(event.target as Node)
@@ -90,9 +102,17 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const filteredClients = useMemo(() => {
+    if (!clientSearch.trim()) return clientOptions;
+    return clientOptions.filter((c) =>
+      c.toLowerCase().includes(clientSearch.toLowerCase().trim())
+    );
+  }, [clientOptions, clientSearch]);
+
   const currentSubServices = useMemo(() => {
     if (mainCategoryService === 'Energy Audit Services') return dynamicEnergyAuditSubServices;
     if (mainCategoryService === 'IoT & Controls') return dynamicIotServicesSubServices;
+    if (mainCategoryService === 'Chiller Management') return dynamicChillerManagementSubServices;
     if (mainCategoryService === 'Welding IoT') return dynamicWeldingIotSubServices;
     if (mainCategoryService === 'Hardware') return dynamicHardwareSubServices;
     return ['Custom'];
@@ -100,6 +120,7 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
     mainCategoryService,
     dynamicEnergyAuditSubServices,
     dynamicIotServicesSubServices,
+    dynamicChillerManagementSubServices,
     dynamicWeldingIotSubServices,
     dynamicHardwareSubServices,
   ]);
@@ -182,8 +203,8 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
 
       {/* Project Meta Info Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-        {/* Field 1: Client Name */}
-        <div>
+        {/* Field 1: Client Name Searchable Dropdown */}
+        <div className="relative" ref={clientDropdownRef}>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs font-bold text-slate-700">Client Name</label>
             {clientName && (
@@ -192,18 +213,70 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
               </span>
             )}
           </div>
-          <select
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            className="w-full px-3.5 py-2 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-2xs cursor-pointer"
+
+          <button
+            type="button"
+            onClick={() => setIsClientOpen((prev) => !prev)}
+            className="w-full px-3.5 py-2 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-300 hover:border-slate-400 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-2xs cursor-pointer flex items-center justify-between transition-all text-left"
           >
-            <option value="" disabled>Select Client...</option>
-            {clientOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            <div className="flex items-center gap-1.5 truncate">
+              <Building className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <span className="truncate">{clientName || 'Select Client...'}</span>
+            </div>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 ml-1.5 opacity-70 transition-transform duration-200 ${
+                isClientOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+
+          {isClientOpen && (
+            <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-xl shadow-xl p-1.5 min-w-[240px]">
+              <div className="relative mb-1.5 px-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  placeholder="Search client name..."
+                  className="w-full pl-8 pr-2.5 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                />
+              </div>
+
+              <div className="max-h-60 overflow-y-auto space-y-0.5 pr-0.5">
+                {filteredClients.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-slate-400 text-center font-medium">
+                    No clients found
+                  </div>
+                ) : (
+                  filteredClients.map((c) => {
+                    const isSelected = clientName === c;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => {
+                          setClientName(c);
+                          setIsClientOpen(false);
+                          setClientSearch('');
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-left transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-indigo-50 text-indigo-700 font-bold'
+                            : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="truncate">{c}</span>
+                        {isSelected && <Check className="h-3.5 w-3.5 text-indigo-600 shrink-0 ml-1.5" />}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Field 2: Our Services (Category) */}
@@ -218,6 +291,8 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
                 setSubServiceOption('Air Audit');
               } else if (category === 'IoT & Controls') {
                 setSubServiceOption('Energy Management Solution');
+              } else if (category === 'Chiller Management') {
+                setSubServiceOption('CPM (Chiller Plant Management)');
               } else if (category === 'Welding IoT') {
                 setSubServiceOption('Welding IoT & Kit');
               } else if (category === 'Hardware') {

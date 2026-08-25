@@ -14,18 +14,25 @@ import {
 } from '../types';
 import { formatMoney, calcPriceFromCost, roundToHundred } from '../utils';
 import { AirAuditManpowerEngine, AirAuditManpowerEngineProps } from '../shared/AirAuditManpowerEngine';
+import { SearchableSelect, SearchableOption } from '../shared/SearchableSelect';
+import {
+  STANDARD_EMS_GATEWAY_HARDWARE_CATALOG,
+  STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG,
+  getActiveGatewayHardwareCatalog,
+  getActiveElectricalHardwareCatalog,
+} from '../constants';
 
 export interface EmsCostingTemplateProps extends AirAuditManpowerEngineProps {
   activeSubServiceName: string;
   emsGatewayHardwareRows: EmsHardwareRow[];
   updateEmsGatewayHardwareRow: (id: string, field: keyof EmsHardwareRow, val: any) => void;
-  addEmsGatewayHardwareRow: () => void;
+  addEmsGatewayHardwareRow: (preset?: Partial<EmsHardwareRow>) => void;
   removeEmsGatewayHardwareRow: (id: string) => void;
   emsGatewayHardwareTotalCost: number;
   emsGatewayHardwareTotalPrice: number;
   emsElectricalHardwareRows: EmsHardwareRow[];
   updateEmsElectricalHardwareRow: (id: string, field: keyof EmsHardwareRow, val: any) => void;
-  addEmsElectricalHardwareRow: () => void;
+  addEmsElectricalHardwareRow: (preset?: Partial<EmsHardwareRow>) => void;
   removeEmsElectricalHardwareRow: (id: string) => void;
   emsElectricalHardwareTotalCost: number;
   emsElectricalHardwareTotalPrice: number;
@@ -52,6 +59,8 @@ export interface EmsCostingTemplateProps extends AirAuditManpowerEngineProps {
   bufferPct: number;
   setBufferPct: (pct: number) => void;
   resetEmsDefaults: () => void;
+  roundingNearest?: number;
+  setRoundingNearest?: (val: number) => void;
 }
 
 export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => {
@@ -95,96 +104,171 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
     profitPct,
   } = props;
 
-  // Calculate itemized rows for Step 5 Table
+  const [localRoundingNearest, setLocalRoundingNearest] = React.useState<number>(100);
+  const roundingNearest = props.roundingNearest !== undefined ? props.roundingNearest : localRoundingNearest;
+  const setRoundingNearest = props.setRoundingNearest || setLocalRoundingNearest;
+
+  const roundToNearest = (val: number, nearest: number = 100): number => {
+    const step = Number(nearest) || 1;
+    return Math.ceil(val / step) * step;
+  };
+
+  const gatewayHardwareOptions: SearchableOption[] = React.useMemo(() => {
+    return getActiveGatewayHardwareCatalog().map((item) => ({
+      label: item.name,
+      subtitle: item.description,
+      value: item.description,
+      price: item.unitCost,
+      uom: item.uom,
+      category: item.category,
+    }));
+  }, []);
+
+  const electricalHardwareOptions: SearchableOption[] = React.useMemo(() => {
+    return getActiveElectricalHardwareCatalog().map((item) => ({
+      label: item.name,
+      subtitle: item.description,
+      value: item.description,
+      price: item.unitCost,
+      uom: item.uom,
+      category: item.category,
+    }));
+  }, []);
+
+  // 1. Gateway Hardware (1a)
+  const item1a = emsGatewayHardwareRows[0];
+  const item1Cost = item1a ? item1a.qty * item1a.unitCost : 0;
+  const item1Price = item1a ? item1a.qty * calcPriceFromCost(item1a.unitCost, item1a.marginPct) : 0;
+  const item1Contingency = Math.round(item1Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item1Rounded = roundToNearest(item1Contingency, roundingNearest);
+
+  // 2. Meters & Additional Hardware (1b, 1c...)
+  const item1bRows = emsGatewayHardwareRows.slice(1);
+  const item2Cost = item1bRows.reduce((sum, r) => sum + r.qty * r.unitCost, 0);
+  const item2Price = item1bRows.reduce((sum, r) => sum + r.qty * calcPriceFromCost(r.unitCost, r.marginPct), 0);
+  const item2Contingency = Math.round(item2Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item2Rounded = roundToNearest(item2Contingency, roundingNearest);
+  const item2Description = item1bRows.length > 0
+    ? item1bRows.map((r) => r.description).join('; ')
+    : 'Supply of RS485 energy meter with communication and wiring accessories';
+  const item2Qty = item1bRows.reduce((sum, r) => sum + (r.qty || 0), 0);
+  const item2Uom = item1bRows[0]?.uom || 'Nos';
+
+  // 3. Electrical Accessories Total (2a, 2b, 2c...)
+  const item3Cost = emsElectricalHardwareTotalCost;
+  const item3Price = emsElectricalHardwareTotalPrice;
+  const item3Contingency = Math.round(item3Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item3Rounded = roundToNearest(item3Contingency, roundingNearest);
+  const item3Description = 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories';
+  const item3Qty = emsElectricalHardwareRows.reduce((sum, r) => sum + (r.qty || 0), 0) || 1;
+  const item3Uom = 'Job';
+
+  // 4. Man Days / Installation & Commissioning
+  const item4Cost = props.emsManpowerTotalCost;
+  const item4Price = props.emsManpowerTotalPrice;
+  const item4Contingency = Math.round(item4Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item4Rounded = roundToNearest(item4Contingency, roundingNearest);
+  const item4Description =
+    'Installation and commissioning of IoT devices, gateways, modems, and associated electrical/control components including startup, testing, and functional verification. Communication cable laying and routing through conduits, cable trays, and raceways with proper dressing, tagging, and termination. Conduit pipe laying for electrical and communication cabling as per site layout. Modem configuration, network setup, data mapping, testing, troubleshooting, and data validation';
+  const item4Qty = 1;
+  const item4Uom = 'Nodes';
+
+  // 5. Platform Setup Costing
+  const item5Cost = emsPlatformTotalCost;
+  const item5Price = emsPlatformTotalPrice;
+  const item5Contingency = Math.round(item5Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item5Rounded = roundToNearest(item5Contingency, roundingNearest);
+  const item5Description = emsPlatformRows.length > 0
+    ? emsPlatformRows.map((r) => r.description).join('. ')
+    : 'IoT device configuration, protocol setup (Modbus, BACnet, MQTT), and integration with BMS/EMS platforms. Network connectivity, dashboard mapping, alarm configuration, and cloud/server integration support System commissioning including startup, functional testing, calibration, and performance verification Troubleshooting, integration testing, client demonstration, and final handover support Electrical power/control cable laying, routing, termination, tagging, and insulation testing as per standard';
+  const item5Qty = emsPlatformRows[0]?.qty || 1;
+  const item5Uom = emsPlatformRows[0]?.uom || 'Nodes';
+
+  // 6. Recurring Cloud Charges
+  const item6Cost = emsRecurringYearlyTotalCost;
+  const item6Price = emsRecurringYearlyTotalPrice;
+  const item6Contingency = Math.round(item6Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item6Rounded = roundToNearest(item6Contingency, roundingNearest);
+  const item6Description =
+    'OptiByte Dashboard, Intelligent reporting, Group and machine level reporting, Email on any threshold value breach, Alert on Mobile(via SMS), Auto detection of anomalies, water flow rate, water capacity. We will check with the pH and TDS meter, if we can integrate it with our dashboard';
+  const item6Qty = emsRecurringRows[1]?.qty || emsRecurringRows[0]?.qty || 1;
+  const item6Uom = emsRecurringRows[1]?.uom || emsRecurringRows[0]?.uom || 'Nodes';
+
+  // Consolidated 6 Items for Step 5 Summary Table
   const step5Items = [
-    // Gateway Hardware
-    ...emsGatewayHardwareRows.map((r, i) => {
-      const cost = r.qty * r.unitCost;
-      const price = r.qty * calcPriceFromCost(r.unitCost, r.marginPct);
-      const contingency = price * (1 + bufferPct / 100);
-      const rounded = roundToHundred(contingency);
-      return {
-        stepNo: r.code || `1${String.fromCharCode(97 + i)}`,
-        description: r.description,
-        qty: r.qty,
-        uom: r.uom || 'Nos',
-        cost,
-        price,
-        contingency,
-        rounded,
-        isRecurring: false,
-      };
-    }),
-    // Electrical Hardware
-    ...emsElectricalHardwareRows.map((r, i) => {
-      const cost = r.qty * r.unitCost;
-      const price = r.qty * calcPriceFromCost(r.unitCost, r.marginPct);
-      const contingency = price * (1 + bufferPct / 100);
-      const rounded = roundToHundred(contingency);
-      return {
-        stepNo: r.code || `2${String.fromCharCode(97 + i)}`,
-        description: r.description,
-        qty: r.qty,
-        uom: r.uom || 'Nos',
-        cost,
-        price,
-        contingency,
-        rounded,
-        isRecurring: false,
-      };
-    }),
-    // Step 2 Manpower / Installation & Commissioning
     {
-      stepNo: '2',
-      description:
-        'Installation and commissioning of IoT devices, gateways, modems, and associated electrical/control components including startup, testing, and functional verification. Communication cable laying and routing through conduits, cable trays, and raceways with proper dressing, tagging, and termination. Conduit pipe laying for electrical and communication cabling as per site layout. Modem configuration, network setup, data mapping, testing, troubleshooting, and data validation',
-      qty: 1,
-      uom: 'Nodes',
-      cost: props.emsManpowerTotalCost,
-      price: props.emsManpowerTotalPrice,
-      contingency: props.emsManpowerTotalPrice * (1 + bufferPct / 100),
-      rounded: roundToHundred(props.emsManpowerTotalPrice * (1 + bufferPct / 100)),
+      sNo: 1,
+      description: item1a?.description || 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Pro',
+      qty: item1a?.qty || 0,
+      uom: item1a?.uom || 'Nos',
+      cost: item1Cost,
+      price: item1Price,
+      contingency: item1Contingency,
+      rounded: item1Rounded,
       isRecurring: false,
     },
-    // Step 3 Platform Setup
-    ...emsPlatformRows.map((r) => {
-      const cost = r.qty * r.unitCost;
-      const price = r.qty * calcPriceFromCost(r.unitCost, r.marginPct);
-      const contingency = price * (1 + bufferPct / 100);
-      const rounded = roundToHundred(contingency);
-      return {
-        stepNo: '3',
-        description: r.description,
-        qty: r.qty,
-        uom: r.uom || 'Nodes',
-        cost,
-        price,
-        contingency,
-        rounded,
-        isRecurring: false,
-      };
-    }),
-    // Step 4 Recurring Cloud
-    ...emsRecurringRows.map((r, i) => {
-      const cost = r.qty * Number(r.unitCostPerMonth || 0) * 12;
-      const price = r.qty * calcPriceFromCost(Number(r.unitCostPerMonth || 0), r.marginPct) * 12;
-      const contingency = price * (1 + bufferPct / 100);
-      const rounded = roundToHundred(contingency);
-      return {
-        stepNo: r.code || `1${String.fromCharCode(97 + i)}`,
-        description: r.description,
-        qty: r.qty,
-        uom: r.uom || 'Nodes',
-        cost,
-        price,
-        contingency,
-        rounded,
-        isRecurring: true,
-      };
-    }),
+    {
+      sNo: 2,
+      description: item2Description,
+      qty: item2Qty,
+      uom: item2Uom,
+      cost: item2Cost,
+      price: item2Price,
+      contingency: item2Contingency,
+      rounded: item2Rounded,
+      isRecurring: false,
+    },
+    {
+      sNo: 3,
+      description: item3Description,
+      qty: item3Qty,
+      uom: item3Uom,
+      cost: item3Cost,
+      price: item3Price,
+      contingency: item3Contingency,
+      rounded: item3Rounded,
+      isRecurring: false,
+    },
+    {
+      sNo: 4,
+      description: item4Description,
+      qty: item4Qty,
+      uom: item4Uom,
+      cost: item4Cost,
+      price: item4Price,
+      contingency: item4Contingency,
+      rounded: item4Rounded,
+      isRecurring: false,
+    },
+    {
+      sNo: 5,
+      description: item5Description,
+      qty: item5Qty,
+      uom: item5Uom,
+      cost: item5Cost,
+      price: item5Price,
+      contingency: item5Contingency,
+      rounded: item5Rounded,
+      isRecurring: false,
+    },
+    {
+      sNo: 6,
+      description: item6Description,
+      qty: item6Qty,
+      uom: item6Uom,
+      cost: item6Cost,
+      price: item6Price,
+      contingency: item6Contingency,
+      rounded: item6Rounded,
+      isRecurring: true,
+    },
   ];
 
-  const totalStep5CustomerPrice = step5Items.reduce((sum, item) => sum + item.rounded, 0);
+  const totalStep5Cost = step5Items.reduce((sum, item) => sum + item.cost, 0);
+  const totalStep5Price = step5Items.reduce((sum, item) => sum + item.price, 0);
+  const totalStep5Contingency = step5Items.reduce((sum, item) => sum + item.contingency, 0);
+  const totalStep5Rounded = step5Items.reduce((sum, item) => sum + item.rounded, 0);
+  const totalStep5CustomerPrice = totalStep5Rounded;
 
   return (
     <div className="space-y-8">
@@ -249,8 +333,7 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
             <thead>
               <tr className="bg-slate-100 text-slate-900 border-b border-slate-300 font-extrabold text-[11px]">
                 <th className="p-2.5 px-3 w-12 text-center">Code</th>
-                <th className="p-2.5 px-4 w-1/4">Category</th>
-                <th className="p-2.5 px-4 w-1/3">Hardware Description</th>
+                <th className="p-2.5 px-4">Hardware Description</th>
                 <th className="p-2.5 px-3 text-center">Qty</th>
                 <th className="p-2.5 px-3 text-center">UoM</th>
                 <th className="p-2.5 px-3 text-right">Unit Cost (₹)</th>
@@ -262,49 +345,90 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-800 font-medium">
               {/* Section 1A: Gateway Hardware */}
-              <tr className="bg-purple-50/40 text-purple-950 font-bold border-b border-purple-100">
-                <td colSpan={10} className="p-2 px-4 text-[11px] uppercase tracking-wider">
-                  1. Sustainabyte Edge IoT Gateway Hardware
+              <tr className="bg-purple-50/60 text-purple-950 font-bold border-b border-purple-200">
+                <td colSpan={9} className="p-2 px-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-[11px] uppercase tracking-wider font-extrabold text-purple-900">
+                      1. Sustainabyte Edge IoT Gateway Hardware
+                    </span>
+                    <div className="flex items-center gap-3 text-[11px]">
+                      <span className="font-semibold text-slate-600">
+                        Total Cost: <span className="font-black text-slate-900">₹{formatMoney(emsGatewayHardwareTotalCost)}</span>
+                      </span>
+                      <span className="font-semibold text-purple-800 bg-purple-100 px-2 py-0.5 rounded border border-purple-200">
+                        Selling Price: <span className="font-black text-purple-950">₹{formatMoney(emsGatewayHardwareTotalPrice)}</span>
+                      </span>
+                    </div>
+                  </div>
                 </td>
               </tr>
               {emsGatewayHardwareRows.map((row) => {
                 const totalCost = row.qty * row.unitCost;
                 const sellingPrice = Math.round(row.qty * calcPriceFromCost(row.unitCost, row.marginPct));
+                const isCatalogItem = getActiveGatewayHardwareCatalog().some(
+                  (c) => c.description === row.description || c.name === row.description
+                );
 
                 return (
                   <tr key={row.id} className="hover:bg-purple-50/20 transition-colors">
                     <td className="p-2 px-3 text-center font-bold text-slate-500 border-r border-slate-200">
                       {row.code}
                     </td>
-                    <td className="p-2 px-4 border-r border-slate-200 font-semibold text-slate-700">
-                      {row.category}
-                    </td>
                     <td className="p-2 px-4 border-r border-slate-200 font-bold text-slate-900">
-                      <input
-                        type="text"
-                        value={row.description}
-                        onChange={(e) => updateEmsGatewayHardwareRow(row.id, 'description', e.target.value)}
-                        className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-purple-500 font-bold text-slate-900 px-1 py-0.5 focus:outline-none"
-                      />
+                      <div className="space-y-1.5">
+                        <SearchableSelect
+                          options={gatewayHardwareOptions}
+                          value={isCatalogItem ? row.description : '__CUSTOM__'}
+                          placeholder="-- Search & Select Gateway Hardware --"
+                          customOptionLabel="✨ Custom Hardware Component"
+                          theme="purple"
+                          onChange={(val, opt) => {
+                            if (val === '__CUSTOM__') {
+                              // allow custom typing
+                            } else if (opt) {
+                              updateEmsGatewayHardwareRow(row.id, 'description', opt.value);
+                              updateEmsGatewayHardwareRow(row.id, 'uom', opt.uom || 'Nos');
+                              updateEmsGatewayHardwareRow(row.id, 'unitCost', opt.price ?? 0);
+                            }
+                          }}
+                        />
+                        <textarea
+                          rows={Math.max(1, Math.ceil((row.description?.length || 1) / 38))}
+                          value={row.description}
+                          onChange={(e) => updateEmsGatewayHardwareRow(row.id, 'description', e.target.value)}
+                          placeholder="Hardware description..."
+                          className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-purple-500 font-bold text-slate-900 px-1 py-0.5 focus:outline-none resize-none leading-snug whitespace-pre-wrap text-xs"
+                        />
+                      </div>
                     </td>
                     <td className="p-2 px-3 border-r border-slate-200 text-center">
                       <input
                         type="number"
-                        min={1}
-                        value={row.qty}
-                        onChange={(e) => updateEmsGatewayHardwareRow(row.id, 'qty', Number(e.target.value))}
+                        min={0}
+                        placeholder="0"
+                        value={row.qty === 0 ? '' : row.qty}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsGatewayHardwareRow(row.id, 'qty', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-12 text-center bg-slate-50 border border-slate-200 rounded px-1 py-1 font-bold text-slate-900"
                       />
                     </td>
-                    <td className="p-2 px-3 border-r border-slate-200 text-center text-slate-600 font-semibold">
-                      {row.uom}
+                    <td className="p-2 px-3 border-r border-slate-200 text-center">
+                      <input
+                        type="text"
+                        value={row.uom}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsGatewayHardwareRow(row.id, 'uom', e.target.value)}
+                        className="w-14 text-center bg-slate-50 border border-slate-200 rounded px-1 py-1 font-semibold text-slate-800 text-xs focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                      />
                     </td>
                     <td className="p-2 px-3 border-r border-slate-200 text-right">
                       <input
                         type="number"
                         min={0}
-                        value={row.unitCost}
-                        onChange={(e) => updateEmsGatewayHardwareRow(row.id, 'unitCost', Number(e.target.value))}
+                        placeholder="0"
+                        value={row.unitCost === 0 ? '' : row.unitCost}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsGatewayHardwareRow(row.id, 'unitCost', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-20 text-right bg-slate-50 border border-slate-200 rounded px-1.5 py-1 font-semibold text-slate-900"
                       />
                     </td>
@@ -316,8 +440,10 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                         type="number"
                         min={0}
                         max={99}
-                        value={row.marginPct}
-                        onChange={(e) => updateEmsGatewayHardwareRow(row.id, 'marginPct', Number(e.target.value))}
+                        placeholder="0"
+                        value={row.marginPct === 0 ? '' : row.marginPct}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsGatewayHardwareRow(row.id, 'marginPct', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-12 text-center bg-purple-50 border border-purple-200 rounded px-1 py-1 font-bold text-purple-900 text-xs"
                       />
                     </td>
@@ -337,62 +463,140 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                 );
               })}
 
+              {/* Section 1A Subtotal Row */}
+              <tr className="bg-purple-50/75 font-bold border-t-2 border-purple-200 text-xs">
+                <td colSpan={5} className="p-2.5 px-4 text-right font-extrabold text-purple-950 uppercase tracking-wider text-[11px]">
+                  1. IoT Gateway Hardware Subtotal
+                </td>
+                <td className="p-2.5 px-3 text-right font-black text-slate-900 bg-purple-100/60 border-r border-purple-200">
+                  ₹{formatMoney(emsGatewayHardwareTotalCost)}
+                </td>
+                <td className="border-r border-purple-200"></td>
+                <td className="p-2.5 px-4 text-right font-black text-purple-950 bg-purple-200/70 border-r border-purple-200">
+                  ₹{formatMoney(emsGatewayHardwareTotalPrice)}
+                </td>
+                <td></td>
+              </tr>
+
               <tr className="bg-slate-50">
-                <td colSpan={10} className="p-2 px-4 border-b border-slate-200">
-                  <button
-                    type="button"
-                    onClick={addEmsGatewayHardwareRow}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200 shadow-2xs cursor-pointer"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Add Gateway Hardware
-                  </button>
+                <td colSpan={9} className="p-2.5 px-4 border-b border-slate-200">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => addEmsGatewayHardwareRow()}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg border border-purple-200 shadow-2xs cursor-pointer transition-all"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add Gateway Hardware
+                    </button>
+                    <div className="w-80 max-w-full">
+                      <SearchableSelect
+                        options={gatewayHardwareOptions}
+                        value=""
+                        placeholder="+ Quick Search & Add Gateway..."
+                        theme="purple"
+                        onChange={(val, opt) => {
+                          if (opt && val !== '__CUSTOM__') {
+                            addEmsGatewayHardwareRow({
+                              category: opt.category || 'Sustainabyte Edge IoT Gateway Hardware',
+                              description: opt.value,
+                              uom: opt.uom || 'Nos',
+                              unitCost: opt.price ?? 0,
+                              qty: 1,
+                              marginPct: 40,
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 </td>
               </tr>
 
               {/* Section 1B: Electrical Hardware */}
-              <tr className="bg-indigo-50/40 text-indigo-950 font-bold border-b border-indigo-100">
-                <td colSpan={10} className="p-2 px-4 text-[11px] uppercase tracking-wider">
-                  2. Electrical Hardware &amp; Accessories
+              <tr className="bg-indigo-50/60 text-indigo-950 font-bold border-b border-indigo-200">
+                <td colSpan={9} className="p-2 px-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-[11px] uppercase tracking-wider font-extrabold text-indigo-900">
+                      2. Electrical Hardware &amp; Accessories
+                    </span>
+                    <div className="flex items-center gap-3 text-[11px]">
+                      <span className="font-semibold text-slate-600">
+                        Total Cost: <span className="font-black text-slate-900">₹{formatMoney(emsElectricalHardwareTotalCost)}</span>
+                      </span>
+                      <span className="font-semibold text-indigo-800 bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200">
+                        Selling Price: <span className="font-black text-indigo-950">₹{formatMoney(emsElectricalHardwareTotalPrice)}</span>
+                      </span>
+                    </div>
+                  </div>
                 </td>
               </tr>
               {emsElectricalHardwareRows.map((row) => {
                 const totalCost = row.qty * row.unitCost;
                 const sellingPrice = Math.round(row.qty * calcPriceFromCost(row.unitCost, row.marginPct));
+                const isCatalogItem = getActiveElectricalHardwareCatalog().some(
+                  (c) => c.description === row.description || c.name === row.description
+                );
 
                 return (
                   <tr key={row.id} className="hover:bg-indigo-50/20 transition-colors">
                     <td className="p-2 px-3 text-center font-bold text-slate-500 border-r border-slate-200">
                       {row.code}
                     </td>
-                    <td className="p-2 px-4 border-r border-slate-200 font-semibold text-slate-700">
-                      {row.category}
-                    </td>
                     <td className="p-2 px-4 border-r border-slate-200 font-bold text-slate-900">
-                      <input
-                        type="text"
-                        value={row.description}
-                        onChange={(e) => updateEmsElectricalHardwareRow(row.id, 'description', e.target.value)}
-                        className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 font-bold text-slate-900 px-1 py-0.5 focus:outline-none"
-                      />
+                      <div className="space-y-1.5">
+                        <SearchableSelect
+                          options={electricalHardwareOptions}
+                          value={isCatalogItem ? row.description : '__CUSTOM__'}
+                          placeholder="-- Search & Select Electrical Hardware --"
+                          customOptionLabel="✨ Custom Electrical Accessory"
+                          theme="indigo"
+                          onChange={(val, opt) => {
+                            if (val === '__CUSTOM__') {
+                              // allow custom typing
+                            } else if (opt) {
+                              updateEmsElectricalHardwareRow(row.id, 'description', opt.value);
+                              updateEmsElectricalHardwareRow(row.id, 'uom', opt.uom || 'Nos');
+                              updateEmsElectricalHardwareRow(row.id, 'unitCost', opt.price ?? 0);
+                            }
+                          }}
+                        />
+                        <textarea
+                          rows={Math.max(1, Math.ceil((row.description?.length || 1) / 38))}
+                          value={row.description}
+                          onChange={(e) => updateEmsElectricalHardwareRow(row.id, 'description', e.target.value)}
+                          placeholder="Electrical accessory description..."
+                          className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 font-bold text-slate-900 px-1 py-0.5 focus:outline-none resize-none leading-snug whitespace-pre-wrap text-xs"
+                        />
+                      </div>
                     </td>
                     <td className="p-2 px-3 border-r border-slate-200 text-center">
                       <input
                         type="number"
-                        min={1}
-                        value={row.qty}
-                        onChange={(e) => updateEmsElectricalHardwareRow(row.id, 'qty', Number(e.target.value))}
+                        min={0}
+                        placeholder="0"
+                        value={row.qty === 0 ? '' : row.qty}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsElectricalHardwareRow(row.id, 'qty', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-12 text-center bg-slate-50 border border-slate-200 rounded px-1 py-1 font-bold text-slate-900"
                       />
                     </td>
-                    <td className="p-2 px-3 border-r border-slate-200 text-center text-slate-600 font-semibold">
-                      {row.uom}
+                    <td className="p-2 px-3 border-r border-slate-200 text-center">
+                      <input
+                        type="text"
+                        value={row.uom}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsElectricalHardwareRow(row.id, 'uom', e.target.value)}
+                        className="w-14 text-center bg-slate-50 border border-slate-200 rounded px-1 py-1 font-semibold text-slate-800 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      />
                     </td>
                     <td className="p-2 px-3 border-r border-slate-200 text-right">
                       <input
                         type="number"
                         min={0}
-                        value={row.unitCost}
-                        onChange={(e) => updateEmsElectricalHardwareRow(row.id, 'unitCost', Number(e.target.value))}
+                        placeholder="0"
+                        value={row.unitCost === 0 ? '' : row.unitCost}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsElectricalHardwareRow(row.id, 'unitCost', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-20 text-right bg-slate-50 border border-slate-200 rounded px-1.5 py-1 font-semibold text-slate-900"
                       />
                     </td>
@@ -404,8 +608,10 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                         type="number"
                         min={0}
                         max={99}
-                        value={row.marginPct}
-                        onChange={(e) => updateEmsElectricalHardwareRow(row.id, 'marginPct', Number(e.target.value))}
+                        placeholder="0"
+                        value={row.marginPct === 0 ? '' : row.marginPct}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsElectricalHardwareRow(row.id, 'marginPct', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-12 text-center bg-indigo-50 border border-indigo-200 rounded px-1 py-1 font-bold text-indigo-900 text-xs"
                       />
                     </td>
@@ -425,21 +631,58 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                 );
               })}
 
+              {/* Section 1B Subtotal Row */}
+              <tr className="bg-indigo-50/75 font-bold border-t-2 border-indigo-200 text-xs">
+                <td colSpan={5} className="p-2.5 px-4 text-right font-extrabold text-indigo-950 uppercase tracking-wider text-[11px]">
+                  2. Electrical Hardware Subtotal
+                </td>
+                <td className="p-2.5 px-3 text-right font-black text-slate-900 bg-indigo-100/60 border-r border-indigo-200">
+                  ₹{formatMoney(emsElectricalHardwareTotalCost)}
+                </td>
+                <td className="border-r border-indigo-200"></td>
+                <td className="p-2.5 px-4 text-right font-black text-indigo-950 bg-indigo-200/70 border-r border-indigo-200">
+                  ₹{formatMoney(emsElectricalHardwareTotalPrice)}
+                </td>
+                <td></td>
+              </tr>
+
               <tr className="bg-slate-50">
-                <td colSpan={10} className="p-2 px-4 border-b border-slate-200">
-                  <button
-                    type="button"
-                    onClick={addEmsElectricalHardwareRow}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-200 shadow-2xs cursor-pointer"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Add Electrical Hardware
-                  </button>
+                <td colSpan={9} className="p-2.5 px-4 border-b border-slate-200">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => addEmsElectricalHardwareRow()}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-200 shadow-2xs cursor-pointer transition-all"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add Electrical Hardware
+                    </button>
+                    <div className="w-80 max-w-full">
+                      <SearchableSelect
+                        options={electricalHardwareOptions}
+                        value=""
+                        placeholder="+ Quick Search & Add Electrical Hardware..."
+                        theme="indigo"
+                        onChange={(val, opt) => {
+                          if (opt && val !== '__CUSTOM__') {
+                            addEmsElectricalHardwareRow({
+                              category: opt.category || 'Electrical Hardware',
+                              description: opt.value,
+                              uom: opt.uom || 'Nos',
+                              unitCost: opt.price ?? 0,
+                              qty: 1,
+                              marginPct: 40,
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 </td>
               </tr>
 
               {/* Step 1 Subtotal Row */}
               <tr className="bg-purple-900 text-white font-extrabold text-xs">
-                <td colSpan={6} className="p-3 px-6 text-right uppercase tracking-wider">
+                <td colSpan={5} className="p-3 px-6 text-right uppercase tracking-wider">
                   Step 1 Total Hardware Cost &amp; Selling Price
                 </td>
                 <td className="p-3 px-3 text-right font-black text-amber-400 bg-purple-950 text-sm border-r border-purple-800">
@@ -515,31 +758,41 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                 return (
                   <tr key={row.id} className="hover:bg-emerald-50/20 transition-colors">
                     <td className="p-2 px-4 border-r border-slate-200 font-bold text-slate-900">
-                      <input
-                        type="text"
+                      <textarea
+                        rows={Math.max(1, Math.ceil((row.description?.length || 1) / 45))}
                         value={row.description}
                         onChange={(e) => updateEmsPlatformRow(row.id, 'description', e.target.value)}
-                        className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-500 font-bold text-slate-900 px-1 py-0.5 focus:outline-none"
+                        className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-500 font-bold text-slate-900 px-1 py-0.5 focus:outline-none resize-none leading-snug whitespace-pre-wrap text-xs"
                       />
                     </td>
                     <td className="p-2 px-3 border-r border-slate-200 text-center">
                       <input
                         type="number"
-                        min={1}
-                        value={row.qty}
-                        onChange={(e) => updateEmsPlatformRow(row.id, 'qty', Number(e.target.value))}
+                        min={0}
+                        placeholder="0"
+                        value={row.qty === 0 ? '' : row.qty}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsPlatformRow(row.id, 'qty', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-12 text-center bg-slate-50 border border-slate-200 rounded px-1 py-1 font-bold text-slate-900"
                       />
                     </td>
-                    <td className="p-2 px-3 border-r border-slate-200 text-center text-slate-600 font-semibold">
-                      {row.uom}
+                    <td className="p-2 px-3 border-r border-slate-200 text-center">
+                      <input
+                        type="text"
+                        value={row.uom}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsPlatformRow(row.id, 'uom', e.target.value)}
+                        className="w-14 text-center bg-slate-50 border border-slate-200 rounded px-1 py-1 font-semibold text-slate-800 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                      />
                     </td>
                     <td className="p-2 px-3 border-r border-slate-200 text-right">
                       <input
                         type="number"
                         min={0}
-                        value={row.unitCost}
-                        onChange={(e) => updateEmsPlatformRow(row.id, 'unitCost', Number(e.target.value))}
+                        placeholder="0"
+                        value={row.unitCost === 0 ? '' : row.unitCost}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsPlatformRow(row.id, 'unitCost', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-20 text-right bg-slate-50 border border-slate-200 rounded px-1.5 py-1 font-semibold text-slate-900"
                       />
                     </td>
@@ -551,8 +804,10 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                         type="number"
                         min={0}
                         max={99}
-                        value={row.marginPct}
-                        onChange={(e) => updateEmsPlatformRow(row.id, 'marginPct', Number(e.target.value))}
+                        placeholder="0"
+                        value={row.marginPct === 0 ? '' : row.marginPct}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsPlatformRow(row.id, 'marginPct', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-12 text-center bg-emerald-50 border border-emerald-200 rounded px-1 py-1 font-bold text-emerald-900 text-xs"
                       />
                     </td>
@@ -660,31 +915,41 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                       {row.code}
                     </td>
                     <td className="p-2 px-4 border-r border-slate-200 font-bold text-slate-900">
-                      <input
-                        type="text"
+                      <textarea
+                        rows={Math.max(1, Math.ceil((row.description?.length || 1) / 40))}
                         value={row.description}
                         onChange={(e) => updateEmsRecurringRow(row.id, 'description', e.target.value)}
-                        className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-purple-500 font-bold text-slate-900 px-1 py-0.5 focus:outline-none"
+                        className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-purple-500 font-bold text-slate-900 px-1 py-0.5 focus:outline-none resize-none leading-snug whitespace-pre-wrap text-xs"
                       />
                     </td>
                     <td className="p-2 px-3 border-r border-slate-200 text-center">
                       <input
                         type="number"
-                        min={1}
-                        value={row.qty}
-                        onChange={(e) => updateEmsRecurringRow(row.id, 'qty', Number(e.target.value))}
+                        min={0}
+                        placeholder="0"
+                        value={row.qty === 0 ? '' : row.qty}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsRecurringRow(row.id, 'qty', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-12 text-center bg-slate-50 border border-slate-200 rounded px-1 py-1 font-bold text-slate-900"
                       />
                     </td>
-                    <td className="p-2 px-3 border-r border-slate-200 text-center text-slate-600 font-semibold">
-                      {row.uom}
+                    <td className="p-2 px-3 border-r border-slate-200 text-center">
+                      <input
+                        type="text"
+                        value={row.uom}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsRecurringRow(row.id, 'uom', e.target.value)}
+                        className="w-14 text-center bg-slate-50 border border-slate-200 rounded px-1 py-1 font-semibold text-slate-800 text-xs focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                      />
                     </td>
                     <td className="p-2 px-3 border-r border-slate-200 text-right">
                       <input
                         type="number"
                         min={0}
-                        value={row.unitCostPerMonth}
-                        onChange={(e) => updateEmsRecurringRow(row.id, 'unitCostPerMonth', Number(e.target.value))}
+                        placeholder="0"
+                        value={row.unitCostPerMonth === 0 ? '' : row.unitCostPerMonth}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsRecurringRow(row.id, 'unitCostPerMonth', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-20 text-right bg-slate-50 border border-slate-200 rounded px-1.5 py-1 font-semibold text-slate-900"
                       />
                     </td>
@@ -693,8 +958,10 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                         type="number"
                         min={0}
                         max={99}
-                        value={row.marginPct}
-                        onChange={(e) => updateEmsRecurringRow(row.id, 'marginPct', Number(e.target.value))}
+                        placeholder="0"
+                        value={row.marginPct === 0 ? '' : row.marginPct}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => updateEmsRecurringRow(row.id, 'marginPct', e.target.value === '' ? 0 : Number(e.target.value))}
                         className="w-12 text-center bg-purple-50 border border-purple-200 rounded px-1 py-1 font-bold text-purple-900 text-xs"
                       />
                     </td>
@@ -763,7 +1030,7 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
               TOTAL PRICE SUMMARY (STEPS 1–4 ITEMIZED BREAKDOWN)
             </h3>
           </div>
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1">
               <span className="text-xs font-bold text-slate-300">Contingency:</span>
               <input
@@ -776,6 +1043,36 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
               />
               <span className="text-xs font-bold text-slate-400">%</span>
             </div>
+
+            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1">
+              <span className="text-xs font-bold text-slate-300">Round Nearest:</span>
+              <span className="text-xs font-bold text-slate-400">₹</span>
+              <input
+                type="number"
+                min={1}
+                step={50}
+                value={roundingNearest}
+                onChange={(e) => setRoundingNearest(Math.max(1, Number(e.target.value)))}
+                className="w-14 text-center font-black text-amber-400 bg-transparent focus:outline-none text-xs"
+              />
+              <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5 ml-0.5">
+                {[10, 50, 100, 500, 1000].map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setRoundingNearest(val)}
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+                      roundingNearest === val
+                        ? 'bg-amber-500 text-slate-950'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {val}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="bg-emerald-950/80 border border-emerald-500/50 px-4 py-1 rounded-full flex items-center gap-2">
               <span className="text-xs font-bold text-emerald-400">Total Price:</span>
               <span className="text-sm font-black text-emerald-300">
@@ -790,17 +1087,16 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           <table className="w-full text-left text-xs border-collapse bg-white">
             <thead>
               <tr className="bg-slate-100 text-slate-800 border-b-2 border-slate-900 font-extrabold text-[11px]">
-                <th className="p-3 px-3 text-center w-16 border-r border-slate-200">Step No</th>
+                <th className="p-3 px-3 text-center w-14 border-r border-slate-200">S.No</th>
                 <th className="p-3 px-4 w-2/5 border-r border-slate-200">Item Description</th>
                 <th className="p-3 px-3 text-center border-r border-slate-200">Qty</th>
                 <th className="p-3 px-3 text-center border-r border-slate-200">UoM</th>
-                <th className="p-3 px-3 text-right border-r border-slate-200">Total Cost in INR</th>
                 <th className="p-3 px-3 text-right border-r border-slate-200">Total Price in INR</th>
                 <th className="p-3 px-3 text-right bg-amber-50/70 text-amber-900 border-r border-slate-200">
                   Contingency ({bufferPct}%)
                 </th>
                 <th className="p-3 px-3 text-right bg-slate-50 text-slate-900 border-r border-slate-200">
-                  Rounded Price
+                  Rounded Price (₹{roundingNearest})
                 </th>
                 <th className="p-3 px-4 text-right font-black bg-emerald-50 text-emerald-800">
                   Customer Price
@@ -810,8 +1106,8 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
             <tbody className="divide-y divide-slate-200 text-slate-800 font-medium bg-white">
               {step5Items.map((item, idx) => (
                 <tr key={`s5_${idx}`} className="hover:bg-slate-50/80 transition-colors bg-white">
-                  <td className="p-2.5 px-3 text-center font-bold text-slate-600 border-r border-slate-200">
-                    {item.stepNo}
+                  <td className="p-2.5 px-3 text-center font-bold text-slate-700 border-r border-slate-200">
+                    {idx + 1}
                   </td>
                   <td className="p-2.5 px-4 font-semibold text-slate-900 border-r border-slate-200 leading-relaxed text-[11px]">
                     {item.description}
@@ -821,9 +1117,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                   </td>
                   <td className="p-2.5 px-3 text-center text-slate-600 font-medium border-r border-slate-200">
                     {item.uom}
-                  </td>
-                  <td className="p-2.5 px-3 text-right font-semibold text-slate-700 border-r border-slate-200">
-                    ₹{formatMoney(item.cost)}
                   </td>
                   <td className="p-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-200">
                     ₹{formatMoney(item.price)}
@@ -840,12 +1133,21 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                 </tr>
               ))}
 
-              {/* Bottom Summary Bar */}
-              <tr className="bg-slate-50 text-slate-900 border-t-2 border-slate-900 font-black text-sm">
-                <td colSpan={8} className="p-4 px-6 text-right uppercase tracking-wider text-slate-900 font-black">
+              {/* Bottom Summary Bar with Over All Totals */}
+              <tr className="bg-slate-100 text-slate-900 border-t-2 border-slate-900 font-black text-xs">
+                <td colSpan={4} className="p-3.5 px-4 text-right uppercase tracking-wider text-slate-900 font-black">
                   TOTAL PRICE
                 </td>
-                <td className="p-4 px-5 text-right font-black text-emerald-800 text-base bg-emerald-100/80 border-l border-emerald-300">
+                <td className="p-3.5 px-3 text-right font-black text-slate-900 border-r border-slate-200 bg-slate-50">
+                  ₹{formatMoney(totalStep5Price)}
+                </td>
+                <td className="p-3.5 px-3 text-right font-black text-amber-900 bg-amber-100/70 border-r border-slate-200">
+                  ₹{formatMoney(totalStep5Contingency)}
+                </td>
+                <td className="p-3.5 px-3 text-right font-black text-slate-900 bg-slate-200/70 border-r border-slate-200">
+                  ₹{formatMoney(totalStep5Rounded)}
+                </td>
+                <td className="p-3.5 px-4 text-right font-black text-emerald-800 text-sm bg-emerald-100/80">
                   ₹{formatMoney(totalStep5CustomerPrice)}
                 </td>
               </tr>

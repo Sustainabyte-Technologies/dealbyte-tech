@@ -52,7 +52,20 @@ import {
   INITIAL_EMS_MANPOWER_ROWS,
   INITIAL_EMS_PLATFORM_ROWS,
   INITIAL_EMS_RECURRING_ROWS,
+  DEFAULT_WELDING_STEP5_TEXT,
+  DEFAULT_WELDING_STEP6_TEXT,
+  DEFAULT_WATER_MANAGEMENT_STEP5_TEXT,
+  DEFAULT_WATER_MANAGEMENT_STEP6_TEXT,
+  DEFAULT_ENERGY_AUDIT_STEP5_TEXT,
+  DEFAULT_ENERGY_AUDIT_STEP6_TEXT,
+  DEFAULT_ENERGY_AUDIT_SCOPE_CARDS,
+  ENERGY_AUDIT_TRACK_RECORD_CLIENTS,
+  INITIAL_WATER_MANAGEMENT_GATEWAY_HARDWARE_ROWS,
+  INITIAL_WATER_MANAGEMENT_ELECTRICAL_HARDWARE_ROWS,
+  INITIAL_WATER_MANAGEMENT_PLATFORM_ROWS,
+  INITIAL_WATER_MANAGEMENT_RECURRING_ROWS,
 } from '@/components/costing/constants';
+import { calcPriceFromCost, roundToHundred } from '@/components/costing/utils';
 import QuoteSummaryCard from '@/components/quotes/QuoteSummaryCard';
 import FullPageWatermark from '@/components/common/FullPageWatermark';
 
@@ -238,17 +251,11 @@ function NewQuoteContent() {
   const subServicesDropdownRef = useRef<HTMLDivElement>(null);
 
   // Assets & Scope of Assessment State (31 Categories)
-  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([
-    'bill_analysis',
-    'motors',
-    'pumps',
-    'compressors',
-    'air_chillers',
-  ]);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [assetSearchQuery, setAssetSearchQuery] = useState('');
   const [isAssetsDropdownOpen, setIsAssetsDropdownOpen] = useState(false);
   const assetsDropdownRef = useRef<HTMLDivElement>(null);
-  const [expandedAssetId, setExpandedAssetId] = useState<string | null>('bill_analysis');
+  const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
 
   // Filtered Assets for Dropdown Search
   const filteredAssets = React.useMemo(() => {
@@ -1038,6 +1045,18 @@ PAN Number – ABNCS4869A`;
     );
   }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
+  const isWaterManagement = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some(
+      (s) => s.includes('water management') || s.includes('water monitoring') || s.includes('wms')
+    );
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
   const isEms = React.useMemo(() => {
     if (isWeldingIot) return false;
     const combined = [
@@ -1090,20 +1109,39 @@ PAN Number – ABNCS4869A`;
   }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
   const isEnergyAudit = React.useMemo(() => {
-    const cat = (selectedCategories[0] || '').toLowerCase();
-    return cat.includes('audit') || cat === 'energy audit services';
-  }, [selectedCategories]);
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some(
+      (s) =>
+        s.includes('energy audit') ||
+        s === 'energy audit services' ||
+        (s.includes('audit') && !s.includes('air') && !s.includes('bms'))
+    );
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
-  // Auto-switch default texts when BMS or EMS/IoT mode changes
+  // Auto-switch default texts when Welding IoT, Water Management, BMS, EMS/IoT, or Energy Audit mode changes
   useEffect(() => {
-    if (isBms) {
+    if (isWeldingIot) {
+      setEmsStep5Text(DEFAULT_WELDING_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_WELDING_STEP6_TEXT);
+    } else if (isWaterManagement) {
+      setEmsStep5Text(DEFAULT_WATER_MANAGEMENT_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_WATER_MANAGEMENT_STEP6_TEXT);
+    } else if (isBms) {
       setEmsStep5Text(DEFAULT_BMS_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_BMS_STEP6_TEXT);
     } else if (isIotOrControls) {
       setEmsStep5Text(DEFAULT_EMS_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_EMS_STEP6_TEXT);
+    } else if (isEnergyAudit) {
+      setEmsStep5Text(DEFAULT_ENERGY_AUDIT_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_ENERGY_AUDIT_STEP6_TEXT);
     }
-  }, [isBms, isIotOrControls]);
+  }, [isWeldingIot, isWaterManagement, isBms, isIotOrControls, isEnergyAudit]);
 
   // IoT & Controls Step 5 Itemized Rows State (Supports Welding IoT, EMS, IoT Controls, and Custom)
   const [iotStep5Rows, setIotStep5Rows] = useState<Array<{
@@ -1117,92 +1155,68 @@ PAN Number – ABNCS4869A`;
     isRecurring?: boolean;
   }>>([
     {
-      id: 'iot-1a',
-      section: '1. Gateway & Hardware Engineering Scope',
-      stepNo: '1a',
-      description: 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Pro',
-      qty: 1,
+      id: 'iot-s1',
+      stepNo: '1',
+      description: 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Lite',
+      qty: 0,
       uom: 'Nos',
-      customerPrice: 20200,
+      customerPrice: 0,
     },
     {
-      id: 'iot-1b',
-      section: '1. Gateway & Hardware Engineering Scope',
-      stepNo: '1b',
-      description: 'Supply of RS485 energy meter with communication and wiring accessories',
-      qty: 1,
-      uom: 'Nos',
-      customerPrice: 15600,
-    },
-    {
-      id: 'iot-2a',
-      section: '2. Electrical Sensors & Metering Scope',
-      stepNo: '2a',
-      description: 'Supply of 2 core RS 485 Shielded cable for IoT Gateway communication',
-      qty: 1,
-      uom: 'Coil',
-      customerPrice: 7300,
-    },
-    {
-      id: 'iot-2b',
-      section: '2. Electrical Sensors & Metering Scope',
-      stepNo: '2b',
-      description: 'Supply of 1" conduit pipes',
-      qty: 1,
-      uom: 'Nos',
-      customerPrice: 100,
-    },
-    {
-      id: 'iot-2c',
-      section: '2. Electrical Sensors & Metering Scope',
-      stepNo: '2c',
-      description: 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories',
-      qty: 1,
-      uom: 'Job',
-      customerPrice: 5500,
-    },
-    {
-      id: 'iot-2',
-      section: '3. Installation, Cabling & Commissioning Scope',
+      id: 'iot-s2',
       stepNo: '2',
+      description: 'Supply of RS485 energy meter with communication and wiring accessories',
+      qty: 0,
+      uom: 'Nos',
+      customerPrice: 0,
+    },
+    {
+      id: 'iot-s3',
+      stepNo: '3',
+      description: 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories',
+      qty: 0,
+      uom: 'Job',
+      customerPrice: 0,
+    },
+    {
+      id: 'iot-s4',
+      stepNo: '4',
       description:
         'Installation and commissioning of IoT devices, gateways, modems, and associated electrical/control components including startup, testing, and functional verification. Communication cable laying and routing through conduits, cable trays, and raceways with proper dressing, tagging, and termination. Conduit pipe laying for electrical and communication cabling as per site layout. Modem configuration, network setup, data mapping, testing, troubleshooting, and data validation',
-      qty: 1,
+      qty: 0,
       uom: 'Nodes',
-      customerPrice: 40300,
+      customerPrice: 0,
     },
     {
-      id: 'iot-3',
-      section: '4. Platform Configuration & System Integration Scope',
-      stepNo: '3',
+      id: 'iot-s5',
+      stepNo: '5',
       description:
-        'IoT device configuration, protocol setup (Modbus, BACnet, MQTT), and integration with BMS/EMS platforms Network connectivity, dashboard mapping, alarm configuration, and cloud/server integration support System commissioning including startup, functional testing, calibration, and performance verification Troubleshooting, integration testing, client demonstration, and final handover support Electrical power/control cable laying, routing, termination, tagging, and insulation testing as per standard',
-      qty: 1,
+        'IoT device configuration, protocol setup (Modbus, BACnet, MQTT), and integration with BMS/EMS platforms. Network connectivity, dashboard mapping, alarm configuration, and cloud/server integration support System commissioning including startup, functional testing, calibration, and performance verification Troubleshooting, integration testing, client demonstration, and final handover support Electrical power/control cable laying, routing, termination, tagging, and insulation testing as per standard',
+      qty: 0,
       uom: 'Nodes',
-      customerPrice: 1400,
+      customerPrice: 0,
     },
     {
-      id: 'iot-rec-1a',
-      section: '5. Cloud, SLA & Recurring Annual Subscriptions Scope',
-      stepNo: '1a',
-      description: 'Recurring Charges for GSM-GPRS communication enabled IoT SIM Card and valid for one year period.',
-      qty: 1,
-      uom: 'Nos',
-      customerPrice: 2700,
-      isRecurring: true,
-    },
-    {
-      id: 'iot-rec-1b',
-      section: '5. Cloud, SLA & Recurring Annual Subscriptions Scope',
-      stepNo: '1b',
+      id: 'iot-s6',
+      stepNo: '6',
       description:
         'OptiByte Dashboard, Intelligent reporting, Group and machine level reporting, Email on any threshold value breach, Alert on Mobile(via SMS), Auto detection of anomalies, water flow rate, water capacity. We will check with the pH and TDS meter, if we can integrate it with our dashboard',
-      qty: 1,
+      qty: 0,
       uom: 'Nodes',
-      customerPrice: 1800,
+      customerPrice: 0,
       isRecurring: true,
     },
   ]);
+
+  // Step 3 Energy Audit State (Scope Cards & Track Record Clients)
+  const [energyAuditScopeCards, setEnergyAuditScopeCards] = useState<Array<{ id: string; title: string; description: string }>>(
+    DEFAULT_ENERGY_AUDIT_SCOPE_CARDS
+  );
+  const [energyAuditTrackClients, setEnergyAuditTrackClients] = useState<string[]>(
+    ENERGY_AUDIT_TRACK_RECORD_CLIENTS
+  );
+  const [isEditingEnergyAuditStep3, setIsEditingEnergyAuditStep3] = useState<boolean>(false);
+  const [newClientInput, setNewClientInput] = useState<string>('');
 
   // Helper to safely resolve non-zero customer price from any saved costing row
   const resolvePrice = (r: any, defaultPrice = 0) => {
@@ -1397,6 +1411,81 @@ PAN Number – ABNCS4869A`;
 
         setIotStep5Rows(extracted);
       } else if (isEms) {
+        const roundToNearest = (val: number, nearest: number = 100): number => {
+          const step = Number(nearest) || 1;
+          return Math.ceil(val / step) * step;
+        };
+
+        const buffer = Number(sheetAny.bufferPct || 10);
+        const margin = Number(sheetAny.marginPct || 40);
+        
+        let nearest = Number(sheetAny.roundingNearest || sheetAny.instrumentRows?.roundingNearest || 0);
+        if (!nearest || nearest <= 0) {
+          if (Number(sheetAny.finalQuote) === 168500 || (Number(sheetAny.finalQuote) > 0 && Number(sheetAny.finalQuote) % 500 === 0)) {
+            nearest = 500;
+          } else {
+            nearest = 100;
+          }
+        }
+
+        const gwRows = sheetAny.emsGatewayHardwareRows || sheetAny.instrumentRows?.emsGatewayHardwareRows || [];
+        const ehwRows = sheetAny.emsElectricalHardwareRows || sheetAny.instrumentRows?.emsElectricalHardwareRows || [];
+        const mpRows = sheetAny.emsManpowerRows || sheetAny.manpowerRows || sheetAny.instrumentRows?.emsManpowerRows || [];
+        const pfRows = sheetAny.emsPlatformRows || sheetAny.instrumentRows?.emsPlatformRows || [];
+        const rcRows = sheetAny.emsRecurringRows || sheetAny.instrumentRows?.emsRecurringRows || [];
+
+        // 1. Gateway Hardware (1a)
+        const row1a = gwRows[0];
+        const price1 = row1a ? Number(row1a.qty || 1) * calcPriceFromCost(Number(row1a.unitCost || 7000), row1a.marginPct ?? margin) : calcPriceFromCost(14000, margin);
+        const cust1 = roundToNearest(price1 / Math.max(0.01, (100 - buffer) / 100), nearest);
+
+        // 2. Meters & Additional Hardware (1b, 1c...)
+        const row1bList = gwRows.slice(1);
+        const price2 = row1bList.length > 0
+          ? row1bList.reduce((sum: number, r: any) => sum + Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), r.marginPct ?? margin), 0)
+          : calcPriceFromCost(34000, margin);
+        const cust2 = roundToNearest(price2 / Math.max(0.01, (100 - buffer) / 100), nearest);
+
+        // 3. Electrical Accessories Total
+        const price3 = ehwRows.length > 0
+          ? ehwRows.reduce((sum: number, r: any) => sum + Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), r.marginPct ?? margin), 0)
+          : calcPriceFromCost(10000, margin);
+        const cust3 = roundToNearest(price3 / Math.max(0.01, (100 - buffer) / 100), nearest);
+
+        // 4. Man Days / Installation & Commissioning Total
+        let mpCost = Number(sheetAny.totalManpowerCost) || 0;
+        if (!mpCost || mpCost === 0) {
+          const baseCost = mpRows.reduce((sum: number, r: any) => {
+            const rate = Number(r.siteWorkCost || r.siteDayRate || r.ratePerDay || r.unitCost || 4800);
+            const siteDays = Number(r.siteWorkingDays || r.siteDays || r.days || 1);
+            const repRate = Number(r.reportWorkCost || r.reportDayRate || 0);
+            const repDays = Number(r.reportWorkingDays || r.reportDays || 0);
+            return sum + rate * siteDays + repRate * repDays;
+          }, 0);
+          const extraCost = Number(sheetAny.totalExtraCost) || 8600;
+          mpCost = (baseCost > 0 ? baseCost : 9600) + extraCost;
+        }
+        const price4 = Math.round(calcPriceFromCost(mpCost, margin));
+        let cust4 = roundToNearest(price4 / Math.max(0.01, (100 - buffer) / 100), nearest);
+
+        // 5. Platform Setup Costing Total
+        const price5 = pfRows.length > 0
+          ? pfRows.reduce((sum: number, r: any) => sum + Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), r.marginPct ?? margin), 0)
+          : calcPriceFromCost(5000, margin);
+        const cust5 = roundToNearest(price5 / Math.max(0.01, (100 - buffer) / 100), nearest);
+
+        // 6. Recurring Cloud Charges Total
+        const price6 = rcRows.length > 0
+          ? rcRows.reduce((sum: number, r: any) => sum + Math.round(calcPriceFromCost(Number(r.unitCostPerMonth || 0), r.marginPct ?? margin) * Number(r.qty || 0)), 0) * 12
+          : calcPriceFromCost(9000, margin);
+        const cust6 = roundToNearest(price6 / Math.max(0.01, (100 - buffer) / 100), nearest);
+
+        // Alignment with sheetAny.finalQuote if available
+        const currentSum = cust1 + cust2 + cust3 + cust4 + cust5 + cust6;
+        if (sheetAny.finalQuote && Number(sheetAny.finalQuote) > 0 && currentSum !== Number(sheetAny.finalQuote)) {
+          cust4 += (Number(sheetAny.finalQuote) - currentSum);
+        }
+
         const extracted: Array<{
           id: string;
           section?: string;
@@ -1406,93 +1495,65 @@ PAN Number – ABNCS4869A`;
           uom: string;
           customerPrice: number;
           isRecurring?: boolean;
-        }> = [];
+        }> = [
+          {
+            id: 'ems-s1',
+            stepNo: '1',
+            description: row1a?.description || 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Lite',
+            qty: Number(row1a?.qty) || 2,
+            uom: row1a?.uom || 'Nos',
+            customerPrice: cust1,
+          },
+          {
+            id: 'ems-s2',
+            stepNo: '2',
+            description: row1bList.length > 0
+              ? row1bList.map((r: any) => r.description).join('; ')
+              : 'Supply of RS485 energy meter with communication and wiring accessories',
+            qty: row1bList.reduce((sum: number, r: any) => sum + Number(r.qty || 0), 0) || 4,
+            uom: row1bList[0]?.uom || 'Nos',
+            customerPrice: cust2,
+          },
+          {
+            id: 'ems-s3',
+            stepNo: '3',
+            description: 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories',
+            qty: ehwRows.reduce((sum: number, r: any) => sum + Number(r.qty || 0), 0) || 3,
+            uom: 'Job',
+            customerPrice: cust3,
+          },
+          {
+            id: 'ems-s4',
+            stepNo: '4',
+            description:
+              'Installation and commissioning of IoT devices, gateways, modems, and associated electrical/control components including startup, testing, and functional verification. Communication cable laying and routing through conduits, cable trays, and raceways with proper dressing, tagging, and termination. Conduit pipe laying for electrical and communication cabling as per site layout. Modem configuration, network setup, data mapping, testing, troubleshooting, and data validation',
+            qty: 1,
+            uom: 'Nodes',
+            customerPrice: cust4,
+          },
+          {
+            id: 'ems-s5',
+            stepNo: '5',
+            description: pfRows.length > 0
+              ? pfRows.map((r: any) => r.description).join('. ')
+              : 'IoT device configuration, protocol setup (Modbus, BACnet, MQTT), and integration with BMS/EMS platforms. Network connectivity, dashboard mapping, alarm configuration, and cloud/server integration support System commissioning including startup, functional testing, calibration, and performance verification Troubleshooting, integration testing, client demonstration, and final handover support Electrical power/control cable laying, routing, termination, tagging, and insulation testing as per standard',
+            qty: Number(pfRows[0]?.qty) || 5,
+            uom: pfRows[0]?.uom || 'Nodes',
+            customerPrice: cust5,
+          },
+          {
+            id: 'ems-s6',
+            stepNo: '6',
+            description:
+              'OptiByte Dashboard, Intelligent reporting, Group and machine level reporting, Email on any threshold value breach, Alert on Mobile(via SMS), Auto detection of anomalies, water flow rate, water capacity. We will check with the pH and TDS meter, if we can integrate it with our dashboard',
+            qty: Number(rcRows[1]?.qty || rcRows[0]?.qty) || 5,
+            uom: rcRows[1]?.uom || rcRows[0]?.uom || 'Nodes',
+            customerPrice: cust6,
+            isRecurring: true,
+          },
+        ];
 
-        let stepNum = 1;
-        if (sheetAny.emsGatewayHardwareRows && sheetAny.emsGatewayHardwareRows.length > 0) {
-          sheetAny.emsGatewayHardwareRows.forEach((r: any, idx: number) => {
-            extracted.push({
-              id: `gw-${idx}`,
-              section: '1. Gateway & Hardware Engineering Scope',
-              stepNo: r.stepNo || `1${String.fromCharCode(97 + idx)}`,
-              description: r.itemDescription || r.description || 'Hardware Gateway Unit Scope',
-              qty: Number(r.qty) || 1,
-              uom: r.uom || 'Nos',
-              customerPrice: resolvePrice(r, idx === 0 ? 20200 : 15600),
-            });
-          });
-        }
-        if (sheetAny.emsElectricalHardwareRows && sheetAny.emsElectricalHardwareRows.length > 0) {
-          sheetAny.emsElectricalHardwareRows.forEach((r: any, idx: number) => {
-            extracted.push({
-              id: `ehw-${idx}`,
-              section: '2. Electrical Sensors & Metering Scope',
-              stepNo: r.stepNo || `2${String.fromCharCode(97 + idx)}`,
-              description: r.itemDescription || r.description || 'Electrical Metering Scope',
-              qty: Number(r.qty) || 1,
-              uom: r.uom || 'Nos',
-              customerPrice: resolvePrice(r, idx === 0 ? 7300 : idx === 1 ? 100 : 5500),
-            });
-          });
-        }
-        if (extracted.length === 0 && sheetAny.emsHardwareRows && sheetAny.emsHardwareRows.length > 0) {
-          sheetAny.emsHardwareRows.forEach((r: any, idx: number) => {
-            extracted.push({
-              id: `hw-${idx}`,
-              section: '1. Hardware & Gateway Scope',
-              stepNo: r.stepNo || `${stepNum++}`,
-              description: r.itemDescription || r.description || 'Hardware Unit Scope',
-              qty: Number(r.qty) || 1,
-              uom: r.uom || 'Nos',
-              customerPrice: resolvePrice(r, idx === 0 ? 20200 : idx === 1 ? 15600 : 7300),
-            });
-          });
-        }
-        if (sheetAny.emsManpowerRows && sheetAny.emsManpowerRows.length > 0) {
-          sheetAny.emsManpowerRows.forEach((r: any, idx: number) => {
-            extracted.push({
-              id: `mp-${idx}`,
-              section: '3. Installation, Cabling & Commissioning Scope',
-              stepNo: '2',
-              description: r.description || r.itemDescription || 'Installation, Cabling & Commissioning of IoT Devices',
-              qty: Number(r.qty) || 1,
-              uom: r.uom || 'Nodes',
-              customerPrice: resolvePrice(r, 40300),
-            });
-          });
-        }
-        if (sheetAny.emsPlatformRows && sheetAny.emsPlatformRows.length > 0) {
-          sheetAny.emsPlatformRows.forEach((r: any, idx: number) => {
-            extracted.push({
-              id: `pf-${idx}`,
-              section: '4. Platform Configuration & System Integration Scope',
-              stepNo: r.stepNo || '3',
-              description: r.itemDescription || r.description || r.scope || 'Platform Configuration & BMS/EMS Integration Scope',
-              qty: Number(r.qty) || 1,
-              uom: r.uom || 'Nodes',
-              customerPrice: resolvePrice(r, 1400),
-            });
-          });
-        }
-        if (sheetAny.emsRecurringRows && sheetAny.emsRecurringRows.length > 0) {
-          sheetAny.emsRecurringRows.forEach((r: any, idx: number) => {
-            extracted.push({
-              id: `rec-${idx}`,
-              section: '5. Cloud, SLA & Recurring Annual Subscriptions Scope',
-              stepNo: r.stepNo || `1${String.fromCharCode(97 + idx)}`,
-              description: r.itemDescription || r.description || 'Recurring Cloud & Support Scope',
-              qty: Number(r.qty) || 1,
-              uom: r.uom || 'Year',
-              customerPrice: resolvePrice(r, idx === 0 ? 2700 : 1800),
-              isRecurring: true,
-            });
-          });
-        }
-
-        const sumExtracted = extracted.reduce((s, item) => s + item.customerPrice, 0);
-        if (extracted.length > 0 && sumExtracted > 0) {
-          setIotStep5Rows(extracted);
-        }
+        setIotStep5Rows(extracted);
       }
 
       if (sheetAny.manpowerRows && Array.isArray(sheetAny.manpowerRows) && sheetAny.manpowerRows.length > 0) {
@@ -2358,7 +2419,7 @@ PAN Number – ABNCS4869A`;
                     </label>
                     <textarea
                       rows={12}
-                      value={aboutSustainabyteText}
+                      value={aboutSustainabyteText || ''}
                       onChange={(e) => setAboutSustainabyteText(e.target.value)}
                       className="w-full p-4 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 leading-relaxed font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       placeholder="Type or edit About Sustainabyte overview text..."
@@ -2366,7 +2427,7 @@ PAN Number – ABNCS4869A`;
                   </div>
                 ) : (
                   <div className="space-y-3.5 text-xs text-slate-800 leading-relaxed font-normal">
-                    {aboutSustainabyteText
+                    {(aboutSustainabyteText || '')
                       .split(/\n\n+/)
                       .filter((p) => p.trim())
                       .map((paragraph, pIdx) => (
@@ -2379,89 +2440,224 @@ PAN Number – ABNCS4869A`;
               </div>
             </div>
 
-            {/* Step 3: Scope of Assessment (Assets & Oriented Scopes - Shown ONLY for Energy Audit Services) */}
+            {/* Step 3: Scope of Assessment & Client Track Record (For Energy Audit Services - Editable) */}
             {isEnergyAudit && (
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                   <div className="flex items-center gap-2">
                     <Layers className="h-5 w-5 text-indigo-600" />
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm">Step 3: Scope of Assessment (Assets &amp; Oriented Scopes)</h3>
-                      <p className="text-xs text-slate-500">View and customize oriented assessment scopes for selected asset categories</p>
+                      <h3 className="font-bold text-slate-900 text-sm">Step 3: Scope of Assessment &amp; Team Track Record — Energy Audit</h3>
+                      <p className="text-xs text-slate-500">14-Point Comprehensive Study Scope &amp; {energyAuditTrackClients.length} Reference Industry Client Track Record</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full shrink-0">
-                    {selectedAssetIds.length} Assets Selected
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEnergyAuditScopeCards(DEFAULT_ENERGY_AUDIT_SCOPE_CARDS);
+                        setEnergyAuditTrackClients(ENERGY_AUDIT_TRACK_RECORD_CLIENTS);
+                        toast.success('Reset Step 3 scope & clients to default!');
+                      }}
+                      className="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Reset Default
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingEnergyAuditStep3(!isEditingEnergyAuditStep3)}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                        isEditingEnergyAuditStep3
+                          ? 'bg-slate-900 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-300'
+                      }`}
+                    >
+                      {isEditingEnergyAuditStep3 ? (
+                        <>
+                          <Check className="h-3.5 w-3.5" /> Done Editing
+                        </>
+                      ) : (
+                        <>
+                          <Edit3 className="h-3.5 w-3.5" /> Edit Step 3
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
-                {/* Selected Assets & Oriented Assessment Scopes Accordion */}
-                <div className="space-y-3 pt-2">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Oriented Scope of Assessment Details ({selectedAssetIds.length} Active Assets)
-                  </label>
+                {/* Section 1: Scope of Work Methodologies */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      1. Detailed Scope of Work &amp; Engineering Assessment ({energyAuditScopeCards.length} Methodology Blocks)
+                    </label>
+                    {isEditingEnergyAuditStep3 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEnergyAuditScopeCards([
+                            ...energyAuditScopeCards,
+                            {
+                              id: `ea-${Date.now()}`,
+                              title: `${energyAuditScopeCards.length + 1}. Custom Assessment Scope`,
+                              description: 'Custom engineering assessment scope and study details.',
+                            },
+                          ]);
+                        }}
+                        className="text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> + Add Scope Item
+                      </button>
+                    )}
+                  </div>
 
-                  {selectedAssetIds.length === 0 ? (
-                    <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-400">
-                      No assets selected. Select asset categories from Step 1 above to view and include oriented scope of work.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {selectedAssetIds.map((aId) => {
-                        const asset = ASSESSMENT_ASSETS.find((a) => a.id === aId);
-                        if (!asset) return null;
-                        const isExpanded = expandedAssetId === asset.id;
-
-                        return (
-                          <div key={asset.id} className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-                            <div
-                              onClick={() => setExpandedAssetId(isExpanded ? null : asset.id)}
-                              className="px-4 py-3 bg-white flex items-center justify-between cursor-pointer hover:bg-indigo-50/50 transition-colors border-b border-slate-100"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-indigo-600" />
-                                <h4 className="text-xs font-bold text-slate-900">{asset.name}</h4>
-                                <span className="text-[10px] font-semibold text-slate-400">({asset.scopes.length} scope items)</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedAssetIds(selectedAssetIds.filter((id) => id !== asset.id));
-                                  }}
-                                  className="text-rose-600 hover:text-rose-800 text-[11px] font-semibold px-2 py-0.5 hover:bg-rose-50 rounded"
-                                >
-                                  Remove Asset
-                                </button>
-                                {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4 text-slate-400" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4 text-slate-400" />
-                                )}
-                              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    {energyAuditScopeCards.map((card, idx) => (
+                      <div
+                        key={card.id || idx}
+                        className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2 shadow-2xs relative group"
+                      >
+                        {isEditingEnergyAuditStep3 ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <input
+                                type="text"
+                                value={card.title}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEnergyAuditScopeCards(
+                                    energyAuditScopeCards.map((c, i) => (i === idx ? { ...c, title: val } : c))
+                                  );
+                                }}
+                                className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                placeholder="Scope title..."
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEnergyAuditScopeCards(energyAuditScopeCards.filter((_, i) => i !== idx));
+                                }}
+                                className="text-slate-400 hover:text-rose-600 p-1"
+                                title="Remove scope card"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
-
-                            {isExpanded && (
-                              <div className="p-4 bg-slate-50/70 space-y-2 text-xs">
-                                <p className="text-[11px] font-semibold text-indigo-700 uppercase tracking-wider mb-2">
-                                  Oriented Assessment Scopes:
-                                </p>
-                                <ul className="space-y-2 pl-2">
-                                  {asset.scopes.map((scope, sIdx) => (
-                                    <li key={sIdx} className="flex items-start gap-2 text-slate-800 font-medium">
-                                      <span className="text-indigo-600 font-bold shrink-0 mt-0.5">•</span>
-                                      <span>{scope}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
+                            <textarea
+                              rows={2}
+                              value={card.description}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEnergyAuditScopeCards(
+                                    energyAuditScopeCards.map((c, i) => (i === idx ? { ...c, description: val } : c))
+                                );
+                              }}
+                              className="w-full bg-white border border-slate-300 rounded p-2 text-[11px] text-slate-700 leading-relaxed focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              placeholder="Scope description details..."
+                            />
                           </div>
-                        );
-                      })}
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-indigo-600 shrink-0" />
+                              <h4 className="text-xs font-bold text-slate-900">{card.title}</h4>
+                            </div>
+                            <p className="text-[11px] text-slate-600 pl-4 leading-relaxed">
+                              {card.description}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section 2: Reference Clients Grid */}
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      2. Team Expertise &amp; Client Track Record ({energyAuditTrackClients.length} Reference Clients)
+                    </label>
+                    <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                      Proven Execution Footprint
+                    </span>
+                  </div>
+
+                  {/* Add Client Bar (when editing) */}
+                  {isEditingEnergyAuditStep3 && (
+                    <div className="flex items-center gap-2 p-2 bg-indigo-50/60 rounded-xl border border-indigo-100">
+                      <input
+                        type="text"
+                        value={newClientInput}
+                        onChange={(e) => setNewClientInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newClientInput.trim()) {
+                            e.preventDefault();
+                            setEnergyAuditTrackClients([...energyAuditTrackClients, newClientInput.trim()]);
+                            setNewClientInput('');
+                          }
+                        }}
+                        placeholder="Type new client / project name and press Enter..."
+                        className="flex-1 px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newClientInput.trim()) {
+                            setEnergyAuditTrackClients([...energyAuditTrackClients, newClientInput.trim()]);
+                            setNewClientInput('');
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0"
+                      >
+                        + Add Client
+                      </button>
                     </div>
                   )}
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 pt-1 text-xs">
+                    {energyAuditTrackClients.map((client, idx) => (
+                      <div
+                        key={idx}
+                        className="p-1.5 px-2 bg-slate-50 border border-slate-200/80 rounded-lg flex items-center justify-between gap-1.5 shadow-2xs hover:bg-indigo-50/40 transition-colors group"
+                      >
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <span className="h-4 w-4 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[9px] shrink-0">
+                            {idx + 1}
+                          </span>
+                          {isEditingEnergyAuditStep3 ? (
+                            <input
+                              type="text"
+                              value={client}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEnergyAuditTrackClients(
+                                  energyAuditTrackClients.map((c, i) => (i === idx ? val : c))
+                                );
+                              }}
+                              className="bg-white border border-slate-300 rounded px-1 py-0.5 text-[11px] font-semibold text-slate-800 w-full focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            />
+                          ) : (
+                            <span className="font-semibold text-slate-800 text-[11px] truncate" title={client}>
+                              {client}
+                            </span>
+                          )}
+                        </div>
+                        {isEditingEnergyAuditStep3 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEnergyAuditTrackClients(energyAuditTrackClients.filter((_, i) => i !== idx));
+                            }}
+                            className="text-slate-400 hover:text-rose-600 p-0.5 shrink-0"
+                            title="Remove client"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -2473,7 +2669,11 @@ PAN Number – ABNCS4869A`;
                   <div className="flex items-center gap-2">
                     <Network className="h-5 w-5 text-indigo-600" />
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm">Step 3: Solution Architecture — IoT &amp; Controls Platform</h3>
+                      <h3 className="font-bold text-slate-900 text-sm">
+                        {isWaterManagement
+                          ? 'Step 3: Solution Architecture — Water Management System (IoT & Controls Platform)'
+                          : 'Step 3: Solution Architecture — IoT & Controls Platform'}
+                      </h3>
                       <p className="text-xs text-slate-500">Comprehensive edge-to-cloud IoT topology, sensors, OptiLink gateway &amp; analytics dashboard</p>
                     </div>
                   </div>
@@ -2497,30 +2697,209 @@ PAN Number – ABNCS4869A`;
               </div>
             )}
 
-          {/* Step 4: Commercial Breakdown (IoT Step 5 & Air Audit Costing Sync) - Only shown when costing sheet is merged */}
-          {activeCostingSheet && (
+          {/* Step 4: Commercial Breakdown (Costing Sheet Sync / Energy Audit Scope) */}
+          {(activeCostingSheet || isEnergyAudit) && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                 <div className="flex items-center gap-2">
                   <Receipt className="h-5 w-5 text-indigo-600" />
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm">
-                      Step 4: Commercial Breakdown — {selectedCategories.join(', ')} / {selectedSubServiceOptions.join(', ')}
+                      Step 4: Cost Estimate &amp; Commercial Breakdown — {selectedCategories.join(', ') || 'Energy Audit Services'} / {selectedSubServiceOptions.join(', ') || 'Energy Audit'}
                     </h3>
                     <p className="text-xs text-slate-500">
                       {isIotOrControls
                         ? 'Itemized Step 5 Commercial Breakdown for IoT & Controls Scope'
-                        : 'Live Costing Sync & Parameter Matrix for Energy Audit Scope'}
+                        : activeCostingSheet
+                        ? 'Live Costing Sync & Parameter Matrix for Energy Audit Scope'
+                        : 'Commercial Scope Description, Timeline & Project Cost Estimate'}
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 shrink-0">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Costing Sheet Synced
-                </span>
+                {activeCostingSheet ? (
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full flex items-center gap-1.5 shrink-0">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Costing Sheet Synced
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full shrink-0">
+                    Cost Estimate Scope
+                  </span>
+                )}
               </div>
 
-              {/* If IoT and Controls: Show Step 5 Itemized Table with Section Headings */}
-              {isIotOrControls ? (
+              {/* If Welding IoT: Show Commercials Summary Table & Separate Annexure Tables */}
+              {isWeldingIot ? (
+                <div className="space-y-6">
+                  {/* Commercials Table */}
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                          Commercials
+                        </span>
+                        <span className="text-xs text-slate-600 font-medium">
+                          Executive Scope &amp; Commercial Pricing for Welding IoT &amp; Kit
+                        </span>
+                      </div>
+                      {activeCostingSheet?.finalQuote && (
+                        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg">
+                          API Synced Value: ₹{Number(activeCostingSheet.finalQuote).toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200 text-[11px]">
+                          <tr>
+                            <th className="py-2.5 px-3 text-center w-14">S.No</th>
+                            <th className="py-2.5 px-4 w-2/5">Scope Description</th>
+                            <th className="py-2.5 px-3 text-center">Payment Type</th>
+                            <th className="py-2.5 px-3 text-center">Qty</th>
+                            <th className="py-2.5 px-4 text-right">Total Price in INR</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                          <tr className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-2.5 px-3 text-center font-bold text-slate-600">1</td>
+                            <td className="py-2.5 px-4 font-semibold text-slate-900 leading-snug">
+                              Supply of IoT device for welding machine (Industry 4.0 ) with Software
+                            </td>
+                            <td className="py-2.5 px-3 text-center font-medium text-slate-700">One Time</td>
+                            <td className="py-2.5 px-3 text-center font-bold text-slate-800">1</td>
+                            <td className="py-2.5 px-4 text-right font-black text-slate-900 text-sm">
+                              ₹{(
+                                iotStep5Rows
+                                  .filter((r) => r.section?.toLowerCase().includes('hardware') || r.section?.toLowerCase().includes('software') || r.id.startsWith('wh-') || r.id.startsWith('ws-'))
+                                  .reduce((sum, r) => sum + Number(r.customerPrice || 0), 0) || Math.round(Number(activeCostingSheet?.finalQuote || 63000) * 0.7)
+                              ).toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-2.5 px-3 text-center font-bold text-slate-600">2</td>
+                            <td className="py-2.5 px-4 font-semibold text-slate-900 leading-snug">
+                              Installation &amp; Commissioning Charges per kit
+                            </td>
+                            <td className="py-2.5 px-3 text-center font-medium text-slate-700">One Time</td>
+                            <td className="py-2.5 px-3 text-center font-bold text-slate-800">1</td>
+                            <td className="py-2.5 px-4 text-right font-black text-slate-900 text-sm">
+                              ₹{(
+                                iotStep5Rows
+                                  .filter((r) => r.section?.toLowerCase().includes('installation') || r.id.startsWith('wi-'))
+                                  .reduce((sum, r) => sum + Number(r.customerPrice || 0), 0) || Math.round(Number(activeCostingSheet?.finalQuote || 63000) * 0.3)
+                              ).toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      <div className="bg-slate-900 text-white p-3.5 px-5 flex justify-between items-center font-extrabold text-xs sm:text-sm">
+                        <span className="tracking-wide uppercase">TOTAL COMMERCIAL INVESTMENT (INCL. ALL TAXES)</span>
+                        <span className="text-emerald-400 text-base sm:text-lg font-black">
+                          ₹{Number(activeCostingSheet?.finalQuote || finalQuote || iotTotalPrice || 63000).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 font-semibold italic">
+                      * FYI, BOM Annexure is attached below.
+                    </p>
+                  </div>
+
+                  {/* Annexure Tables */}
+                  <div className="space-y-4 pt-3 border-t border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-indigo-800 bg-indigo-50 px-2.5 py-0.5 rounded border border-indigo-200">
+                        Annexure
+                      </span>
+                      <span className="text-xs text-slate-600 font-medium">
+                        Detailed Itemized Bill of Materials (BOM) &amp; Technical Specifications
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Table 1: Hardware and development Charges */}
+                      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                        <div className="bg-slate-100 p-2 px-3.5 border-b border-slate-200 font-bold text-slate-900 text-center uppercase tracking-wide text-xs">
+                          Hardware and development Charges
+                        </div>
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 text-[11px]">
+                            <tr>
+                              <th className="py-2 px-3 text-center w-12">S.No</th>
+                              <th className="py-2 px-3">Component Name</th>
+                              <th className="py-2 px-3 text-center w-20">Qty</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-slate-700 font-medium text-xs">
+                            {((activeCostingSheet as any)?.weldingHardwareRows || INITIAL_WELDING_HARDWARE_ROWS).map((row: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-slate-50/70">
+                                <td className="py-1.5 px-3 text-center font-semibold text-slate-500">{row.slNo || idx + 1}</td>
+                                <td className="py-1.5 px-3 font-medium text-slate-900">{row.componentName}</td>
+                                <td className="py-1.5 px-3 text-center font-bold text-slate-800">
+                                  {row.qty && Number(row.qty) > 0 ? row.qty : idx === 13 ? 'As per Requirement' : '1'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Right Column: Software Development Scope & Cloud Recurring Cost */}
+                      <div className="space-y-4">
+                        {/* Table 2: Software Development Scope */}
+                        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                          <div className="bg-slate-100 p-2 px-3.5 border-b border-slate-200 font-bold text-slate-900 text-center uppercase tracking-wide text-xs">
+                            Software Development Scope
+                          </div>
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 text-[11px]">
+                              <tr>
+                                <th className="py-2 px-3 text-center w-24">Item</th>
+                                <th className="py-2 px-3">Description</th>
+                                <th className="py-2 px-3 text-center w-16">Qty</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
+                              {((activeCostingSheet as any)?.weldingSoftwareRows || INITIAL_WELDING_SOFTWARE_ROWS).map((row: any, idx: number) => (
+                                <tr key={idx}>
+                                  <td className="py-2 px-3 font-bold text-slate-900 text-center">{row.item}</td>
+                                  <td className="py-2 px-3 leading-snug text-slate-800 font-medium">{row.description}</td>
+                                  <td className="py-2 px-3 text-center font-bold text-slate-800">{row.uom || 'per kit'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Table 3: Cloud Recurring Cost */}
+                        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                          <div className="bg-slate-100 p-2 px-3.5 border-b border-slate-200 font-bold text-slate-900 text-center uppercase tracking-wide text-xs">
+                            Cloud Recurring Cost
+                          </div>
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 text-[11px]">
+                              <tr>
+                                <th className="py-2 px-3">Component</th>
+                                <th className="py-2 px-3">Description</th>
+                                <th className="py-2 px-3 text-center w-20">Type</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">
+                              {((activeCostingSheet as any)?.weldingCloudRows || INITIAL_WELDING_CLOUD_ROWS).map((row: any, idx: number) => (
+                                <tr key={idx}>
+                                  <td className="py-1.5 px-3 font-semibold text-slate-900">{row.component}</td>
+                                  <td className="py-1.5 px-3 text-slate-700">{row.description}</td>
+                                  <td className="py-1.5 px-3 text-center font-bold text-indigo-700">{row.type}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : isIotOrControls ? (
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -2685,68 +3064,105 @@ PAN Number – ABNCS4869A`;
               ) : (
                 /* Air Audit / Energy Audit Costing Sheet Sync & Parameters */
                 <div className="space-y-4">
-                  <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                          Live Costing Sheet Synced
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium">
-                          {activeCostingSheet.serviceCategory || 'Energy Audit Services'}
-                        </span>
-                      </div>
-                      <h4 className="text-base font-black text-slate-900 mt-1.5">
-                        {activeCostingSheet.clientName} — {activeCostingSheet.subService || 'Air Audit'}
-                      </h4>
-                      <p className="text-xs text-slate-600 font-medium mt-0.5">
-                        Site Days: <strong className="text-slate-800">{activeCostingSheet.siteWorkingDays || siteDays}</strong> • Report Days: <strong className="text-slate-800">{activeCostingSheet.reportWorkingDays || reportDays}</strong> • Margin: <strong className="text-indigo-700">{activeCostingSheet.marginPct || marginPct}%</strong>
-                      </p>
-                    </div>
+                  {activeCostingSheet ? (
+                    <>
+                      <div className="p-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                              Live Costing Sheet Synced
+                            </span>
+                            <span className="text-xs text-slate-500 font-medium">
+                              {activeCostingSheet?.serviceCategory || 'Energy Audit Services'}
+                            </span>
+                          </div>
+                          <h4 className="text-base font-black text-slate-900 mt-1.5">
+                            {activeCostingSheet?.clientName || clientName} — {activeCostingSheet?.subService || 'Energy Audit'}
+                          </h4>
+                          <p className="text-xs text-slate-600 font-medium mt-0.5">
+                            Site Days: <strong className="text-slate-800">{activeCostingSheet?.siteWorkingDays || siteDays}</strong> • Report Days: <strong className="text-slate-800">{activeCostingSheet?.reportWorkingDays || reportDays}</strong> • Margin: <strong className="text-indigo-700">{activeCostingSheet?.marginPct || marginPct}%</strong>
+                          </p>
+                        </div>
 
-                    <div className="flex items-center gap-4 bg-white p-3.5 px-5 rounded-xl border border-emerald-200/80 shadow-xs">
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Sustainabyte Cost</span>
-                        <span className="text-sm font-bold text-slate-800">
-                          ₹{Number(activeCostingSheet.subtotalCost || subtotal).toLocaleString('en-IN')}
-                        </span>
+                        <div className="flex items-center gap-4 bg-white p-3.5 px-5 rounded-xl border border-emerald-200/80 shadow-xs">
+                          <div className="text-right">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Sustainabyte Cost</span>
+                            <span className="text-sm font-bold text-slate-800">
+                              ₹{Number(activeCostingSheet?.subtotalCost || subtotal).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <div className="h-8 w-px bg-slate-200" />
+                          <div className="text-right">
+                            <span className="text-[10px] uppercase font-bold text-emerald-600 block">Final Calculated Quote</span>
+                            <span className="text-lg sm:text-xl font-black text-emerald-700">
+                              ₹{Number(activeCostingSheet?.finalQuote || finalQuote).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="h-8 w-px bg-slate-200" />
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-emerald-600 block">Final Calculated Quote</span>
-                        <span className="text-lg sm:text-xl font-black text-emerald-700">
-                          ₹{Number(activeCostingSheet.finalQuote || finalQuote).toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Synced Costing Metrics Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-                    <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Manpower Cost</span>
-                      <p className="font-extrabold text-slate-800 text-sm mt-0.5">
-                        ₹{Number(activeCostingSheet.manpowerCost || activeCostingSheet.totalManpowerCost || manpowerCost).toLocaleString('en-IN')}
-                      </p>
+                      {/* Synced Costing Metrics Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                        <div>
+                          <span className="text-slate-400 block text-[10px] uppercase font-bold">Manpower Cost</span>
+                          <p className="font-extrabold text-slate-800 text-sm mt-0.5">
+                            ₹{Number(activeCostingSheet?.manpowerCost || activeCostingSheet?.totalManpowerCost || manpowerCost).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px] uppercase font-bold">Instrument Rental</span>
+                          <p className="font-extrabold text-slate-800 text-sm mt-0.5">
+                            ₹{Number(activeCostingSheet?.instrumentCost || activeCostingSheet?.totalInstrumentCost || instrumentCost).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px] uppercase font-bold">Food & Travel</span>
+                          <p className="font-extrabold text-slate-800 text-sm mt-0.5">
+                            ₹{Number(activeCostingSheet?.totalExtraCost !== undefined ? activeCostingSheet.totalExtraCost : effectiveFoodTravelCost).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-indigo-600 block text-[10px] uppercase font-bold">Margin ({activeCostingSheet?.marginPct || marginPct}%)</span>
+                          <p className="font-extrabold text-indigo-700 text-sm mt-0.5">
+                            +₹{Number(activeCostingSheet?.marginAmount || marginAmount).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* Direct Energy Audit Cost Estimate Table */
+                    <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200 text-[11px]">
+                          <tr>
+                            <th className="py-2.5 px-4 w-3/5">Description</th>
+                            <th className="py-2.5 px-3 text-center">Project Timeline</th>
+                            <th className="py-2.5 px-4 text-right">Project Cost (INR)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                          <tr>
+                            <td className="py-3 px-4 font-semibold text-slate-900 leading-relaxed text-xs">
+                              Energy Audit for the scope mentioned above
+                            </td>
+                            <td className="py-3 px-3 text-center font-medium text-slate-700">
+                              1–2 Weeks
+                            </td>
+                            <td className="py-3 px-4 text-right font-black text-slate-900 text-sm">
+                              ₹{Number(finalQuote || subtotal || 0).toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      <div className="bg-slate-900 text-white p-3.5 px-5 flex justify-between items-center font-extrabold text-xs sm:text-sm">
+                        <span className="tracking-wide uppercase text-xs">TOTAL COMMERCIAL INVESTMENT (INCL. ALL EXPENSES)</span>
+                        <span className="text-emerald-400 text-base sm:text-lg font-black tracking-tight">
+                          ₹{Number(finalQuote || subtotal || 0).toLocaleString('en-IN')}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Instrument Rental</span>
-                      <p className="font-extrabold text-slate-800 text-sm mt-0.5">
-                        ₹{Number(activeCostingSheet.instrumentCost || activeCostingSheet.totalInstrumentCost || instrumentCost).toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Food & Travel</span>
-                      <p className="font-extrabold text-slate-800 text-sm mt-0.5">
-                        ₹{Number(activeCostingSheet.totalExtraCost !== undefined ? activeCostingSheet.totalExtraCost : effectiveFoodTravelCost).toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-indigo-600 block text-[10px] uppercase font-bold">Margin ({activeCostingSheet.marginPct || marginPct}%)</span>
-                      <p className="font-extrabold text-indigo-700 text-sm mt-0.5">
-                        +₹{Number(activeCostingSheet.marginAmount || marginAmount).toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Audit Team Members & Working Days */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2821,18 +3237,30 @@ PAN Number – ABNCS4869A`;
           )}
 
           {/* Step 5: Scope of Work / Key Issues / Assessment Scope (Editable, Row-Wise, Black Text) */}
-          {(isIotOrControls || isBms) && (
+          {(isIotOrControls || isBms || isEnergyAudit) && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                   <h3 className="font-bold text-slate-950 text-sm">
-                    {isBms
+                    {isWeldingIot
+                      ? 'Step 5: Scope of Work, POC Success Criteria & Benefits — Welding IoT & Kit'
+                      : isWaterManagement
+                      ? 'Step 5: Scope of Work & Solution Overview — Water Management Solution'
+                      : isBms
                       ? 'Step 5: Key Issues Identified, Assessment Activities & Expected Outcome — Building Management System (BMS)'
+                      : isEnergyAudit
+                      ? 'Step 5: Detailed Scope of Work & Assessment Activities — Energy Audit'
                       : 'Step 5: Scope of Work & Platform Benefits — Energy Management Solution'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {isBms
+                    {isWeldingIot
+                      ? 'Scope of Supply, Customer Dependencies, POC Criteria, Timeline & Welding Benefits'
+                      : isWaterManagement
+                      ? 'Water Management Scope of Work, Centralized Dashboard & Digitalization Overview'
+                      : isBms
                       ? 'Key Issues, Proposed Assessment Activities & Expected Outcome Roadmap'
+                      : isEnergyAudit
+                      ? 'Complete 14-Section Engineering Assessment Methodologies & Final Deliverables'
                       : '4-Phase Roadmap, Platform Value & EMS Key Benefits'}
                   </p>
                 </div>
@@ -2840,7 +3268,17 @@ PAN Number – ABNCS4869A`;
                   <button
                     type="button"
                     onClick={() => {
-                      setEmsStep5Text(isBms ? DEFAULT_BMS_STEP5_TEXT : DEFAULT_EMS_STEP5_TEXT);
+                      setEmsStep5Text(
+                        isWeldingIot
+                          ? DEFAULT_WELDING_STEP5_TEXT
+                          : isWaterManagement
+                          ? DEFAULT_WATER_MANAGEMENT_STEP5_TEXT
+                          : isBms
+                          ? DEFAULT_BMS_STEP5_TEXT
+                          : isEnergyAudit
+                          ? DEFAULT_ENERGY_AUDIT_STEP5_TEXT
+                          : DEFAULT_EMS_STEP5_TEXT
+                      );
                       toast.success('Reset Step 5 text to default!');
                     }}
                     className="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
@@ -2876,7 +3314,7 @@ PAN Number – ABNCS4869A`;
                   </label>
                   <textarea
                     rows={22}
-                    value={emsStep5Text}
+                    value={emsStep5Text || ''}
                     onChange={(e) => setEmsStep5Text(e.target.value)}
                     className="w-full p-4 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 leading-relaxed font-mono focus:outline-none focus:ring-2 focus:ring-slate-500"
                     placeholder="Type or edit Scope of Work and Assessment text..."
@@ -2884,7 +3322,7 @@ PAN Number – ABNCS4869A`;
                 </div>
               ) : (
                 <div className="space-y-4 text-xs text-slate-950 leading-relaxed font-normal">
-                  {emsStep5Text
+                  {(emsStep5Text || '')
                     .split(/\n\n+/)
                     .filter((block) => block.trim())
                     .map((block, bIdx) => {
@@ -2897,13 +3335,46 @@ PAN Number – ABNCS4869A`;
                               trimmed === 'KEY ISSUES IDENTIFIED' ||
                               trimmed === 'PROPOSED ASSESSMENT ACTIVITIES' ||
                               trimmed === 'EXPECTED OUTCOME' ||
+                              trimmed === 'Key Digitalization Pillars:' ||
                               trimmed.startsWith('Scope of Work:') ||
+                              trimmed.startsWith('Scope of Supply:') ||
+                              trimmed.startsWith('Customer dependencies') ||
+                              trimmed.startsWith('POC / Phase 1 Success') ||
+                              trimmed.startsWith('Timeline:') ||
+                              trimmed.startsWith('IoT 4.0 Welding benefits') ||
+                              trimmed.startsWith('Use Case Benefits') ||
+                              trimmed.startsWith('Water Management System:') ||
                               trimmed.startsWith('Phase ') ||
                               trimmed.startsWith('Potential benefits') ||
                               trimmed.startsWith('Benefits of Energy') ||
-                              trimmed.startsWith('In the “current proposal');
-                            const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('·');
+                              trimmed.startsWith('In the “current proposal') ||
+                              /^\d+\.\s+[A-Z]/.test(trimmed);
+                            const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('·') || trimmed.startsWith('');
                             const isNumbered = /^\d+\./.test(trimmed);
+
+                            if (trimmed.startsWith('Timeline:') && isWeldingIot) {
+                              return (
+                                <React.Fragment key={lIdx}>
+                                  <div className="my-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center shadow-2xs">
+                                    <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2 text-center">
+                                      IoT Cloud Connectivity Flowchart
+                                    </p>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src="/weldingiotflowchart.png"
+                                      alt="Welding IoT Architecture Flowchart"
+                                      className="w-full max-h-[250px] object-contain rounded-lg"
+                                    />
+                                    <p className="text-[10px] text-slate-500 mt-1.5 font-medium text-center">
+                                      MIG/MAG to Cloud Platform Architecture &amp; MQTT Protocol
+                                    </p>
+                                  </div>
+                                  <p className="font-extrabold text-slate-950 text-xs pt-1 uppercase tracking-wider text-indigo-900 bg-indigo-50/60 p-1.5 px-2.5 rounded-md border border-indigo-100 inline-block my-1">
+                                    {line}
+                                  </p>
+                                </React.Fragment>
+                              );
+                            }
 
                             if (isHeading) {
                               return (
@@ -2925,7 +3396,7 @@ PAN Number – ABNCS4869A`;
                               return (
                                 <div key={lIdx} className="flex items-start gap-2 pl-3 text-slate-900 font-medium">
                                   <span className="font-bold text-indigo-600">•</span>
-                                  <span>{trimmed.replace(/^[•\-·]\s*/, '')}</span>
+                                  <span>{trimmed.replace(/^[•\-·]\s*/, '')}</span>
                                 </div>
                               );
                             }
@@ -2945,18 +3416,30 @@ PAN Number – ABNCS4869A`;
           )}
 
           {/* Step 6: Notes, Client Support & Terms and Conditions (Editable, Row-Wise, Black Text) */}
-          {(isIotOrControls || isBms) && (
+          {(isIotOrControls || isBms || isEnergyAudit) && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                   <h3 className="font-bold text-slate-950 text-sm">
-                    {isBms
+                    {isWeldingIot
+                      ? 'Step 6: Client Support, Terms and Conditions & Payment Schedule — Welding IoT & Kit'
+                      : isWaterManagement
+                      ? 'Step 6: Client Support, Terms and Conditions & Payment Schedule — Water Management Solution'
+                      : isBms
                       ? 'Step 6: Payment Terms & Conditions — Building Management System (BMS)'
+                      : isEnergyAudit
+                      ? 'Step 6: Payment Terms & Conditions — Energy Audit'
                       : 'Step 6: Notes, Client Support & Terms and Conditions'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {isBms
+                    {isWeldingIot
+                      ? 'Client SPOC & Maintenance Support, 70/30 Payment Schedule & 11 Commercial Terms'
+                      : isWaterManagement
+                      ? 'Client Deliverables, Water Shutdown Terms & Milestone Payment Schedule'
+                      : isBms
                       ? 'Milestone-Wise Payment Schedule, Invoicing & Site Coordination Terms'
+                      : isEnergyAudit
+                      ? '30-Day Payment Terms, Site Coordination Requirements & Commercial Validity'
                       : 'Scope Inclusions, Client Deliverables & Commercial Clauses'}
                   </p>
                 </div>
@@ -2964,7 +3447,17 @@ PAN Number – ABNCS4869A`;
                   <button
                     type="button"
                     onClick={() => {
-                      setEmsStep6Text(isBms ? DEFAULT_BMS_STEP6_TEXT : DEFAULT_EMS_STEP6_TEXT);
+                      setEmsStep6Text(
+                        isWeldingIot
+                          ? DEFAULT_WELDING_STEP6_TEXT
+                          : isWaterManagement
+                          ? DEFAULT_WATER_MANAGEMENT_STEP6_TEXT
+                          : isBms
+                          ? DEFAULT_BMS_STEP6_TEXT
+                          : isEnergyAudit
+                          ? DEFAULT_ENERGY_AUDIT_STEP6_TEXT
+                          : DEFAULT_EMS_STEP6_TEXT
+                      );
                       toast.success('Reset Step 6 text to default!');
                     }}
                     className="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
@@ -3000,7 +3493,7 @@ PAN Number – ABNCS4869A`;
                   </label>
                   <textarea
                     rows={18}
-                    value={emsStep6Text}
+                    value={emsStep6Text || ''}
                     onChange={(e) => setEmsStep6Text(e.target.value)}
                     className="w-full p-4 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 leading-relaxed font-mono focus:outline-none focus:ring-2 focus:ring-slate-500"
                     placeholder="Type or edit Payment Terms, Notes, Client Support, Terms and Conditions..."
@@ -3008,7 +3501,7 @@ PAN Number – ABNCS4869A`;
                 </div>
               ) : (
                 <div className="space-y-4 text-xs text-slate-950 leading-relaxed font-normal">
-                  {emsStep6Text
+                  {(emsStep6Text || '')
                     .split(/\n\n+/)
                     .filter((block) => block.trim())
                     .map((block, bIdx) => {
@@ -3155,7 +3648,7 @@ PAN Number – ABNCS4869A`;
                     </div>
 
                     <div className="space-y-0.5 text-xs text-slate-950">
-                      {step7SubmittedBy.split('\n').map((line, idx) => (
+                      {(step7SubmittedBy || '').split('\n').map((line, idx) => (
                         <p key={idx} className={idx === 0 ? 'font-black text-slate-950 text-sm' : idx === 1 ? 'font-bold text-slate-900' : 'text-slate-800 font-medium'}>
                           {line}
                         </p>
@@ -3165,7 +3658,7 @@ PAN Number – ABNCS4869A`;
 
                   {/* Bank Account Details */}
                   <div className="pt-2 border-t border-slate-200 space-y-1 text-xs text-slate-950">
-                    {step7BankDetails.split('\n').map((line, idx) => (
+                    {(step7BankDetails || '').split('\n').map((line, idx) => (
                       <p key={idx} className={idx === 0 ? 'font-black text-slate-950 text-xs pb-0.5' : 'text-slate-800 font-medium'}>
                         {line}
                       </p>
