@@ -97,6 +97,8 @@ export interface WeldingSoftwareRow {
   description: string;
   qty?: number;
   uom?: string;
+  unitCost?: number;
+  marginPct?: number;
   unitPrice?: number;
   price: number;
 }

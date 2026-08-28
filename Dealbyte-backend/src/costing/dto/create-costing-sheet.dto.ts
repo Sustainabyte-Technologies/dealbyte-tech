@@ -186,4 +186,36 @@ export class SaveCostingSheetDto {
   @IsOptional()
   @IsArray()
   weldingInstallationRows?: any[];
+
+  @IsOptional()
+  @IsBoolean()
+  isCpm?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  cpmHardwareRows?: any[];
+
+  @IsOptional()
+  @IsArray()
+  cpmElectricalRows?: any[];
+
+  @IsOptional()
+  @IsArray()
+  cpmCommissioningManpowerRows?: any[];
+
+  @IsOptional()
+  @IsArray()
+  cpmInstallationRows?: any[];
+
+  @IsOptional()
+  @IsArray()
+  cpmInstallationManpowerRows?: any[];
+
+  @IsOptional()
+  @IsArray()
+  cpmCloudRows?: any[];
+
+  @IsOptional()
+  @IsNumber()
+  roundingNearest?: number;
 }

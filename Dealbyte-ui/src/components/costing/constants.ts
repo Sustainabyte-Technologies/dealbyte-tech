@@ -747,120 +747,159 @@ export const INITIAL_EMS_RECURRING_ROWS: EmsRecurringRow[] = [
 // ─── Energy Audit Solution Template Defaults ─────────────────────────────────
 
 export const DEFAULT_ENERGY_AUDIT_STEP5_TEXT = `Scope of Work:
-The objective of this study is to perform a detailed energy audit to identify energy saving and cost optimization opportunities.
+Energy Audit Scope of Work:
 
-Data Collection and Review:
-• The audit team will collect the last 12 months of electricity bills and district cooling bills for detailed analysis.
-• The team will gather building-related information such as total built-up area, occupancy pattern, and operating hours.
-• The inventory of major equipment including AHUs, FCUs, pumps, heat exchangers, lighting systems, and transformers will be compiled.
-• All available technical documents such as single line diagrams, HVAC schematics, and operation manuals will be reviewed to understand system configuration.
+The Energy Audit will be carried out at the facility to evaluate the overall energy performance of the plant and identify opportunities for energy cost reduction, performance improvement, and sustainability enhancement.
+The scope will comprehensively cover electrical, thermal, and utility systems as detailed below:
 
-Electricity Bill Analysis:
-• The electricity bills will be analyzed to study monthly energy consumption, maximum demand, and power factor trends.
-• The analysis will identify demand peaks, penalties, and opportunities for tariff optimization.
+Production and Process Systems:
+• Study of production pattern, shift operation, and loading profile to determine the specific energy consumption (kWh/unit of production).
+• Performance assessment of Induction Electrical Heaters, Heating Systems, and EOT Cranes to identify areas of operational inefficiency and potential for optimization.
+• Observation of idle run hours, no-load losses, and assessment of equipment scheduling to reduce wastage during non-productive hours.
 
-Chiller Plant Performance Assessment:
-• The performance of 350 TR × 6 Nos chillers will be evaluated under actual operating conditions.
-• Parameters such as: Chilled water inlet/outlet temperature, Condenser water inlet/outlet temperature, Flow rate, Power consumption.
-• Chiller loading will be measured and analyzed. Chiller efficiency in terms of kW/TR will be calculated and benchmarked.
-• The study will identify opportunities for: Sequencing optimization, Low load operation improvement, Set point optimization, Energy savings through operational improvements.
+Electrical Energy Distribution System:
+• Transformer Performance Evaluation – Measurement of loading pattern, power factor, voltage unbalance, and temperature rise to assess operating efficiency.
+• Power Quality Analysis – Measurement of harmonics, voltage imbalance, and reactive power flow using power analyzers.
+• Capacitor Bank Study – Evaluation of automatic power factor correction (APFC) system functionality and reactive power compensation adequacy.
 
-VRV Performance Assessment:
-• VRV/VRF will be evaluated for performance study.
-• Parameters including: Temperature of Compressor side, Condenser flow measurement, VRV power consumption, Indoor Temperature assessment.
+Compressed Air System:
+• Compressor Performance Assessment – Measurement of Free Air Delivery (FAD), discharge pressure, power consumption, and operating efficiency.
+• Leakage Survey – Ultrasonic detection and quantification of air leakages to determine leakage loss percentage.
+• Air Network Study – Review of header layout, receiver capacity, and pressure drop from compressor to point of use.
+• Recommendations for optimization of pressure levels, sequencing control, and air demand management to minimize energy wastage.
 
-CDD-Based Consumption Analysis:
-• Cooling Degree Days will be used to normalize cooling consumption and eliminate the impact of weather variations.
-• The study will establish correlation between CDD and cooling energy consumption to identify abnormal performance trends.
+Lighting System:
+• Measurement of lux levels in production areas, offices, and common spaces to compare with IS standards.
+• Evaluation of fixture efficiency, control systems, and lighting layout.
+• Identification of retrofit options such as LED upgrades, daylight integration, and occupancy sensors for further reduction in lighting energy consumption.
 
-AHU Performance Assessment:
-• Air Handling Units will be evaluated on a sampling basis covering approximately 20% to 30% of total units.
-• The selection of AHUs will be based on capacity, location, and operational diversity.
-• Where measurement provision is available, airflow, temperature, humidity, and static pressure will be measured.
-• The analysis will assess cooling coil performance, fan efficiency, and filter pressure drop.
+Diesel Generator (DG) System:
+• Analysis of DG load, power factor, and efficiency at different loading conditions.
+• Calculation of specific fuel consumption (litre/kWh) and comparison with standard benchmarks.
+• Identification of potential for waste heat recovery from DG exhaust gases.
 
-Pump Performance Study:
-• Pump systems will be analyzed on a sampling basis covering approximately 20% to 30% of total pumps.
-• Flow rate, head, and power consumption will be measured to calculate pump efficiency.
-• The analysis will identify inefficiencies such as oversizing, throttling losses, and potential for VFD implementation.
+HVAC Systems Split Units – Sample Basis:
+• Measurement of input power, airflow, and temperature differential to calculate cooling capacity and Coefficient of Performance (COP).
+• Review of maintenance schedule, refrigerant charging, and control settings.
+• Identification of opportunities for temperature setpoint optimization, filter cleaning schedule, and load balancing across units.
 
-Compressor Study & Leakage Identification:
-• Flow Study across Generation & Demand Side (If existing tapping available or possible to provide tapping).
-• Compressor Efficiency (FAD) (Only if provision available / Shutdown possible).
-• Demand Flow Measurement & Distribution Loss Identification.
-• Leakage Identification & Tagging: Each leakage point is detected using ultrasonic detectors and physically tagged with a unique identification label for structured repair tracking.
+Pumps and Water Systems:
+• Performance evaluation of Borewell, WTP, RO, and STP pumps including flow, head, and input power.
+• Calculation of pump efficiency and identification of oversized or throttled pumps.
+• Suggestion of VFD integration, impeller trimming, and parallel operation optimization for energy savings.
 
-Lighting System Assessment:
-• Lux level measurements across retail spaces, corridors, and parking areas compared against recommended standards to identify over-illumination or under-lighting.
-• Opportunities for energy savings through LED retrofits and control strategies.
+Waste Heat Recovery Opportunities:
+• Identification and quantification of recoverable heat from DG exhaust, compressor after-coolers, or process systems.
+• Preliminary analysis of possible recovery systems such as heat exchangers, pre-heaters, or condensate recovery units.
 
-Electrical System and Power Quality Study:
-• Transformer performance evaluation (voltage, current, loading, and power factor).
-• Power quality analysis to assess harmonics, phase imbalance, and system losses.
-• Distribution system review for inefficiencies and improvement opportunities.
+Energy Performance Indicators (EnPIs) and Benchmarking:
+• Establishment of baseline energy consumption and development of system-wise Energy Performance Indicators.
+• Benchmarking against industry standards or similar facilities to identify gaps and improvement potential.
 
-Electrical Thermography Study:
-• Electrical thermography for major electrical panels, switchboards, transformers, and distribution systems.
-• Thermal scanning to identify: Hotspots, Loose connections, Phase imbalance, Overloaded circuits, Abnormal heating.
-• Improves system reliability and safety.
+Energy Conservation Opportunities (ENCON):
+• Identification and quantification of energy-saving opportunities in each system.
+• Estimation of energy savings potential, investment required, and payback period for each recommendation.
+• Prioritization of measures based on cost-benefit analysis and feasibility.
 
-Measurement and Instrumentation:
-• Field measurements using calibrated instruments (power analyzers, flow meters, anemometers, temperature sensors, and lux meters).
+Reporting and Presentation:
+• Preparation of a comprehensive audit report covering system-wise analysis, observations, and recommendations.
+• Submission of backup calculation sheets, measurement data, and trend graphs.
+• Presentation of findings to the client team, including a roadmap for implementation of identified ENCON measures.
 
-Energy Conservation Measures (ECMs):
-• Categorized into low-cost, medium-cost, and high-cost measures with estimated energy savings, cost savings, investment, and payback period.
+Water Audit Scope of Work:
+• Estimation of water mass balance using ultrasonic flow meters.
+• Quantification of baseline water mapping for process and domestic use.
+• Measurement of pressure, flow, and quality at feasible locations.
+• Identification and quantification of inefficiencies and leakages.
+• Assessment of fresh and process water quality and treatment requirements.
+• Development of water balance charts and mapping of user-wise water quality needs.
+• Evaluation of wastewater treatment and reuse strategies.
+• Identification of technologies for high recycling percentage and water neutrality.
+• Analysis of water usage patterns by departments or zones.
+• Compilation of best practices and case studies for water conservation.
 
 Deliverables:
-• Detailed energy audit report with graphical trends, CDD correlation, identified ECMs with financial analysis, and executive summary for management review.`;
+1. Data Collection Format – Structured data sheets for system-wise measurement.
+2. Opening Meeting Presentation – Kick-off presentation outlining objectives, scope, and methodology.
+3. Preliminary Findings / Closing Meeting Presentation – Summary of key observations and immediate opportunities.
+4. Detailed Audit Report – Comprehensive report covering observations, analysis, and recommendations.
+5. Backup Calculation Files – Excel files with system-wise energy and water balance, efficiency calculations, and saving potential.
+6. Comprehensive Water Assessment Report: Includes baseline water mapping, flow and pressure measurements, quality analysis, identification of inefficiencies/leakages, water balance charts, department-wise usage patterns, and recommendations for water treatment, reuse, and high-recycling technologies.
+7. Implementation & Best Practices Guide: Provides actionable strategies for water conservation, case studies, and technology recommendations to achieve water neutrality and optimize process and domestic water usage.`;
 
 export const DEFAULT_ENERGY_AUDIT_STEP6_TEXT = `Payment Terms:
-• 30 days from the date of invoice and invoice will be raised after the work completion at site.
-• Applicable taxes and duties shall be charged extra, as applicable.
-• All lodging, boarding, and travel expenses are as actual or Customer scope.
-• The quote is valid for 45 days from the date of submission.
-
-Other Terms and Conditions:
-• Customer shall arrange a skilled individual (Authorized technicians) for the entire duration of the audit period for local co-ordination with site team for seeking approval or work permits and installation of energy auditing equipment with proper safety measures.`;
+• 50% Completion of on-site assessment
+• 50% submission of final report
+• Applicable taxes and duties will be extra
+• Boarding and Travel Expenses are exclusive`;
 
 export const DEFAULT_ENERGY_AUDIT_SCOPE_CARDS = [
   {
     id: 'ea-1',
-    title: '1. Data Collection, Review & Bill Analysis',
-    description: '12-month billing review, maximum demand, power factor, tariff optimization, and single line diagram study.',
+    title: '1. Production & Process Systems',
+    description: 'Specific energy consumption (kWh/unit), induction heaters, heating systems, cranes, and idle run hours optimization.',
   },
   {
     id: 'ea-2',
-    title: '2. Chiller Plant & VRV Performance',
-    description: 'Performance evaluation (e.g. 350 TR × 6 chillers), kW/TR benchmark, chilled/condenser delta-T, and VRV profiling.',
+    title: '2. Electrical Distribution & Power Quality',
+    description: 'Transformer loading, temperature, harmonics, power factor, and APFC capacitor bank adequacy analysis.',
   },
   {
     id: 'ea-3',
-    title: '3. CDD Weather Normalization & AHUs',
-    description: 'Cooling Degree Days correlation to eliminate weather skew, plus 20-30% sampling of AHU airflow and coil efficiency.',
+    title: '3. Compressed Air & Ultrasonic Leak Tagging',
+    description: 'FAD efficiency, pressure drop, demand sequencing, and ultrasonic leak detection with physical ID tags.',
   },
   {
     id: 'ea-4',
-    title: '4. Pump Performance & Throttling Losses',
-    description: 'Flow rate, operating head, hydraulic power, motor loading, throttling loss identification, and VFD retrofit savings.',
+    title: '4. HVAC, DG & Waste Heat Recovery',
+    description: 'Split units COP, DG specific fuel consumption (L/kWh), and waste heat recovery from exhaust and compressors.',
   },
   {
     id: 'ea-5',
-    title: '5. Compressed Air & Ultrasonic Leak Tagging',
-    description: 'FAD study, demand vs generation dynamics, and ultrasonic leak detection with physical unique ID tagging labels.',
+    title: '5. Pumps, Water Systems & Water Audit',
+    description: 'Borewell/WTP/RO/STP pump efficiency, VFD potential, ultrasonic water mass balance, and recycling strategies.',
   },
   {
     id: 'ea-6',
-    title: '6. Power Quality, Thermography & ECMs',
-    description: 'Harmonic analysis, electrical thermography hotspot detection, lux survey, and categorized ECMs with ROI calculations.',
+    title: '6. EnPIs, Benchmarking & ENCON Roadmap',
+    description: 'Baseline EnPI establishment, industry benchmarking, prioritized ECMs with ROI calculations, and final presentation.',
   },
 ];
 
 export const ENERGY_AUDIT_TRACK_RECORD_CLIENTS = [
+  'Aatral Engineering',
+  'Velmurugan Heavy Engineering Industries Private Limited',
+  '20cube Logistics Solutions Private Limited',
+  'Danfoss Industries Private Limited',
+  'Knowledge Bridge',
+  'S G Snacks India Pvt. Ltd.',
+  '20cube Logistics Solutions Private Limited',
+  'Parekhplast India Limited',
+  'PMEL Oragadam Private Limited - Unit 3',
+  'PMEL Oragadam Private Limited - Unit 4',
+  'Lucas TVS Limited - Padi',
+  'Visalam Technologies LLP',
+  'Adspaas Polymer Solutions Limited',
+  'Wheels India Limited',
+  'India Metal One Steel Plate Processing Pvt. Ltd',
+  'India Metal One Steel Plate Processing Pvt. Ltd',
+  'Glow guard (A Unit Of Green Pearl Engineering Construction Corporation Pvt Ltd)(SRM University)',
+  'Aisan Auto Parts India Private Limited',
+  'India Metal One Steel Plate Processing Pvt. Ltd',
+  'Whirlpool of India Limited',
+  'ITC - Medak Ltd',
+  'Kone Elevator India Private Limited',
+  'KPR Mill Limited',
+  'Arni Engineering Tech Private Ltd',
+  'Growserve Enterprises - Ashirwad',
+  'Vashi Integrated Solution Limited',
+  'Development Environergy Services Limited - IIT Hyderabad',
+];
+
+export const ASHRAE_LEVEL_2_CLIENTS = [
   'Mazaya Business Avenue, Dubai',
   'ASHRAE Level 2 audit at 6 Commercial Building, Dubai',
   'Danat Al Emarat Hospital, Dubai by Aatral',
-  'Suzlon Energy Pvt Ltd',
-  'Velmurugan Industries Ltd',
   'Capital Land by Orien Energy',
   'Casagrand Eco Tech, Sholinganallur',
   'Tidal Park, Pattabiram',
@@ -880,6 +919,7 @@ export const ENERGY_AUDIT_TRACK_RECORD_CLIENTS = [
   'Danfoss Industries Private Limited',
   'Knowledge Bridge',
   'S G Snacks India Pvt. Ltd.',
+  '20cube Logistics Solutions Private Limited',
   'Parekhplast India Limited',
   'PMEL Oragadam Private Limited - Unit 3 & 4',
   'Lucas TVS Limited - Padi',
@@ -898,6 +938,517 @@ export const ENERGY_AUDIT_TRACK_RECORD_CLIENTS = [
   'Vashi Integrated Solution Limited',
   'Ahlstrom Fiber Composite Pvt Ltd',
 ];
+
+export const DEFAULT_ASHRAE_LEVEL_2_STEP5_TEXT = `Scope of Work:
+The objective of this study is to perform a detailed energy audit in accordance with ASHRAE Level 2 guidelines along with district cooling bill analysis to identify energy saving and cost optimization opportunities.
+
+Data Collection and Review:
+• The audit team will collect the last 12 months of electricity bills and district cooling bills for detailed analysis.
+• The team will gather building-related information such as total built-up area, occupancy pattern, and operating hours.
+• The inventory of major equipment including AHUs, FCUs, pumps, heat exchangers, lighting systems, and transformers will be compiled.
+• All available technical documents such as single line diagrams, HVAC schematics, and operation manuals will be reviewed to understand system configuration.
+
+Electricity Bill Analysis:
+• The electricity bills will be analyzed to study monthly energy consumption, maximum demand, and power factor trends.
+• The analysis will identify demand peaks, penalties, and opportunities for tariff optimization.
+
+District Cooling Bill Analysis:
+• The district cooling billing structure will be reviewed to understand fixed and variable components of the bill.
+• The study will analyze monthly TRh consumption trends and compare them with contracted TR capacity.
+• The assessment will identify any over-contracting or underutilization of cooling capacity.
+• The billed consumption will be validated against actual usage to identify discrepancies or overbilling issues.
+
+CDD-Based Consumption Analysis:
+• Cooling Degree Days will be used to normalize cooling consumption and eliminate the impact of weather variations.
+• The study will establish correlation between CDD and cooling energy consumption to identify abnormal performance trends.
+
+AHU Performance Assessment:
+• Air Handling Units will be evaluated on a sampling basis covering approximately 20% to 30% of total units.
+• The selection of AHUs will be based on capacity, location, and operational diversity.
+• Where measurement provision is available, airflow, temperature, humidity, and static pressure will be measured.
+• The analysis will assess cooling coil performance, fan efficiency, and filter pressure drop.
+
+FCU and Terminal Equipment Assessment:
+• Fan Coil Units and other terminal equipment will be assessed to evaluate temperature control and valve operation.
+• The study will identify issues such as overcooling, improper control, and inefficient operation.
+
+Pump Performance Study:
+• Pump systems will be analyzed on a sampling basis covering approximately 20% to 30% of total pumps.
+• Flow rate, head, and power consumption will be measured to calculate pump efficiency.
+• The analysis will identify inefficiencies such as oversizing, throttling losses, and potential for VFD implementation.
+
+Heat Exchanger Efficiency Evaluation:
+• Heat exchangers will be assessed by measuring inlet and outlet temperatures and flow rates.
+• The efficiency will be calculated and compared with design performance to identify degradation due to fouling or scaling.
+
+Heat Pump / Boiler Assessment:
+• The performance of heat pump or boiler systems will be evaluated by calculating efficiency under operating conditions.
+• The study will identify opportunities for optimization and waste heat recovery.
+
+Lighting System Assessment:
+• Lux level measurements will be conducted across different areas such as retail spaces, corridors, and parking areas.
+• The measured values will be compared with recommended standards to identify over-illumination or under-lighting.
+• Opportunities for energy savings through LED retrofits and control strategies will be identified.
+
+Electrical System and Power Quality Study:
+• Transformer performance will be evaluated by measuring voltage, current, loading, and power factor.
+• Power quality analysis will be conducted to assess harmonics, phase imbalance, and system losses.
+• The distribution system will be reviewed to identify inefficiencies and improvement opportunities.
+
+Measurement and Instrumentation:
+• Field measurements will be carried out using calibrated instruments such as power analyzers, flow meters, anemometers, temperature sensors, and lux meters.
+• The collected data will be used for detailed performance analysis and validation.
+
+Energy Conservation Measures (ECMs):
+• Energy saving opportunities will be identified and categorized as low-cost, medium-cost, and high-cost measures.
+• Each recommendation will include estimated energy savings, cost savings, investment, and payback period.
+
+Key Performance Indicators:
+• Key performance indicators such as kW/TR, TRh/m², load factor, and cost per TRh will be calculated to benchmark system performance.
+
+Deliverables:
+• A detailed energy audit report along with district cooling analysis will be submitted.
+• The report will include graphical trends, CDD correlation, and identified energy conservation measures with financial analysis.
+• An executive summary highlighting key findings and recommendations will be provided for management review.`;
+
+export const DEFAULT_COMPRESSOR_AIR_LEAKAGE_RECTIFICATION_STEP5_TEXT = `What is Compressed Air Audit?
+
+A Compressed Air Audit is a systematic study of the compressed air system to identify:
+• energy losses
+• Inefficiencies
+• opportunities for cost savings
+
+It involves analysing compressors, air distribution lines, storage tanks, valves, dryers, and end-use equipment. The main purpose is to measure air demand, detect leakages, check pressure drops, and evaluate operating patterns. By doing this, we can highlight unnecessary energy consumption, calculate the financial loss, and suggest corrective measures for improving system reliability and reducing operating costs. In short, a compressed air audit helps customers save energy, lower production costs, and ensure a more reliable and sustainable operation.
+
+A Compressed Air Audit is like a health check-up for your compressed air system. It helps identify hidden leaks, pressure losses, and inefficient operations that quietly increase your power bills. With our audit, we can show you exactly where your system is wasting energy and how much money you can save by fixing it. Many industries reduce their compressor power cost by 20–30% after an audit, while also improving reliability and productivity. This is a fast-return investment that directly lowers your operating cost.
+
+Compressed Air Audit Includes:
+Phase-1 Collecting data, Savings Calculation & Documentation (Completed)
+Phase-2 Implementing the scopes of identified in the Phase-1`;
+
+export const DEFAULT_COMPRESSOR_AIR_LEAKAGE_RECTIFICATION_STEP6_TEXT = `Commercials:
+Support required from the client:
+• SPOC (Single point of Contact) for support and coordination during the audit phase.
+• Accessibility to each area.
+• 1 person required from client side with knowledge on Compressed air line to reach out from the generation to end use for leakage identifications.
+
+Terms and Conditions:
+• Payment schedule: 70% advance along with the Purchase Order (PO) towards material procurement, and the remaining 30% upon completion of the work.
+• Applicable taxes and duties will be extra.
+• Boarding and Travel Expenses are inclusive of the cost mentioned above.
+
+Note:
+• PU hoses are under the client’s scope of supply.
+• Need Machines Downtime for Leak Corrections.
+
+Bank Account details:
+Bank – Bank of Baroda
+Account Number – 35860200000750
+IFSC – BARB0VELACH (fifth letter is ZERO)
+Branch – VELACHERY BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A`;
+
+export const DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT = `What is Compressed Air Audit?
+• A Compressed Air Audit is a systematic study of the compressed air system to identify:
+  - energy losses 
+  - Inefficiencies
+  - opportunities for cost savings
+• It involves analysing compressors, air distribution lines, storage tanks, valves, dryers, and end-use equipment. 
+• The main purpose is to measure air demand, detect leakages, check pressure drops, and evaluate operating patterns. 
+• By doing this, we can highlight unnecessary energy consumption, calculate the financial loss, and suggest corrective measures for improving system reliability and reducing operating costs. 
+• In short, a compressed air audit helps customers save energy, lower production costs, and ensure a more reliable and sustainable operation.
+• A Compressed Air Audit is like a health check-up for your compressed air system. It helps identify hidden leaks, pressure losses, and inefficient operations that quietly increase your power bills. 
+• With our audit, we can show you exactly where your system is wasting energy and how much money you can save by fixing it. 
+• Many industries reduce their compressor power cost by 20–30% after an audit, while also improving reliability and productivity. This is a fast-return investment that directly lowers your operating cost.
+
+How the compressed air wasting your money?
+• Compressed air is often called the “fourth utility” in industries, but it is also one of the costliest utilities to generate. Every leak in the system is like leaving a tap open only worse, because producing compressed air costs 7–8 times more energy than water pumping.
+• For example:
+  - A single 3 mm leak can waste up to 30–35 CFM, which equals ₹2–3 lakhs per year in electricity cost (depending on power tariff).
+  - Leaks also force compressors to run longer, increasing maintenance cost and reducing equipment life.
+  - As more air leaks out, the system pressure drops, which can affect production quality and efficiency.
+• By repairing leaks and optimizing the air system, customers typically save 20–30% of their compressed air cost. That means direct profit without changing production.
+• Every hissing sound you hear in your plant is not just air — it’s your money leaking out. A small investment in leak detection and repair will save you lakhs of rupees every year.
+
+Benefits of Compressed Air Audit:
+• Reduce artificial air demand
+• Operate compressors at high efficiency
+• Reduce the losses in filters, dryers
+• Know the actual air delivered by the compressor against design value
+• Find out the volume of air leakage in the plant
+• Identification of air leakage spots in the plant
+• Compressed air cost is recovered through reduced system costs over a short period.
+
+Compressed Air Audit Includes:
+• Phase-1: Collecting data, Savings Calculation & Documentation
+• Phase-2: Implementing the scopes of identified in the Phase-1 (By Customer Preference)
+• Phase-3: Implementation Validation
+
+Phase-2 Implementing the scopes of identified in the Phase-1 (By Customer Preference):
+Correcting air leakages and addressing other compressed air optimization opportunities are among the most effective ways to prove tangible savings to customers. Once leaks are repaired, and improvements such as pressure optimization, proper compressor sequencing, or storage enhancement are implemented, the results can be validated through energy meters or flow data. By comparing the baseline measurements with post-implementation readings, the reduction in power consumption or compressed air demand becomes evident. This data-driven validation not only quantifies the savings achieved but also builds customer confidence, as the improvements are backed by measurable reductions in kW usage, flow demand, or operating hours, directly translating into cost savings and improved system reliability. Additionally, supplying the required materials and spares during implementation ensures timely execution, smooth operation, and sustainability of the optimization measures.
+
+Phase-3 Implementation Validation:
+Implementation Validation ensures that the recommended energy conservation measures and rectification works in the compressed air system are executed as planned and deliver the expected results. This process involves verifying the corrective actions, re-measuring the system parameters such as pressure, flow, and power consumption, and comparing them with the baseline data. Successful validation confirms that leak rectification, drain automation, and compressor optimization measures are effectively reducing losses and improving efficiency. Documented results provide transparency, build customer confidence, and prove the actual energy and cost savings achieved through the implementation.
+
+Other Audit Services:
+Compressor Efficiency (FAD):
+A Compressor Efficiency Study is as if an energy audit focused only on your air compressors. It helps you understand how efficiently your compressors are converting electricity into usable compressed air. In many plants, compressors consume up to 20–30% of total electricity, but often operate below optimal efficiency due to wrong sizing, poor controls, pressure drops, and leakages. During the study, we measure actual power consumption, flow (CFM), pressure levels, and operating patterns. From this data, we calculate the specific power (kW per CFM), which is the true indicator of compressor efficiency. By comparing this with industry benchmarks, we can show you how much extra energy (and money) your system is consuming.
+The outcome is a clear set of recommendations such as right-sizing compressors, optimizing load/unload cycles, reducing pressure band, and fixing leaks, which lead to lower energy bills, reduced maintenance, and more reliable compressed air supply.
+
+Demand Flow Measurement:
+Demand Flow Measurement is the process of accurately measuring how much compressed air is actually being consumed by the plant at different times of the day. It is done using a flow meter installed in the pipeline. This data helps identify the true air requirement of the plant, instead of relying only on compressor capacity.
+• Right-sizing compressors: Often, plants run oversized compressors, wasting electricity. Flow data shows the actual demand so you can optimize.
+• Leak detection: By measuring flow during non-production hours, leaks can be quantified in terms of CFM and cost.
+• Energy savings: With clear demand patterns, compressors can be operated efficiently, saving up to 20–30% of power cost.
+
+Scope of Work:
+Leakage Identification: 
+• Leakage identification and tagging is a systematic approach to controlling compressed air losses. 
+• During an audit, each leakage point is detected using ultrasonic detectors and then physically tagged with a unique identification label. 
+• This tagging ensures that every leak location is documented, prioritized, and can be easily tracked for repair. 
+• By tagging each leak point, plants gain a clear action plan for maintenance teams, enabling them to fix the leaks in a structured way instead of random patchwork. 
+• This process not only quantifies the cost of each leakage but also helps in monitoring recurring problem areas, ensuring long-term energy savings and reliable system performance.
+
+Our Leakage Detector Overview:
+• Leak Detection Principle – Identifies high-frequency ultrasonic sound waves generated when compressed air, gas, or vacuum escapes through small openings.
+• Frequency Range – Typically operates between 20 kHz to 100 kHz, beyond the range of human hearing.
+• Detection Capability – Can locate very small leaks (as small as 0.05 mm at ~7 bar) from several meters away.
+• Feedback System – Provides both audio (headphones) and visual (display or LED bar graph) indications to pinpoint leaks.
+• Sensitivity & Adjustability – Equipped with adjustable sensitivity to distinguish between background noise and actual leak sounds.
+• Portability & Power – Lightweight, handheld device powered by rechargeable or replaceable batteries with 6–10 hours’ runtime.
+• Applications – Used for compressed air systems, gas pipelines, vacuum systems, steam traps, and refrigerant leak detection without interrupting operations.`;
+
+export const DEFAULT_COMPRESSOR_AIR_AUDIT_STEP6_TEXT = `Commercials: Support required from the client:
+• SPOC (Single point of Contact) for support and coordination during the audit phase
+• Accessibility to each area.
+• 1 person required from client side with knowledge on Compressed air line to reach out from the generation to end use for leakage identifications.
+
+Terms and Conditions:
+• Payment schedule: 50% advance against the PO and remaining 50% against the report submission.
+• Applicable taxes and duties will be extra.
+• Boarding and Travel Expenses are inclusive of the cost mentioned above.
+
+Submitted By,
+Thanakarthik Kumar
+Founder & Managing Director
++91-8377007638
+thanakarthik@sustainabyte.ai
+
+Bank Account details:
+Bank – Bank of Baroda
+Account Number – 35860200000750
+IFSC – BARB0VELACH (fifth letter is ZERO)
+Branch – VELACHERY BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A`;
+
+export const DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP5_TEXT = `Gas System Leakage Audit
+
+System Mapping and Data Collection: Conduct a comprehensive mapping of the entire gas system, including Gas Yard to end-use equipment.
+
+Leakage Audit: Perform a detailed inspection to identify and quantify gas leaks throughout the system, evaluating their impact on overall system
+• The audit will be conducted using precision acoustic imager to detect leakage in compressed air and Gas system
+
+Reporting:
+• Provide a comprehensive report detailing including Provide actionable recommendations for optimizing the gas system based on leakage audit including leak repairs and potential energy-saving opportunities.
+• Tagging each leakage with mentioned details about location of the leakage, intensity of the leakage, replacement part and repair instruction.
+
+Timeline:
+• Day 1: Data Collection, Leakage Audit (Pre Audit).
+• Day 2: Analysis and Report Submission. (Off Site).
+• Day 3: Post Audit (Once the Rectifications Completed).
+
+Our Leakage Detector Overview:
+• Leak Detection Principle – Identifies high-frequency ultrasonic sound waves generated when compressed air, gas, or vacuum escapes through small openings.
+• Frequency Range – Typically operates between 20 kHz to 100 kHz, beyond the range of human hearing.
+• Detection Capability – Can locate very small leaks (as small as 0.05 mm at ~7 bar) from several meters away.
+• Feedback System – Provides both audio (headphones) and visual (display or LED bar graph) indications to pinpoint leaks.
+• Sensitivity & Adjustability – Equipped with adjustable sensitivity to distinguish between background noise and actual leak sounds.
+• Portability & Power – Lightweight, handheld device powered by rechargeable or replaceable batteries with 6–10 hours’ runtime.
+• Applications – Used for compressed air systems, gas pipelines, vacuum systems, steam traps, and refrigerant leak detection without interrupting operations.`;
+
+export const DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP6_TEXT = `Mixture Gas Leakage Audit Commercials: Support required from the client:
+• SPOC (Single point of Contact) for support and coordination during the audit phase
+• Accessibility to each area.
+• 1 person required from client side with knowledge on Mixed Gas line to reach out from the generation to end use for leakage identifications
+
+Terms and Conditions:
+• Payment schedule: 50% advance against the PO and remaining 50% against the report submission.
+• Applicable taxes and duties will be extra.
+• Boarding and Travel Expenses are inclusive of the cost mentioned above.
+
+Submitted by,
+Thanakarthik
+Founder & Managing Director
++91-8377007638
+thanakarthik@sustainabyte.ai
+
+Bank Account details:
+Bank – Bank of Baroda
+Account Number – 35860200000750
+IFSC – BARB0VELACH (fifth letter is ZERO)
+Branch – VELACHERY BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A`;
+
+export const DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP5_TEXT = `Leakage Identification:
+
+Leakage identification and tagging is a systematic approach to controlling gas losses.
+During an audit, each leakage point is detected using ultrasonic detectors and then physically tagged with a unique identification label.
+This tagging ensures that every leak location is documented, prioritized, and can be easily tracked for repair.
+By tagging each leak point, plants gain a clear action plan for maintenance teams, enabling them to fix the leaks in a structured way instead of random patchwork.
+This process not only quantifies the cost of each leakage but also helps in monitoring recurring problem areas, ensuring long-term energy savings and reliable system performance.
+
+Our Leakage Detector Overview:
+• Leak Detection Principle – Identifies high-frequency ultrasonic sound waves generated when compressed air, gas, or vacuum escapes through small openings.
+• Frequency Range – Typically operates between 20 kHz to 100 kHz, beyond the range of human hearing.
+• Detection Capability – Can locate very small leaks (as small as 0.05 mm at ~7 bar) from several meters away.
+• Feedback System – Provides both audio (headphones) and visual (display or LED bar graph) indications to pinpoint leaks.
+• Sensitivity & Adjustability – Equipped with adjustable sensitivity to distinguish between background noise and actual leak sounds.
+• Portability & Power – Lightweight, handheld device powered by rechargeable or replaceable batteries with 6–10 hours’ runtime.
+• Applications – Used for compressed air systems, gas pipelines, vacuum systems, steam traps, and refrigerant leak detection without interrupting operations.`;
+
+export const DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP6_TEXT = `Commercials: Support required from the client:
+• SPOC (Single point of Contact) for support and coordination during the audit phase
+• Accessibility to each area.
+• 1 person required from client side with knowledge on gas line to reach out from the generation to end use for leakage identifications.
+
+Terms and Conditions:
+• Payment schedule: 50% advance against the PO and remaining 50% against the report submission
+• Applicable taxes and duties will be extra.
+• Boarding and Travel Expenses are inclusive of the cost mentioned above.
+
+Submitted by,
+Thanakarthik Kumar
+Founder & Managing Director
++91-8377007638
+thanakarthik@sustainabyte.ai
+
+Bank Account details:
+Bank – Bank of Baroda
+Account Number – 35860200000750
+IFSC – BARB0VELACH (fifth letter is ZERO)
+Branch – VELACHERY BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A`;
+
+export const DEFAULT_ISO_50001_STEP5_TEXT = `Scope of Work:
+Energy Management System  
+This Energy Management System includes:
+1. Energy Review & Baseline Establishment
+• Conduct a detailed energy review of all major energy-consuming systems.
+• Develop the Energy Baseline (EnB) based on historical data.
+• Identify Significant Energy Uses (SEUs) and opportunities for improvement.
+2. Energy Performance Indicators (EnPIs) Development
+• Define suitable EnPIs for monitoring and evaluating energy performance.
+• Establish system for periodic tracking and reporting.
+3. Gap Analysis & Compliance Assessment
+• Perform a gap analysis of current practices against ISO 50001 requirements.
+• Provide a roadmap and action plan to achieve compliance.
+4. Energy Management System Documentation
+• Prepare and implement mandatory ISO 50001 documents:
+  - Energy Policy
+  - Procedures, SOPs, and Work Instructions
+  - Roles, Responsibilities & Authorities
+  - Risk assessment and operational control documents
+• Create templates for monitoring, measurement, and reporting.
+5. Training & Capacity Building
+• Conduct awareness training for employees at all levels.
+• Conduct specialized training for the Energy Team on EnMS implementation and SEU management.
+6. Identification of Energy Saving Opportunities
+• Evaluate operational controls, processes, and equipment efficiency.
+• Provide a detailed list of energy conservation measures (ECMs) with estimated savings.
+7. Internal Audit Preparation & Support
+• Develop an internal audit plan, checklist, and guidelines.
+• Conduct mock/internal audits and issue audit reports.
+8. Management Review Facilitation
+• Guide management review meetings as per ISO 50001 requirements.
+• Ensure top management involvement and decision-making for continual improvement.
+9. Implementation Monitoring & Corrective Actions
+• Review implementation status, assign corrective actions, and track closure.
+• Update EnMS documents based on feedback.
+
+Energy Monitoring System Implementation:
+• Creating Basic Energy Monitoring infrastructure including connecting 2 existing energy meters and additional 6 Energy meters and applicable modems and consumables.
+• Implementing equipment level energy monitoring system using meters with critical alerts and alarms.
+• Providing Custom dashboards and enabling alerts & reports.`;
+
+export const DEFAULT_ISO_50001_STEP6_TEXT = `Cost Estimate:
+Terms and Conditions:
+• Payment schedule 40% advance against PO , 20% after Site Completion and 40% against Report Submission
+• Applicable taxes and duties will be extra
+• Boarding and Travel Expenses are inclusive .
+
+List of Customers:
+1. Aatral Engineering
+2. Velmurugan Heavy Engineering Industries Private Limited
+3. 20cube Logistics Solutions Private Limited
+4. Danfoss Industries Private Limited
+5. Knowledge Bridge
+6. S G Snacks India Pvt. Ltd.
+7. 20cube Logistics Solutions Private Limited
+8. Parekhplast India Limited
+9. PMEL Oragadam Private Limited - Unit 3
+10. PMEL Oragadam Private Limited - Unit 4
+11. Lucas Tvs Limited-Padi
+12. Visalam Technologies LLP
+13. Adspaas Polymer Solutions Limited
+14. Wheels India Limited
+15. India Metal One Steel Plate Processing Pvt. Ltd
+16. India Metal One Steel Plate Processing Pvt. Ltd
+17. Glow guard (A Unit Of Green Pearl Engineering Construction Corporation Pvt Ltd) (SRM University)
+18. Aisan Auto Parts India Private Limited
+19. India Metal One Steel Plate Processing Pvt. Ltd
+20. Whirlpool of India Limited
+21. ITC - Medak Ltd
+22. Kone Elevator India Private Limited
+23. KPR Mill Limited
+24. Arni Engineering Tech Private Ltd
+25. Growserve Enterprises-Ashirwad
+26. Vashi Integrated Solution Limited
+27. Development Environergy Services Limited - IIT Hyderabad
+
+Submitted by,
+Thanakarthik
+Founder & Managing Director
++91-8377007638
+thanakarthik@sustainabyte.ai
+
+Bank Account details:
+Bank – Bank of Baroda
+Account Number – 35860200000750
+IFSC – BARB0VELACH (fifth letter is ZERO)
+Branch – VELACHERY BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A
+
+THANK YOU`;
+
+
+export interface CompressorRoiData {
+  phaseTitle: string;
+  phaseDesc: string;
+  quantity: string;
+  leakCfm: number;
+  monthlyKwhLoss: number;
+  annualKwhLoss: number;
+  electricityCostPerKwh: number;
+  monthlyLossRs: number;
+  annualLossRs: number;
+  totalAnnualRecoverableSavingRs: number;
+  investmentRs: number;
+  paybackYears: number;
+  paybackMonths: number;
+}
+
+export const DEFAULT_COMPRESSOR_ROI_DATA: CompressorRoiData = {
+  phaseTitle: 'PHASE-2',
+  phaseDesc: 'Air Leakage Rectification at Scopes Identified in the Phase-1 with Materials.',
+  quantity: '5 Days',
+  leakCfm: 68,
+  monthlyKwhLoss: 6114,
+  annualKwhLoss: 73368,
+  electricityCostPerKwh: 9.0,
+  monthlyLossRs: 55026,
+  annualLossRs: 660312,
+  totalAnnualRecoverableSavingRs: 660312,
+  investmentRs: 175000,
+  paybackYears: 0.27,
+  paybackMonths: 3,
+};
+
+export const DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT = `Payment Terms:
+• 40% advance against receipt of Purchase Order (PO)
+• 30% upon completion of site assessment
+• 15% upon Submission of Draft Report
+• 15% upon submission of the final report
+• Applicable taxes and duties shall be charged extra, as applicable
+• All lodging, boarding, and travel expenses are included
+• The quote is valid for 45 days from the date of submission
+• Payment within 15 days from the date of invoice
+
+Other Terms and Conditions:
+• The customer shall be responsible for facilitating work visa applications and issuance, including managing all required documentation and bearing the associated application fees, as well as handling customs clearance of instruments.
+• Customer shall arrange a skilled individual (Authorized technicians) for the entire duration of the audit period for local co-ordination with site team for seeking approval or work permits and installation of energy auditing equipment with proper safety measures.`;
+
+export const DEFAULT_HVAC_DESIGN_STEP5_TEXT = `Objective:
+The objective of this study is to evaluate and design a system to replace the existing chilled water supply (18°C) to the Temperature Control Units (TCUs) serving Zones 1–3 of Mixers 11, 12, 13, 14, and 16, with cooling tower water at 30–31°C.
+The goal is to ensure that all TCUs continue to meet the required outlet temperature and process performance when supplied from the new cooling tower water system.
+
+Scope of Work:
+The study will determine the design, equipment specification, piping layout and operational implications to ensure the TCUs reliably achieve required outlet temperatures under the proposed cooling tower water system.
+The scope includes:
+• Technical assessment and design development for replacing existing chilled water with new cooling tower water.
+• Mixer Phase 2 (3nos of cooling tower each 300TR Capacity) and Phase 3 (3nos of cooling tower each 400 TR capacity) actual heat load Design Vs Actual.
+• Identification of all related mechanical
+• Preparation of cost for execution.
+
+Site Visit and Data Collection:
+1) Data Collection & Site Survey – Review existing system parameters, layouts, and space availability.
+2) Thermal & Hydraulic Sizing – For cooling tower, circulation pumps, and headers.
+3) Distribution System Design – Piping layout, balancing valves, and routing optimization.
+
+Assumptions:
+• Cooling tower inlet water temperature available at 30–31°C.
+• Adequate space available for installation of cooling tower, basin, and ancillary equipment.
+• Existing TCUs are compatible for operation with 30–31°C inlet water after required modifications.
+
+Exclusions:
+• Detailed procurement, fabrication, and installation works (to be covered under a separate contract).
+• Civil and structural design are not included in this scope
+• Electrical and controls are not included in this scope
+• Water parameters requirement are not in scope
+• Any unrelated process modifications outside the defined TCU scope`;
+
+export const DEFAULT_HVAC_DESIGN_STEP6_TEXT = `Terms and Conditions:
+• Payment schedule 40% advance against PO , 20% after Site Completion and 40% against Report Submission.
+• Applicable taxes and duties will be extra.
+• Boarding and Travel Expenses are inclusive .
+
+Bank Account details:
+Bank – Bank of Baroda
+Account Number – 35860200000750
+IFSC – BARB0VELACH (fifth letter is ZERO)
+Branch – VELACHERY BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A`;
+
+export const DEFAULT_EC_FAN_STEP5_TEXT = `Scope of Work:
+The scope of this proposal includes the supply of EC Fans as per the agreed specifications and quantity requirements.
+
+Key Features:
+• High-efficiency EC motor technology.
+• Lower power consumption compared to conventional AC motor-driven fans.
+• Integrated speed control for precise airflow regulation.
+• Reduced maintenance requirements.
+• Improved reliability and operational performance.
+• Lower noise levels and heat generation.
+
+Benefits:
+• Energy savings through high motor efficiency and optimized speed control.
+• Improved system performance and airflow management.
+• Reduced carbon footprint and operating expenses.
+• Enhanced equipment life due to reduced mechanical stress.`;
+
+export const DEFAULT_EC_FAN_STEP6_TEXT = `Payment Terms:
+• 50% advance against receipt of Purchase Order (PO)
+• 50% before dispatch of EC Fans
+• Installation and commissioning charges are exclusive.
+• Transportation/Freight charges as actual.
+• Electrical cabling and accessories beyond the scope of supply.
+• Civil or structural modifications, if any.
+• Applicable GST.
+• The quote is valid for 45 days from the date of submission
+• Payment within 7 days from the date of invoice
+
+Bank Account details:
+Bank – Bank of Baroda
+Account Number – 35860200000750
+IFSC – BARB0VELACH (fifth letter is ZERO)
+Branch – VELACHERY BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A`;
 
 // ─── Water Management Solution Template Defaults ─────────────────────────────────
 
@@ -1041,33 +1592,43 @@ export const SERVICE_CATEGORY_OPTIONS = [
   'Energy Audit Services',
   'IoT & Controls',
   'Chiller Management',
-  'Welding IoT',
+  'Welding',
+  'Automation',
+  'IR Blaster',
+  'BMS',
   'Hardware',
-  'Custom',
+];
+
+export const IR_BLASTER_SUB_SERVICES = [
+  'IR Blaster',
+];
+
+export const BMS_CATEGORY_SUB_SERVICES = [
+  'BMS',
+];
+
+export const AUTOMATION_SUB_SERVICES = [
+  'Compressed Air Automation',
+  'Water Automation',
 ];
 
 export const CHILLER_MANAGEMENT_SUB_SERVICES = [
   'CPM (Chiller Plant Management)',
-  'CPM',
-  'Chiller Plant Monitoring',
-  'Chiller Automation & Optimization',
-  'Chiller Digitization',
-  'Custom',
 ];
 
 export const ENERGY_AUDIT_SUB_SERVICES = [
   'Compressor Air Leakage rectification',
-  'Flowmeter',
   'Compressor air leakage audit',
   'nitrogen Gas Leakage Audit',
   'Mixture Gas Leakage Audit',
-  'Air Audit',
-  'Air Audit Rectification',
   'Energy Audit',
   'BMS',
   'Electrical Safety Audit',
   'Fire Safety Audit',
-  'Custom',
+  'ASHRAE Level 2',
+  'EC Fan',
+  'HVAC Design',
+  'ISO 50001',
 ];
 
 export const PROJECTS_SUB_SERVICES = [
@@ -1076,34 +1637,18 @@ export const PROJECTS_SUB_SERVICES = [
   'Tec Byte',
   'Fix Byte',
   'Compass',
-  'Custom Project',
 ];
 
 export const IOT_SERVICES_SUB_SERVICES = [
   'Energy Management Solution',
-  'CPM (Chiller Plant Management)',
-  'CPM',
-  'Water Management Solution',
-  'Cloud Charges',
-  'Chiller Plant Monitoring',
-  'Compressed Air Automation',
   'Compressed Air Monitoring',
-  'BMS',
   'IoT Platform',
-  'Custom',
+  'Water Management Solution',
 ];
 
 export const WELDING_IOT_SUB_SERVICES = [
   'Welding IoT & Kit',
-  'Welding IoT',
-  'Chiller Digitization',
-  'Cold Storage Temperature',
-  'Device Parameter Interlocking',
-  'Weld Data Digitalized',
-  'Welding IoT Kit',
-  'Welding Machine IoT',
-  'Weld Data Microsoft Azure',
-  'Custom',
+  'Digiweld',
 ];
 
 export const INITIAL_CPM_HARDWARE_ROWS: CpmHardwareRow[] = [
@@ -1398,6 +1943,81 @@ export const INITIAL_WELDING_HARDWARE_ROWS: WeldingHardwareRow[] = [
   { id: 'wh_15', slNo: 15, componentName: 'Kit Development', qty: 0, unitCost: 30000, marginPct: 40, unitPrice: 50000 },
 ];
 
+export const INITIAL_DIGIWELD_SOFTWARE_ROWS: WeldingSoftwareRow[] = [
+  { id: 'dw_1', item: 'UI/UX Table Design for Documents (Mobile)', description: 'UI/UX Table Design for Documents (Mobile)', qty: 0, uom: 'Job', unitCost: 20000, marginPct: 40, unitPrice: 33333, price: 0 },
+  { id: 'dw_2', item: 'Backend API for Table (Mobile)', description: 'Backend API for Table (Mobile)', qty: 0, uom: 'Job', unitCost: 20000, marginPct: 40, unitPrice: 33333, price: 0 },
+  { id: 'dw_3', item: 'Dashboard Report Generation UI/UX & Backend API (Web)', description: 'Dashboard Report Generation UI/UX & Backend API (Web)', qty: 0, uom: 'Job', unitCost: 10000, marginPct: 40, unitPrice: 16667, price: 0 },
+  { id: 'dw_4', item: 'Paint Defect Mapping with Weld Tracker Sheet UI & Backend (Mobile)', description: 'Paint Defect Mapping with Weld Tracker Sheet UI & Backend (Mobile)', qty: 0, uom: 'Job', unitCost: 15000, marginPct: 40, unitPrice: 25000, price: 0 },
+  { id: 'dw_5', item: '785HP ETO – 6770030 Data Conversion', description: '785HP ETO – 6770030 Data Conversion', qty: 0, uom: 'Job', unitCost: 3000, marginPct: 40, unitPrice: 5000, price: 0 },
+  { id: 'dw_6', item: '785 HP Updated Floor Data Conversion', description: '785 HP Updated Floor Data Conversion', qty: 0, uom: 'Job', unitCost: 3000, marginPct: 40, unitPrice: 5000, price: 0 },
+  { id: 'dw_7', item: '785HP ETO NDT Report Integration', description: '785HP ETO NDT Report Integration', qty: 0, uom: 'Job', unitCost: 2500, marginPct: 40, unitPrice: 4167, price: 0 },
+  { id: 'dw_8', item: 'Weld Try Out Report Integration', description: 'Weld Try Out Report Integration', qty: 0, uom: 'Job', unitCost: 1000, marginPct: 40, unitPrice: 1667, price: 0 },
+  { id: 'dw_9', item: 'LPA Checksheet Integration', description: 'LPA Checksheet Integration', qty: 0, uom: 'Job', unitCost: 1000, marginPct: 40, unitPrice: 1667, price: 0 },
+  { id: 'dw_10', item: 'Paint Defect Mapping Backend Creation', description: 'Paint Defect Mapping Backend Creation', qty: 0, uom: 'Job', unitCost: 10000, marginPct: 40, unitPrice: 16667, price: 0 },
+  { id: 'dw_11', item: 'Paint Defect Mapping UI Creation', description: 'Paint Defect Mapping UI Creation', qty: 0, uom: 'Job', unitCost: 10000, marginPct: 40, unitPrice: 16667, price: 0 },
+  { id: 'dw_12', item: 'Paint Defect Mapping – Per 5 Files', description: 'Paint Defect Mapping – Per 5 Files', qty: 0, uom: 'Job', unitCost: 5000, marginPct: 40, unitPrice: 8333, price: 0 },
+  { id: 'dw_13', item: 'Weld Station Planned Method Conformance Audit Checksheet', description: 'Weld Station Planned Method Conformance Audit Checksheet', qty: 0, uom: 'Job', unitCost: 1000, marginPct: 40, unitPrice: 1667, price: 0 },
+  { id: 'dw_14', item: 'Work Station Audit Integration', description: 'Work Station Audit Integration', qty: 0, uom: 'Job', unitCost: 1000, marginPct: 40, unitPrice: 1667, price: 0 },
+  { id: 'dw_15', item: 'Testing & Deployment', description: 'Testing & Deployment', qty: 0, uom: 'Job', unitCost: 5000, marginPct: 40, unitPrice: 8333, price: 0 },
+  { id: 'dw_16', item: 'Buffer / Miscellaneous', description: 'Buffer / Miscellaneous', qty: 0, uom: 'Job', unitCost: 500, marginPct: 40, unitPrice: 833, price: 0 },
+];
+
+export const INITIAL_DIGIWELD_CLOUD_ROWS: WeldingCloudRow[] = [
+  { id: 'dwc_1', component: 'Database Hosting (MongoDB Atlas)', description: 'MongoDB Atlas Dedicated/Shared Cloud Database', type: 'MongoDB Atlas', qty: 0, uom: 'Month', unitMonthlyCost: 1000, monthlyCost: 0, marginPct: 40, unitMonthlyPrice: 1667, monthlyPrice: 0, yearlyPrice: 0 },
+  { id: 'dwc_2', component: 'Firebase Authentication', description: 'User security, OTP & Multi-role Auth', type: 'Firebase', qty: 0, uom: 'Month', unitMonthlyCost: 1000, monthlyCost: 0, marginPct: 40, unitMonthlyPrice: 1667, monthlyPrice: 0, yearlyPrice: 0 },
+  { id: 'dwc_3', component: 'Push Notifications (FCM / One Signal)', description: 'Critical quality alerts, audit notifications', type: 'FCM / OneSignal', qty: 0, uom: 'Month', unitMonthlyCost: 500, monthlyCost: 0, marginPct: 40, unitMonthlyPrice: 833, monthlyPrice: 0, yearlyPrice: 0 },
+  { id: 'dwc_4', component: 'Monitoring & Backup (Basic)', description: 'Daily database snapshots, uptime monitoring', type: 'Backup', qty: 0, uom: 'Month', unitMonthlyCost: 2000, monthlyCost: 0, marginPct: 40, unitMonthlyPrice: 3333, monthlyPrice: 0, yearlyPrice: 0 },
+  { id: 'dwc_5', component: 'Support & Maintenance (Basic)', description: 'Bug fixes, ticket response & platform SLA support', type: 'SLA Support', qty: 0, uom: 'Month', unitMonthlyCost: 2000, monthlyCost: 0, marginPct: 40, unitMonthlyPrice: 3333, monthlyPrice: 0, yearlyPrice: 0 },
+];
+
+export const DEFAULT_DIGIWELD_STEP5_TEXT = `Scope of Work:
+Development of a centralized digital platform for BIQ data digitalization, Weld Engineering Documents & NDT Reports management, Paint Defect Mapping, and Weld Audit monitoring. The solution includes real-time dashboards, defect trend analysis, process traceability, audit tracking, and AI-powered reporting to improve manufacturing quality, compliance, and operational efficiency.
+
+BIQ Data Digitalization:
+Digitalization of BIQ inspection and quality records through a centralized platform for real-time monitoring and traceability. The system enables defect tracking, inspection logging, and dashboard-based analytics for improved quality control and reporting.
+
+Weld Engineering Data Digitalization:
+Development of a digital weld engineering management system to capture weld process data, WPS records, welding parameters, and joint-wise traceability. The platform provides process monitoring, parameter analysis, and centralized documentation management.
+
+Paint Defect Mapping:
+Implementation of a paint defect mapping and analysis system for recording, categorizing, and monitoring paint-related defects across production stages. The solution includes trend analysis, Pareto charts, and dashboard visualization for continuous quality improvement.
+
+Weld Audit Documents Digitalization:
+Digitalization of weld audit documents, inspection checklists, and compliance records through a structured audit management system. The platform supports audit tracking, corrective action monitoring, document archival, and real-time audit dashboards.
+
+Technologies Used:
+● Frontend: Flutter (Android Only)
+● Backend: Firebase (Firestore, Auth, Cloud Functions)
+● Web App: Next.js, Tailwind css
+● Email Notifications: Firebase Email Service or 3rd Party API (e.g., Send Grid)
+● State Management: Provider / Riverpod / Bloc
+
+Timeline Estimate:
+● UI/UX Design: 2 weeks
+● Development (All Features): 4 weeks
+● Testing & QA: 2 weeks
+● Deployment & Training: 1 week
+● Total: 9 weeks
+
+Deliverables:
+● Complete mobile app (Android and Web)
+● Source code and Firebase configuration
+● User manual and technical documentation
+● One year of basic support and updates`;
+
+export const DEFAULT_DIGIWELD_STEP6_TEXT = `Support required from the client:
+• SPOC (Single point of Contact) from the client’s team is required to coordinate and facilitate smooth implementation, testing, and ongoing support for the system.
+
+Terms and Conditions:
+1. Payment schedule:
+   • 40% advance against the Purchase Order (PO)
+   • 40% upon completion of the Proof of Concept (PoC) period
+   • 20% one month after full implementation and successful handover
+2. Applicable taxes and duties will be extra
+3. Boarding and Travel Expenses are inclusive of the cost mentioned above
+4. Sustainabyte Technologies Pvt. Ltd. is committed to maintaining the confidentiality and security of all customer data. Appropriate measures will be taken to prevent unauthorized access or data loss.
+5. In case of any data breach due to negligence, the company shall be legally accountable.`;
+
 export const INITIAL_WELDING_SOFTWARE_ROWS: WeldingSoftwareRow[] = [
   {
     id: 'ws_1',
@@ -1522,13 +2142,131 @@ Terms and Conditions:
 11. Documented Cost Reduction Study (DCRS) support period from Sustainabyte shall be availed after each month on initial 3-month period.`;
 
 export const HARDWARE_SUB_SERVICES = [
-  'Hardware Costing',
-  'IoT Controls Costing',
-  'IoT Controls',
-  'Hardware Installation',
-  'Hardware Supply',
-  'Custom',
+  'Dew Point',
+  'Flanges',
+  'Flowmeter',
+  'Temperature Sensor',
 ];
+
+export const DEFAULT_DEW_POINT_STEP5_TEXT = `Scope of Work:
+In this Current proposal, the scope of work is for the supply of an dew point sensor excluding installation and commissioning focuses solely on delivering the hardware to the specified site. This includes product specifications, delivery requirements, documentation, and quality standards, ensuring the meter is ready for later installation by others.
+
+How are we different from other suppliers?
+• End-to-end support: Sustainabyte assists with installation and commissioning, ensuring timely project completion.
+• IoT based insights: Sustainabyte offers support for an IoT-based real-time online monitoring dashboard.
+• Energy Savings: Sustainabyte evaluates and guides industries in achieving energy savings.
+• The dashboard’s visualization can be tailored to meet each customer’s specific requirements.
+
+Potential benefits of our platform – All 4 phases:
+1. Up Time: Equipment Downtime reduction
+2. Energy Savings: Energy consumption and Utility Cost Reduction (1-10 %)
+3. Zero Carbon: Contribute to Net Carbon Zero (Scope 1 & Scope 2)
+4. HC Optimization: Maintenance Head count optimization (approx. 1.5 HC worth Manual effort saved every day)
+5. Capital Cost Saving: Up to 50% Capital Cost and 30-50% of commissioning cost savings compare with traditional BMS / SCADA system
+
+Benefits of our Platform:
+1. Real-time alerting: When an asset malfunctions, you can automatically alert the right engineer, and have it repaired before it gets worse.
+2. Peak load reporting: Clear insights and tracking on peak load variations to optimize utility and operations.
+3. Customization: The dashboard visualization can be tailored to meet each customer’s specific requirements.
+4. AI led anomaly detection: Immediately act when anomalies occur (in performance or consumption) to massively reduce time and keep assets performing at their peak.
+5. Data driven decision making: Daily report, Data available to download from minute, hourly, daily, monthly to yearly levels right from the tool level.`;
+
+export const DEFAULT_DEW_POINT_STEP6_TEXT = `Commercials:
+Terms and Conditions:
+• Payment schedule: 100% payment for hardware advance against the PO.
+• Applicable taxes and duties will be extra
+• Delivery Period: Within 6-8 weeks from date of receipt of advance along with P.O.
+• Installation & Commissioning will be done at extra cost
+• Warranty: 12 months from the date of supply.
+
+Submitted by,
+Mr. Thanakarthik Kumar K
+Founder & Managing Director
++91-8377007638
+thanakarthik@sustainabyte.ai
+
+Bank Account details:
+Bank – Bank of Baroda
+Account Number – 35860200000750
+IFSC – BARB0VELACH (fifth letter is ZERO)
+Branch – VELACHERY BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A`;
+
+export const DEFAULT_FLANGES_STEP5_TEXT = `Scope of Supply:
+In this current proposal, the scope of work is for the supply of industrial flanges focusing solely on delivering the hardware to the specified site. This includes product specifications, delivery requirements, manufacturer documentation, and quality standards, ensuring all flange components and accessories are ready for installation by site engineers.`;
+
+export const DEFAULT_FLANGES_STEP6_TEXT = `Commercials:
+Support required from the client:
+• SPOC (Single point of Contact) for support and coordination during the audit phase 
+• Accessibility to each area. 
+
+Terms and Conditions:
+• Payment schedule: 70% advance against the PO and 30% Against Delivery
+• Applicable taxes and duties will be extra
+• Boarding and Travel Expenses are inclusive of the cost mentioned above.
+
+Submitted by,
+Satish Kumar N
+Manager - Sales & Operations
++91-7502244664
+
+Bank Account details:
+Name: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED
+Account number: 35860200000750
+IFSC: BARB0VELACH (fifth letter is ZERO)
+Bank name: Bank of Baroda
+Branch: VELACHERY BRANCH`;
+
+export const DEFAULT_CPM_STEP5_TEXT = `Annexure – I: Scope of Supply & System Architecture:
+Central Plant Monitoring (CPM) System Architecture & Chiller Automation:
+• 3 Water Cooled Chillers, 4 Primary CHW Pumps, 4 Secondary CHW Pumps, 6 Condenser Water Pumps, 2 Cooling Tower Fans, 1 Make-up Water Pump
+• DDC Control Panel with Power Supply 24VDC, Ethernet Port, AI Module, AO Module, DI Module, DO Module
+• Local Server / Workstation (Visualization Web HMI + MQTT Broker)
+• Common Hardwired Sensors: CHW Supply & Return Temp, Outdoor Temp & RH, Differential Pressure Transmitter
+• Energy Meters (Modbus RTU - RS485 Soft Integration)
+• Cloud Dashboard & Analytics Uplink via HTTPS REST API
+
+Notes:
+▪ Cabling quantity is considered as per BOQ/Thumb-rule Basis. Any increase/decrease in the quantity shall be billed against the consumed quantity after complete execution of project.
+▪ Controller quantity is calculated as per the provided IO summary/equipment quantity, any changes in the same will have price impact.
+▪ Mod-bus card for the VFD/ chiller in client's scope.
+▪ Installation and services of Sensors, Valves, BTU meters, Flow meters, VFD etc. is not in our scope.
+▪ Any Civil work and electrical works not in our scope.
+▪ Water, Power & Scaffolding to be provided at FOC at site, unless otherwise agreed mutually.
+▪ Any change in the quantity will have price impact on the quoted price.
+▪ Adapter box & Network Switch is not in our scope of supply/installation.
+▪ Field devices are considered as per the standard design/as per BOQ. Any changes in quantity will have price impact.
+▪ Drawings need to be shared for optimization of the project.`;
+
+export const DEFAULT_CPM_STEP6_TEXT = `Annexure – III: Terms & Conditions:
+1) Offer Validity: One Month (30 Days)
+2) Payment Terms:
+   • 50% advance against Pro-Forma Invoice
+   • 40% against Supply within 15 days
+   • 10% after completion of the project
+3) Taxes: As per GST @ 18% (Material Packing & Forwarding / Transport: Inclusive).
+4) Delivery: 10 to 12 Weeks from the approved date of PO and Design Document by Customer as per site requirement.
+5) Warranty for Supply: 1 year from the date of Delivery of the material at site.
+6) If any Power fluctuations / variations for input voltage to Field devices / controllers, device failure is in customer scope.
+7) For any environmental effects, damages of devices / controller failure customer is responsible.
+8) 5 to 6 weeks after receiving the materials at site Installation & Commissioning will be completed.
+
+Limitation to Liability:
+The maximum liability of the Seller for any and all claims, losses, damages, costs and expenses arising from or in connection with this Agreement shall not exceed the amounts actually received by the Seller under this Agreement.
+
+Submitted by,
+Thanakarthik
+Founder & CEO
++91-8377007638
+thanakarthik@sustainabyte.ai
+
+Bank Account details:
+Name: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED
+Account number: 35860200000750
+IFSC: BARB0VELACH (fifth letter is ZERO)
+Bank name: Bank of Baroda
+Branch: VELACHERY BRANCH`;
 
 export const INITIAL_IOT_CONTROLS_HARDWARE_ROWS: IotControlsHardwareRow[] = [
   { id: 'ich_1', slNo: '1a', productDescription: 'IR blaster', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
@@ -1652,5 +2390,4 @@ export const addCustomSiteDistance = (siteName: string, distanceKm: number) => {
     SITE_DISTANCE_MAP[siteName] = distanceKm;
   }
 };
-
 

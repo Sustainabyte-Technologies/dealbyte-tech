@@ -58,6 +58,34 @@ import {
   DEFAULT_WATER_MANAGEMENT_STEP6_TEXT,
   DEFAULT_ENERGY_AUDIT_STEP5_TEXT,
   DEFAULT_ENERGY_AUDIT_STEP6_TEXT,
+  DEFAULT_ASHRAE_LEVEL_2_STEP5_TEXT,
+  DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT,
+  DEFAULT_HVAC_DESIGN_STEP5_TEXT,
+  DEFAULT_HVAC_DESIGN_STEP6_TEXT,
+  DEFAULT_EC_FAN_STEP5_TEXT,
+  DEFAULT_EC_FAN_STEP6_TEXT,
+  DEFAULT_COMPRESSOR_AIR_LEAKAGE_RECTIFICATION_STEP5_TEXT,
+  DEFAULT_COMPRESSOR_AIR_LEAKAGE_RECTIFICATION_STEP6_TEXT,
+  DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT,
+  DEFAULT_COMPRESSOR_AIR_AUDIT_STEP6_TEXT,
+  DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP5_TEXT,
+  DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP6_TEXT,
+  DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP5_TEXT,
+  DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP6_TEXT,
+  DEFAULT_DEW_POINT_STEP5_TEXT,
+  DEFAULT_DEW_POINT_STEP6_TEXT,
+  DEFAULT_FLANGES_STEP5_TEXT,
+  DEFAULT_FLANGES_STEP6_TEXT,
+  DEFAULT_CPM_STEP5_TEXT,
+  DEFAULT_CPM_STEP6_TEXT,
+  DEFAULT_ISO_50001_STEP5_TEXT,
+  DEFAULT_ISO_50001_STEP6_TEXT,
+  DEFAULT_DIGIWELD_STEP5_TEXT,
+  DEFAULT_DIGIWELD_STEP6_TEXT,
+  INITIAL_DIGIWELD_SOFTWARE_ROWS,
+  INITIAL_DIGIWELD_CLOUD_ROWS,
+  DEFAULT_COMPRESSOR_ROI_DATA,
+  CompressorRoiData,
   DEFAULT_ENERGY_AUDIT_SCOPE_CARDS,
   ENERGY_AUDIT_TRACK_RECORD_CLIENTS,
   INITIAL_WATER_MANAGEMENT_GATEWAY_HARDWARE_ROWS,
@@ -66,6 +94,7 @@ import {
   INITIAL_WATER_MANAGEMENT_RECURRING_ROWS,
 } from '@/components/costing/constants';
 import { calcPriceFromCost, roundToHundred } from '@/components/costing/utils';
+import { formatCurrency } from '@/lib/utils';
 import QuoteSummaryCard from '@/components/quotes/QuoteSummaryCard';
 import FullPageWatermark from '@/components/common/FullPageWatermark';
 
@@ -196,57 +225,69 @@ function NewQuoteContent() {
   const SERVICE_CATEGORY_OPTIONS = [
     'Energy Audit Services',
     'IoT & Controls',
-    'Welding IoT',
+    'Chiller Management',
+    'Welding',
+    'Automation',
+    'IR Blaster',
+    'BMS',
     'Hardware',
-    'Custom',
+  ];
+
+  const IR_BLASTER_SUB_SERVICES = [
+    'IR Blaster',
+  ];
+
+  const BMS_CATEGORY_SUB_SERVICES = [
+    'BMS',
+  ];
+
+  const CHILLER_MANAGEMENT_SUB_SERVICES = [
+    'CPM (Chiller Plant Management)',
+  ];
+
+  const AUTOMATION_SUB_SERVICES = [
+    'Compressed Air Automation',
+    'Water Automation',
   ];
 
   const ENERGY_AUDIT_SUB_SERVICES = [
     'Compressor Air Leakage rectification',
-    'Flowmeter',
     'Compressor air leakage audit',
     'nitrogen Gas Leakage Audit',
     'Mixture Gas Leakage Audit',
-    'Air Audit',
-    'Air Audit Rectification',
     'Energy Audit',
     'BMS',
     'Electrical Safety Audit',
     'Fire Safety Audit',
-    'Custom',
+    'ASHRAE Level 2',
+    'EC Fan',
+    'HVAC Design',
+    'ISO 50001',
   ];
-  const PROJECTS_SUB_SERVICES = ['Optibyte', 'Digiweld', 'Tec Byte', 'Fix Byte', 'Compass', 'Custom Project'];
+  const PROJECTS_SUB_SERVICES = ['Optibyte', 'Digiweld', 'Tec Byte', 'Fix Byte', 'Compass'];
   const IOT_SERVICES_SUB_SERVICES = [
     'Energy Management Solution',
-    'Water Management Solution',
-    'Cloud Charges',
-    'Chiller Plant Monitoring',
-    'Compressed Air Automation',
     'Compressed Air Monitoring',
-    'BMS',
     'IoT Platform',
-    'Custom',
+    'Water Management Solution',
   ];
   const WELDING_IOT_SUB_SERVICES = [
     'Welding IoT & Kit',
-    'Welding IoT',
-    'Chiller Digitization',
-    'Cold Storage Temperature',
-    'Device Parameter Interlocking',
-    'Weld Data Digitalized',
-    'Welding IoT Kit',
-    'Welding Machine IoT',
-    'Weld Data Microsoft Azure',
-    'Custom',
+    'Digiweld',
   ];
-  const HARDWARE_SUB_SERVICES = ['Hardware Installation', 'Hardware Supply', 'Custom'];
+  const HARDWARE_SUB_SERVICES = [
+    'Dew Point',
+    'Flanges',
+    'Flowmeter',
+    'Temperature Sensor',
+  ];
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['Energy Audit Services']);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
   const mainCategoryService = selectedCategories.join(', ');
-  const [selectedSubServiceOptions, setSelectedSubServiceOptions] = useState<string[]>(['Air Audit']);
+  const [selectedSubServiceOptions, setSelectedSubServiceOptions] = useState<string[]>(['Compressor air leakage audit']);
   const [isSubServicesDropdownOpen, setIsSubServicesDropdownOpen] = useState(false);
   const subServicesDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -323,54 +364,48 @@ function NewQuoteContent() {
         return cat.includes('project') || ['optibyte', 'digiweld', 'tec byte', 'fix byte', 'compass'].includes(nm);
       })
       .map((s) => s.name);
-    return Array.from(new Set([...apiProjects, ...PROJECTS_SUB_SERVICES]));
+    return Array.from(new Set([...apiProjects, ...PROJECTS_SUB_SERVICES])).filter(
+      (nm) => !['custom', 'custom project'].includes(nm.toLowerCase())
+    );
   }, [services]);
 
   const dynamicEnergyAuditSubServices = React.useMemo(() => {
+    const excludedAudits = ['air audit', 'air audit rectification', 'flowmeter', 'flow meter', 'custom'];
     const apiAudits = services
       .filter((s) => (s.category || '').toLowerCase().includes('audit'))
       .map((s) => s.name);
-    return Array.from(new Set([...apiAudits, ...ENERGY_AUDIT_SUB_SERVICES]));
+    return Array.from(new Set([...apiAudits, ...ENERGY_AUDIT_SUB_SERVICES])).filter(
+      (nm) => !excludedAudits.includes(nm.toLowerCase())
+    );
   }, [services]);
 
   const dynamicIotServicesSubServices = React.useMemo(() => {
-    const excludedNames = ['optibyte', 'digiweld', 'tec byte', 'fix byte', 'compass', 'welding iot', 'welding iot & kit', 'welding iot kit'];
-    const apiIot = services
-      .filter((s) => {
-        const cat = (s.category || '').toLowerCase();
-        const nm = (s.name || '').toLowerCase();
-        return (cat.includes('iot') || cat.includes('control')) && !excludedNames.includes(nm);
-      })
-      .map((s) => s.name);
-    return Array.from(new Set([...apiIot, ...IOT_SERVICES_SUB_SERVICES])).filter(
-      (nm) => !excludedNames.includes(nm.toLowerCase())
-    );
-  }, [services]);
+    return IOT_SERVICES_SUB_SERVICES;
+  }, []);
 
   const dynamicHardwareSubServices = React.useMemo(() => {
-    const apiHardware = services
-      .filter((s) => (s.category || '').toLowerCase().includes('hardware'))
-      .map((s) => s.name);
-    return Array.from(new Set([...apiHardware, ...HARDWARE_SUB_SERVICES]));
-  }, [services]);
+    return HARDWARE_SUB_SERVICES;
+  }, []);
 
   const dynamicWeldingIotSubServices = React.useMemo(() => {
-    const excludedWelding = [
-      'welding data monitoring',
-      'welding quality & gas monitoring',
-      'welding machine automation',
-    ];
-    const apiWelding = services
-      .filter((s) => {
-        const cat = (s.category || '').toLowerCase();
-        const nm = (s.name || '').toLowerCase();
-        return (cat.includes('welding') || nm.includes('welding')) && !excludedWelding.includes(nm);
-      })
-      .map((s) => s.name);
-    return Array.from(new Set([...apiWelding, ...WELDING_IOT_SUB_SERVICES])).filter(
-      (nm) => !excludedWelding.includes(nm.toLowerCase())
-    );
-  }, [services]);
+    return WELDING_IOT_SUB_SERVICES;
+  }, []);
+
+  const dynamicAutomationSubServices = React.useMemo(() => {
+    return AUTOMATION_SUB_SERVICES;
+  }, []);
+
+  const dynamicIrBlasterSubServices = React.useMemo(() => {
+    return IR_BLASTER_SUB_SERVICES;
+  }, []);
+
+  const dynamicBmsCategorySubServices = React.useMemo(() => {
+    return BMS_CATEGORY_SUB_SERVICES;
+  }, []);
+
+  const dynamicChillerManagementSubServices = React.useMemo(() => {
+    return CHILLER_MANAGEMENT_SUB_SERVICES;
+  }, []);
 
   // Aggregate available sub-services across all selected categories
   const availableSubServices = React.useMemo(() => {
@@ -384,14 +419,23 @@ function NewQuoteContent() {
     if (selectedCategories.includes('IoT & Controls')) {
       opts.push(...dynamicIotServicesSubServices);
     }
-    if (selectedCategories.includes('Welding IoT')) {
+    if (selectedCategories.includes('Chiller Management')) {
+      opts.push(...dynamicChillerManagementSubServices);
+    }
+    if (selectedCategories.includes('Welding') || selectedCategories.includes('Welding IoT')) {
       opts.push(...dynamicWeldingIotSubServices);
+    }
+    if (selectedCategories.includes('Automation')) {
+      opts.push(...dynamicAutomationSubServices);
+    }
+    if (selectedCategories.includes('IR Blaster')) {
+      opts.push(...dynamicIrBlasterSubServices);
+    }
+    if (selectedCategories.includes('BMS')) {
+      opts.push(...dynamicBmsCategorySubServices);
     }
     if (selectedCategories.includes('Hardware')) {
       opts.push(...dynamicHardwareSubServices);
-    }
-    if (selectedCategories.includes('Custom') || opts.length === 0) {
-      opts.push('Custom');
     }
     return Array.from(new Set(opts));
   }, [
@@ -400,6 +444,9 @@ function NewQuoteContent() {
     dynamicProjectsSubServices,
     dynamicIotServicesSubServices,
     dynamicWeldingIotSubServices,
+    dynamicAutomationSubServices,
+    dynamicIrBlasterSubServices,
+    dynamicBmsCategorySubServices,
     dynamicHardwareSubServices,
   ]);
 
@@ -545,6 +592,103 @@ Customer shall arrange a skilled individual (Authorized technicians) for the ent
 
   const [emsStep5Text, setEmsStep5Text] = useState(DEFAULT_EMS_STEP5_TEXT);
   const [isEditingEmsStep5Text, setIsEditingEmsStep5Text] = useState(false);
+
+  const DEFAULT_WELD_DATA_DIGITALIZED_STEP5_TEXT = `Scope of Work:
+Project Overview
+Fusionbyte – WeldWise Suite is a mobile application tailored for industrial environments to streamline and monitor welding operations. The current scope focuses on:
+
+Phase 1: Joint-Wise, Part-Wise Weld Tracking System
+Precise tracking of welds based on joint and part identifiers.
+Supervisors and welders can input process data according to specific models and stages.
+Real-time visibility into welding activities for better quality assurance and process optimization.
+
+Phase 2: Integrated Process and Quality Data Logging
+Automatic capture of critical welding-related parameters such as:
+oPreheating status
+oNDT (Non-Destructive Testing) results
+oVoltage and current readings
+oInspection time and date
+Defect Mapping:
+oLogs the exact location and type of defects found during inspections.
+Defect Heat Mapping:
+oVisualizes areas with a high concentration of defects to prioritize corrective actions.
+Smart alerts to notify if blasting or process times exceed predefined limits, helping prevent delays and ensuring quality compliance.
+
+Phase 3: Advanced Visualization and AI-Powered Reporting
+Customizable dashboards featuring visual tools like trendlines, Pareto charts, and pie charts.
+AI-driven analysis provides actionable insights for supervisors and quality teams.
+Supports continuous process improvement by identifying patterns, bottlenecks, and optimization opportunities.
+
+Technologies Used
+●Frontend: Flutter (Android Only)
+●Backend: Firebase (Firestore, Auth, Cloud Functions)
+●Web App: Next.js ,Tailwind css
+●Email Notifications: Firebase Email Service or 3rd Party API (e.g., Send Grid)
+●State Management: Provider / Riverpod / Bloc
+●Cloud Storage: Firebase Storage
+
+Key Features
+Joint-Wise and Part-Wise Weld Tracking
+Accurately capture, monitor, and trace welding data based on specific joints and parts across all stages for full traceability.
+Multi-Stage Input System (Up to 5 Process Stages)
+Allows structured data entry for up to five welding process stages, improving traceability, accountability, and process control.
+Equipment Tracking by ID and Process Stage
+Monitor welding equipment usage, condition, and association with specific process stages using unique identifiers.
+Integrated Preheating, NDT, Parameter Logging, and Defect Mapping
+Seamlessly log critical welding parameters such as preheating status, voltage, current, NDT results, inspection date/time, along with capturing defect locations through defect mapping.
+Defect Heat Mapping Visualization
+Visual heat maps highlight areas with high defect concentrations, enabling faster root cause analysis and prioritization of corrective actions.
+Smart Alerts and Notifications
+Receive customizable real-time alerts for process delays (e.g., blasting time exceeded) and quality deviations, including optional email notifications.
+Advanced Filters for Data Querying
+Apply powerful dynamic filters to quickly review weld history, current status, defect trends, equipment usage, and inspection outcomes.
+AI-Powered Dashboards & Reporting
+Generate intuitive visual reports using AI-driven tools—trendlines, Pareto charts, pie charts, and more—to drive clear insights and continuous process improvement.
+
+Timeline Estimate
+●UI/UX Design : 6 weeks
+●Development (All Features): 4 weeks
+●Testing & QA :  2weeks
+●Deployment & Training : 2 week
+●Total : 14 weeks
+
+Deliverables
+●Complete mobile app (Android and Web)
+●Source code and Firebase configuration
+●Deployment to Play Store (if required)
+●User manual and technical documentation
+●One year of basic support and updates`;
+
+  const DEFAULT_WELD_DATA_DIGITALIZED_STEP6_TEXT = `Commercials
+Support required from the client:
+
+•SPOC (Single point of Contact) for support and coordination during the audit phase 
+•Accessibility to each area. 
+•1 person required from client side with knowledge on Compressed air line to reach out from the generation to end use for leakage identifications.
+
+Terms and Conditions:
+
+Payment schedule: 70% advance against the PO and remaining 30% against the report submission
+Applicable taxes and duties will be extra
+Boarding and Travel Expenses are inclusive of the cost mentioned above.
+
+Submitted By,
+
+Thanakarthik Kumar
+Founder & Managing Director
+8377007638
+thanakarthik@sustainabyte.ai
+
+Bank Account details:
+Bank – IDFC FIRST Bank
+Account Number – 10184753095
+IFSC – IDFB0080125
+Branch – BESANT NAGAR BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A
+SWIFT Code - IDFBINBBMUM
+
+THANK YOU`;
 
   const DEFAULT_EMS_STEP6_TEXT = `NOTE:
 
@@ -819,11 +963,12 @@ PAN Number – ABNCS4869A`;
 
       const cleanName = clientName.replace(/(ltd|pvt|limited|private|inc|corp)\.?/gi, '').trim();
 
-      const [generalSheets, airSheets, energySheets, rectSheets] = await Promise.all([
+      const [generalSheets, airSheets, energySheets, rectSheets, emsSheets] = await Promise.all([
         costingApi.getSheets({ clientName: cleanName || clientName.trim() }).catch(() => []),
         costingApi.airAudit.getSheets(cleanName || clientName.trim()).catch(() => []),
         costingApi.energyAudit.getSheets(cleanName || clientName.trim()).catch(() => []),
         costingApi.airAuditRectification.getSheets(cleanName || clientName.trim()).catch(() => []),
+        costingApi.ems.getSheets(cleanName || clientName.trim()).catch(() => []),
       ]);
 
       const formattedAir = (airSheets || []).map((s: any) => ({
@@ -839,7 +984,7 @@ PAN Number – ABNCS4869A`;
         marginAmount: Number(s.marginAmount || 0),
         bufferPct: Number(s.bufferPct || 10),
         bufferAmount: Number(s.bufferAmount || 0),
-        finalQuote: Number(s.finalQuote || 0),
+        finalQuote: Number(s.finalQuote || s.totalCustomerPrice || 0),
       }));
 
       const formattedEnergy = (energySheets || []).map((s: any) => ({
@@ -855,7 +1000,7 @@ PAN Number – ABNCS4869A`;
         marginAmount: Number(s.marginAmount || 0),
         bufferPct: Number(s.bufferPct || 10),
         bufferAmount: Number(s.bufferAmount || 0),
-        finalQuote: Number(s.finalQuote || 0),
+        finalQuote: Number(s.finalQuote || s.totalCustomerPrice || 0),
       }));
 
       const formattedRect = (rectSheets || []).map((s: any) => ({
@@ -871,10 +1016,26 @@ PAN Number – ABNCS4869A`;
         marginAmount: Number(s.marginAmount || 0),
         bufferPct: Number(s.bufferPct || 10),
         bufferAmount: Number(s.bufferAmount || 0),
-        finalQuote: Number(s.finalQuote || 0),
+        finalQuote: Number(s.finalQuote || s.totalCustomerPrice || 0),
       }));
 
-      const combined = [...generalSheets, ...formattedAir, ...formattedEnergy, ...formattedRect];
+      const formattedEms = (emsSheets || []).map((s: any) => ({
+        ...s,
+        _id: s.id,
+        subService: s.subService || 'CPM (Chiller Plant Management)',
+        serviceCategory: s.serviceCategory || 'Chiller Management',
+        manpowerCost: s.totalManpowerCost !== undefined ? Number(s.totalManpowerCost) : Number(s.manpowerCost || 0),
+        instrumentCost: s.totalInstrumentCost !== undefined ? Number(s.totalInstrumentCost) : Number(s.instrumentCost || 0),
+        totalExtraCost: s.totalExtraCost !== undefined ? Number(s.totalExtraCost) : 0,
+        subtotalCost: Number(s.subtotalCost || 0),
+        marginPct: Number(s.marginPct || 40),
+        marginAmount: Number(s.marginAmount || 0),
+        bufferPct: Number(s.bufferPct || 10),
+        bufferAmount: Number(s.bufferAmount || 0),
+        finalQuote: Number(s.finalQuote || s.emsTotalStep5CustomerPrice || s.totalCustomerPrice || 0),
+      }));
+
+      const combined = [...generalSheets, ...formattedAir, ...formattedEnergy, ...formattedRect, ...formattedEms];
 
       const seen = new Set();
       const unique = [];
@@ -1010,7 +1171,18 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 10. Exact match fallback for other specific subServices
+    // 10. CPM / Chiller Plant Management
+    if (currentSub.includes('cpm') || currentSub.includes('chiller')) {
+      return (
+        clientCostingSheets.find((s) => {
+          const sub = (s.subService || '').toLowerCase().trim();
+          const cat = (s.serviceCategory || '').toLowerCase().trim();
+          return sub.includes('cpm') || sub.includes('chiller') || cat.includes('chiller') || Boolean((s as any).isCpm);
+        }) || null
+      );
+    }
+
+    // 11. Exact match fallback for other specific subServices
     const exactMatch = clientCostingSheets.find(
       (s) => (s.subService || '').toLowerCase().trim() === currentSub
     );
@@ -1031,7 +1203,25 @@ PAN Number – ABNCS4869A`;
     }
   }, [selectedCostingSheetId, activeCostingSheet, editQuoteId]);
 
+  const isWeldDataDigitalized = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some(
+      (s) =>
+        s.includes('weld data digitalized') ||
+        s.includes('weld data') ||
+        s.includes('weldwise') ||
+        s.includes('fusionbyte') ||
+        s.includes('digiweld')
+    );
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
   const isWeldingIot = React.useMemo(() => {
+    if (isWeldDataDigitalized) return false;
     const combined = [
       ...selectedCategories,
       ...selectedSubServiceOptions,
@@ -1043,7 +1233,7 @@ PAN Number – ABNCS4869A`;
       Boolean((activeCostingSheet as any)?.isWeldingIot) ||
       Boolean((activeCostingSheet as any)?.weldingHardwareRows?.length > 0)
     );
-  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet, isWeldDataDigitalized]);
 
   const isWaterManagement = React.useMemo(() => {
     const combined = [
@@ -1071,6 +1261,10 @@ PAN Number – ABNCS4869A`;
           s.includes('ems') ||
           s.includes('energy management') ||
           s.includes('water management') ||
+          s.includes('water automation') ||
+          s.includes('compressed air automation') ||
+          s.includes('compressed air monitoring') ||
+          s.includes('automation') ||
           s.includes('smart factory')
       ) ||
       Boolean((activeCostingSheet as any)?.isEms) ||
@@ -1096,7 +1290,7 @@ PAN Number – ABNCS4869A`;
     );
   }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet, isWeldingIot, isEms]);
 
-  const isIotOrControls = isWeldingIot || isIotControls || isEms;
+  const isIotOrControls = isWeldDataDigitalized || isWeldingIot || isIotControls || isEms;
 
   const isBms = React.useMemo(() => {
     const combined = [
@@ -1106,6 +1300,132 @@ PAN Number – ABNCS4869A`;
       activeCostingSheet?.subService || '',
     ].map((s) => s.toLowerCase());
     return combined.some((s) => s.includes('bms') || s.includes('building management'));
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isMixtureGasLeakageAudit = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some((s) => s.includes('mixture') || s.includes('mixed gas') || s.includes('gas system'));
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isCpmChillerManagement = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some((s) => s.includes('cpm') || s.includes('chiller plant management') || s.includes('chiller management'));
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isFlangesHardware = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return !isCpmChillerManagement && combined.some((s) => s.includes('flange'));
+  }, [isCpmChillerManagement, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isDewPointHardware = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return !isFlangesHardware && combined.some((s) => s.includes('dew point'));
+  }, [isFlangesHardware, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isNitrogenGasLeakageAudit = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return !isFlangesHardware && !isDewPointHardware && combined.some((s) => s.includes('nitrogen'));
+  }, [isFlangesHardware, isDewPointHardware, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isCompressorAirLeakageRectification = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return !isFlangesHardware && !isDewPointHardware && !isMixtureGasLeakageAudit && !isNitrogenGasLeakageAudit && combined.some((s) => s.includes('rectification'));
+  }, [isFlangesHardware, isDewPointHardware, isMixtureGasLeakageAudit, isNitrogenGasLeakageAudit, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isCompressorAirLeakageAudit = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return (
+      !isFlangesHardware &&
+      !isDewPointHardware &&
+      !isMixtureGasLeakageAudit &&
+      !isNitrogenGasLeakageAudit &&
+      !isCompressorAirLeakageRectification &&
+      combined.some(
+        (s) =>
+          s.includes('compressor air leakage') ||
+          s.includes('air leakage audit') ||
+          s.includes('compressor air audit') ||
+          s.includes('compressed air audit') ||
+          (s.includes('leakage audit') && !s.includes('mixture') && !s.includes('gas') && !s.includes('nitrogen') && !s.includes('dew point') && !s.includes('flange'))
+      )
+    );
+  }, [isFlangesHardware, isDewPointHardware, isMixtureGasLeakageAudit, isNitrogenGasLeakageAudit, isCompressorAirLeakageRectification, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isCompressorAirLeakage = isCompressorAirLeakageRectification || isCompressorAirLeakageAudit;
+
+  const isAshraeLevel2 = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some((s) => s.includes('ashrae'));
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isHvacDesign = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some((s) => s.includes('hvac'));
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isEcFan = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some((s) => s.includes('ec fan') || s.includes('ec-fan') || s.includes('ecfan'));
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isIso50001 = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some((s) => s.includes('iso 50001') || s.includes('iso50001') || s.includes('enms') || s.includes('energy management system'));
   }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
   const isEnergyAudit = React.useMemo(() => {
@@ -1123,9 +1443,14 @@ PAN Number – ABNCS4869A`;
     );
   }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
-  // Auto-switch default texts when Welding IoT, Water Management, BMS, EMS/IoT, or Energy Audit mode changes
+  // Auto-switch default texts when Weld Data Digitalized, Welding IoT, Water Management, BMS, EMS/IoT, Dew Point Hardware, Compressor Air Leakage Rectification / Audit, ASHRAE Level 2, HVAC Design, EC Fan, Mixture Gas Leakage Audit, Nitrogen Gas Leakage Audit, or Energy Audit mode changes
   useEffect(() => {
-    if (isWeldingIot) {
+    if (isWeldDataDigitalized) {
+      setEmsStep5Text(DEFAULT_DIGIWELD_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_DIGIWELD_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik Kumar\nFounder & Managing Director\n8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – IDFC FIRST Bank\nAccount Number – 10184753095\nIFSC – IDFB0080125\nBranch – BESANT NAGAR BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A\nSWIFT Code - IDFBINBBMUM`);
+    } else if (isWeldingIot) {
       setEmsStep5Text(DEFAULT_WELDING_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_WELDING_STEP6_TEXT);
     } else if (isWaterManagement) {
@@ -1137,11 +1462,95 @@ PAN Number – ABNCS4869A`;
     } else if (isIotOrControls) {
       setEmsStep5Text(DEFAULT_EMS_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_EMS_STEP6_TEXT);
+    } else if (isCpmChillerManagement) {
+      setEmsStep5Text(DEFAULT_CPM_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_CPM_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik\nFounder & CEO\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nName: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED\nAccount number: 35860200000750\nIFSC: BARB0VELACH (fifth letter is ZERO)\nBank name: Bank of Baroda\nBranch: VELACHERY BRANCH`);
+    } else if (isFlangesHardware) {
+      setEmsStep5Text(DEFAULT_FLANGES_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_FLANGES_STEP6_TEXT);
+      setStep7SubmittedBy(`Satish Kumar N\nManager - Sales & Operations\n+91-7502244664\nsatishkumar@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nName: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED\nAccount number: 35860200000750\nIFSC: BARB0VELACH (fifth letter is ZERO)\nBank name: Bank of Baroda\nBranch: VELACHERY BRANCH`);
+    } else if (isDewPointHardware) {
+      setEmsStep5Text(DEFAULT_DEW_POINT_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_DEW_POINT_STEP6_TEXT);
+      setStep7SubmittedBy(`Mr. Thanakarthik Kumar K\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
+    } else if (isNitrogenGasLeakageAudit) {
+      setEmsStep5Text(DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik Kumar\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
+    } else if (isMixtureGasLeakageAudit) {
+      setEmsStep5Text(DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
+    } else if (isCompressorAirLeakageRectification) {
+      setEmsStep5Text(DEFAULT_COMPRESSOR_AIR_LEAKAGE_RECTIFICATION_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_COMPRESSOR_AIR_LEAKAGE_RECTIFICATION_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik Kumar\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
+    } else if (isCompressorAirLeakageAudit) {
+      setEmsStep5Text(DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_COMPRESSOR_AIR_AUDIT_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik Kumar\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
+    } else if (isHvacDesign) {
+      setEmsStep5Text(DEFAULT_HVAC_DESIGN_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_HVAC_DESIGN_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik Kumar\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
+    } else if (isEcFan) {
+      setEmsStep5Text(DEFAULT_EC_FAN_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_EC_FAN_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik Kumar\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
+    } else if (isAshraeLevel2) {
+      setEmsStep5Text(DEFAULT_ASHRAE_LEVEL_2_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
+    } else if (isIso50001) {
+      setEmsStep5Text(DEFAULT_ISO_50001_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_ISO_50001_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
     } else if (isEnergyAudit) {
       setEmsStep5Text(DEFAULT_ENERGY_AUDIT_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_ENERGY_AUDIT_STEP6_TEXT);
     }
-  }, [isWeldingIot, isWaterManagement, isBms, isIotOrControls, isEnergyAudit]);
+  }, [isWeldDataDigitalized, isWeldingIot, isWaterManagement, isBms, isIotOrControls, isCpmChillerManagement, isFlangesHardware, isDewPointHardware, isNitrogenGasLeakageAudit, isMixtureGasLeakageAudit, isCompressorAirLeakageRectification, isCompressorAirLeakageAudit, isHvacDesign, isEcFan, isAshraeLevel2, isIso50001, isEnergyAudit]);
+
+  // Compressor Air Leakage ROI State & Phase Scope Details
+  const [compressorRoiData, setCompressorRoiData] = useState<CompressorRoiData>(DEFAULT_COMPRESSOR_ROI_DATA);
+  const [isEditingCompressorRoi, setIsEditingCompressorRoi] = useState<boolean>(true);
+
+  const updateCompressorRoiField = (field: keyof CompressorRoiData, value: any) => {
+    setCompressorRoiData((prev) => {
+      const updated = { ...prev, [field]: value };
+      const kwhMonth = field === 'monthlyKwhLoss' ? Number(value) || 0 : prev.monthlyKwhLoss;
+      const elecRate = field === 'electricityCostPerKwh' ? Number(value) || 0 : prev.electricityCostPerKwh;
+      const invest = field === 'investmentRs' ? Number(value) || 0 : prev.investmentRs;
+
+      const annualKwh = Math.round(kwhMonth * 12);
+      const monthlyLoss = Math.round(kwhMonth * elecRate);
+      const annualLoss = Math.round(monthlyLoss * 12);
+      const paybackY = annualLoss > 0 ? Number((invest / annualLoss).toFixed(2)) : 0;
+      const paybackM = monthlyLoss > 0 ? Math.round(invest / monthlyLoss) : 0;
+
+      return {
+        ...updated,
+        annualKwhLoss: annualKwh,
+        monthlyLossRs: monthlyLoss,
+        annualLossRs: annualLoss,
+        totalAnnualRecoverableSavingRs: annualLoss,
+        paybackYears: paybackY,
+        paybackMonths: paybackM,
+      };
+    });
+  };
 
   // IoT & Controls Step 5 Itemized Rows State (Supports Welding IoT, EMS, IoT Controls, and Custom)
   const [iotStep5Rows, setIotStep5Rows] = useState<Array<{
@@ -1263,7 +1672,58 @@ PAN Number – ABNCS4869A`;
 
       const sheetAny = activeCostingSheet as any;
 
-      if (isWeldingIot) {
+      if (isWeldDataDigitalized) {
+        const extracted: Array<{
+          id: string;
+          section?: string;
+          stepNo: number | string;
+          description: string;
+          qty: number;
+          uom: string;
+          customerPrice: number;
+          isRecurring?: boolean;
+        }> = [];
+
+        const swRows =
+          sheetAny?.weldingSoftwareRows && sheetAny.weldingSoftwareRows.length > 0
+            ? sheetAny.weldingSoftwareRows
+            : INITIAL_DIGIWELD_SOFTWARE_ROWS;
+
+        swRows.forEach((r: any, idx: number) => {
+          extracted.push({
+            id: `dw-${idx}`,
+            section: '1. ONE TIME COST - PHASE 3',
+            stepNo: `${idx + 1}`,
+            description: `${r.item || r.description || 'Deliverable'}`,
+            qty: typeof r.qty === 'number' ? r.qty : 1,
+            uom: r.uom || 'Job',
+            customerPrice: resolvePrice(r, Number(r.price || (r.unitPrice * (r.qty || 1)) || 0)),
+          });
+        });
+
+        const cloudRows =
+          sheetAny?.weldingCloudRows && sheetAny.weldingCloudRows.length > 0
+            ? sheetAny.weldingCloudRows
+            : INITIAL_DIGIWELD_CLOUD_ROWS;
+
+        cloudRows.forEach((r: any, idx: number) => {
+          const qty = Number(r.qty || 1);
+          const monthlyPrice = Number(r.monthlyPrice || r.unitMonthlyPrice || 0);
+          const yearlyPrice = Number(r.yearlyPrice || monthlyPrice * 12);
+          extracted.push({
+            id: `dwc-${idx}`,
+            section: '2. RECURRING COST',
+            stepNo: `${idx + 1}`,
+            description: `${r.component || 'Cloud Service'}: ${r.description || ''}`,
+            qty,
+            uom: r.uom || 'Month',
+            customerPrice: resolvePrice(r, monthlyPrice),
+            isRecurring: true,
+          });
+        });
+
+        setIotStep5Rows(extracted);
+      } else if (isWeldingIot) {
         const extracted: Array<{
           id: string;
           section?: string;
@@ -1302,10 +1762,10 @@ PAN Number – ABNCS4869A`;
             id: `ws-${idx}`,
             section: '2. Welding Analytics & Logic Software Scope',
             stepNo: `${idx + 1}`,
-            description: `${r.item || 'Software Development'}: ${r.description || ''}`,
+            description: `${r.item || 'Software Development'}${r.description && r.description !== r.item ? `: ${r.description}` : ''}`,
             qty: 1,
-            uom: r.uom || 'per kit',
-            customerPrice: resolvePrice(r, Number(r.price || 20000)),
+            uom: r.uom || 'Job',
+            customerPrice: resolvePrice(r, Number(r.price || r.unitPrice || 0)),
           });
         });
 
@@ -1315,31 +1775,35 @@ PAN Number – ABNCS4869A`;
             : INITIAL_WELDING_INSTALLATION_ROWS;
 
         instRows.forEach((r: any, idx: number) => {
+          const qty = Number(r.qty || 1);
           extracted.push({
             id: `wi-${idx}`,
-            section: '3. Installation & Commissioning Scope',
+            section: '3. Installation & Commissioning Charges',
             stepNo: `${idx + 1}`,
             description: r.item || 'Installation and Commissioning',
-            qty: 1,
-            uom: r.uom || 'per kit',
-            customerPrice: resolvePrice(r, Number(r.price || 15000)),
+            qty,
+            uom: r.uom || 'Nos',
+            customerPrice: resolvePrice(r, Number(r.price || 25000)),
           });
         });
 
-        const clRows =
+        const cloudRows =
           sheetAny?.weldingCloudRows && sheetAny.weldingCloudRows.length > 0
             ? sheetAny.weldingCloudRows
             : INITIAL_WELDING_CLOUD_ROWS;
 
-        clRows.forEach((r: any, idx: number) => {
+        cloudRows.forEach((r: any, idx: number) => {
+          const qty = Number(r.qty || 1);
+          const monthlyPrice = Number(r.monthlyPrice || r.unitMonthlyPrice || 0);
+          const yearlyPrice = Number(r.yearlyPrice || monthlyPrice * 12);
           extracted.push({
             id: `wc-${idx}`,
-            section: '4. Cloud Infrastructure & Recurring Subscriptions Scope',
+            section: '4. Cloud Platform & Recurring Services',
             stepNo: `${idx + 1}`,
-            description: `${r.component || 'Cloud Service'} (${r.type || ''}): ${r.description || ''}`,
-            qty: 1,
-            uom: 'Year',
-            customerPrice: resolvePrice(r, Number(r.yearlyPrice || (r.monthlyPrice ? r.monthlyPrice * 12 : 12000))),
+            description: `${r.component || 'Cloud Service'} (${r.type || 'Cloud'}): ${r.description || ''}`,
+            qty,
+            uom: r.uom || 'Year',
+            customerPrice: resolvePrice(r, yearlyPrice),
             isRecurring: true,
           });
         });
@@ -1582,7 +2046,7 @@ PAN Number – ABNCS4869A`;
         setTravelKms(Number(sheetAny.travelDistanceKms));
       }
     }
-  }, [activeCostingSheet, isIotOrControls, isWeldingIot, isIotControls, isEms, editQuoteId, manpowerRates]);
+  }, [activeCostingSheet, isIotOrControls, isWeldingIot, isIotControls, isEms, isCpmChillerManagement, editQuoteId, manpowerRates]);
 
   // Live Costing Math Calculation (Dynamic from Costing Sheet)
   let calculatedManpowerCost = 0;
@@ -1653,14 +2117,15 @@ PAN Number – ABNCS4869A`;
           : Math.round(withMargin * (bufferPct / 100)))
       : 0;
 
-  const finalQuote =
-    activeCostingSheet?.finalQuote !== undefined && activeCostingSheet?.finalQuote !== null
-      ? Number(activeCostingSheet.finalQuote)
-      : isIotOrControls
-      ? (iotTotalPrice ? iotTotalPrice : 0)
-      : subtotal
-      ? withMargin + bufferAmount
-      : 0;
+  const finalQuote = isCompressorAirLeakageRectification
+    ? Number(compressorRoiData.investmentRs || 175000)
+    : activeCostingSheet?.finalQuote !== undefined && activeCostingSheet?.finalQuote !== null && Number(activeCostingSheet.finalQuote) > 0
+    ? Number(activeCostingSheet.finalQuote)
+    : isIotOrControls
+    ? (iotTotalPrice ? iotTotalPrice : 0)
+    : subtotal
+    ? withMargin + bufferAmount
+    : 0;
 
   const requiresApproval = marginPct < 25 || finalQuote > 5000000;
   const approvalReasons: string[] = [];
@@ -1677,11 +2142,22 @@ PAN Number – ABNCS4869A`;
       const selectedCategory = selectedCategories[0] || 'Energy Audit Services';
       const selectedSubService = selectedSubServiceOptions[0] || 'Air Audit';
 
-      const computedFinalQuote = isIotOrControls
-        ? (activeCostingSheet?.finalQuote ? Number(activeCostingSheet.finalQuote) : iotTotalPrice || finalQuote)
-        : (activeCostingSheet?.finalQuote ? Number(activeCostingSheet.finalQuote) : finalQuote);
+      const computedFinalQuote = isCompressorAirLeakageRectification
+        ? Number(compressorRoiData.investmentRs || 175000)
+        : isIotOrControls
+        ? (Number(activeCostingSheet?.finalQuote) > 0 ? Number(activeCostingSheet.finalQuote) : iotTotalPrice || finalQuote)
+        : (Number(activeCostingSheet?.finalQuote) > 0 ? Number(activeCostingSheet.finalQuote) : finalQuote);
 
-      const lineItems = isIotOrControls && iotStep5Rows.length > 0
+      const lineItems = isCompressorAirLeakageRectification
+        ? [
+            {
+              description: `1. ${compressorRoiData.phaseTitle}: ${compressorRoiData.phaseDesc}`,
+              qty: 1,
+              unitRate: Number(compressorRoiData.investmentRs || 175000),
+              total: Number(compressorRoiData.investmentRs || 175000),
+            },
+          ]
+        : isIotOrControls && iotStep5Rows.length > 0
         ? iotStep5Rows.map((r) => ({
             description: `${r.stepNo}. ${r.description}`,
             qty: Number(r.qty) || 1,
@@ -2040,15 +2516,21 @@ PAN Number – ABNCS4869A`;
                             setIsCategoryDropdownOpen(false);
                             // Auto default sub-service
                             if (cat === 'Energy Audit Services') {
-                              setSelectedSubServiceOptions(['Air Audit']);
+                              setSelectedSubServiceOptions(['Compressor air leakage audit']);
                             } else if (cat === 'IoT & Controls') {
                               setSelectedSubServiceOptions(['Energy Management Solution']);
-                            } else if (cat === 'Welding IoT') {
+                            } else if (cat === 'Chiller Management') {
+                              setSelectedSubServiceOptions(['CPM (Chiller Plant Management)']);
+                            } else if (cat === 'Welding' || cat === 'Welding IoT') {
                               setSelectedSubServiceOptions(['Welding IoT & Kit']);
+                            } else if (cat === 'Automation') {
+                              setSelectedSubServiceOptions(['Compressed Air Automation']);
+                            } else if (cat === 'IR Blaster') {
+                              setSelectedSubServiceOptions(['IR Blaster']);
+                            } else if (cat === 'BMS') {
+                              setSelectedSubServiceOptions(['BMS']);
                             } else if (cat === 'Hardware') {
-                              setSelectedSubServiceOptions(['Hardware Installation']);
-                            } else if (cat === 'Custom') {
-                              setSelectedSubServiceOptions(['Custom']);
+                              setSelectedSubServiceOptions(['Dew Point']);
                             }
                           }}
                           className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
@@ -2121,6 +2603,15 @@ PAN Number – ABNCS4869A`;
                 <div className="flex flex-wrap gap-2 pt-0.5">
                   {clientCostingSheets.map((sheet: any) => {
                     const isSelected = activeCostingSheet?.id === sheet.id || activeCostingSheet?._id === sheet._id;
+                    const sheetQuote =
+                      Number(sheet.finalQuote) ||
+                      Number(sheet.emsTotalStep5CustomerPrice) ||
+                      Number(sheet.totalCustomerPrice) ||
+                      Number(sheet.finalPrice) ||
+                      (Array.isArray(sheet.emsHardwareRows)
+                        ? sheet.emsHardwareRows.reduce((sum: number, r: any) => sum + (Number(r.customerPrice) || (Number(r.unitPrice) || 0) * (Number(r.quantity) || 1) || 0), 0)
+                        : 0) ||
+                      0;
                     return (
                       <button
                         key={sheet.id || sheet._id}
@@ -2140,7 +2631,7 @@ PAN Number – ABNCS4869A`;
                         <span>{sheet.subService || sheet.serviceCategory || 'Costing Sheet'}</span>
                         <span className="opacity-70 font-normal">•</span>
                         <span className={isSelected ? 'text-emerald-200' : 'text-emerald-900 font-black'}>
-                          ₹{(sheet.finalQuote || 0).toLocaleString('en-IN')}
+                          {sheetQuote > 0 ? `₹${sheetQuote.toLocaleString('en-IN')}` : '₹0 (Draft)'}
                         </span>
                       </button>
                     );
@@ -2662,8 +3153,8 @@ PAN Number – ABNCS4869A`;
               </div>
             )}
 
-            {/* Step 3: Solution Architecture (Visible for IoT & Controls Scope) */}
-            {isIotOrControls && (
+            {/* Step 3: Solution Architecture (Visible for IoT & Controls Scope, except Weld Data Digitalized) */}
+            {isIotOrControls && !isWeldDataDigitalized && (
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                   <div className="flex items-center gap-2">
@@ -2727,8 +3218,375 @@ PAN Number – ABNCS4869A`;
                 )}
               </div>
 
-              {/* If Welding IoT: Show Commercials Summary Table & Separate Annexure Tables */}
-              {isWeldingIot ? (
+              {/* If Compressor Air Leakage Rectification: Show Editable Phase Scope & ROI Matrix */}
+              {isCompressorAirLeakageRectification ? (
+                <div className="space-y-6">
+                  {/* Scope & Commercial Pricing */}
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                          Scope &amp; Commercials
+                        </span>
+                        <span className="text-xs text-slate-600 font-medium">
+                          Phase-2 Air Leakage Rectification Scope &amp; Investment
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCompressorRoiData(DEFAULT_COMPRESSOR_ROI_DATA);
+                            toast.success('Reset Scope & ROI to defaults!');
+                          }}
+                          className="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" /> Reset Default
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingCompressorRoi(!isEditingCompressorRoi)}
+                          className={`px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                            isEditingCompressorRoi
+                              ? 'bg-slate-900 text-white shadow-xs'
+                              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300'
+                          }`}
+                        >
+                          {isEditingCompressorRoi ? (
+                            <>
+                              <Check className="h-3.5 w-3.5" /> Done Editing
+                            </>
+                          ) : (
+                            <>
+                              <Edit3 className="h-3.5 w-3.5" /> Edit Scope &amp; ROI
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200 text-[11px]">
+                          <tr>
+                            <th className="py-2.5 px-3 text-center w-14">S.No</th>
+                            <th className="py-2.5 px-4 w-1/2">Scope Description</th>
+                            <th className="py-2.5 px-3 text-center w-28">Quantity</th>
+                            <th className="py-2.5 px-4 text-right w-44">Total Price in INR</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-800 text-xs">
+                          <tr>
+                            <td className="py-3 px-3 text-center font-bold text-slate-600">1.</td>
+                            <td className="py-3 px-4 space-y-1.5">
+                              {isEditingCompressorRoi ? (
+                                <>
+                                  <input
+                                    type="text"
+                                    value={compressorRoiData.phaseTitle}
+                                    onChange={(e) => updateCompressorRoiField('phaseTitle', e.target.value)}
+                                    className="w-full font-bold text-slate-900 border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                    placeholder="e.g. PHASE-2"
+                                  />
+                                  <textarea
+                                    value={compressorRoiData.phaseDesc}
+                                    onChange={(e) => updateCompressorRoiField('phaseDesc', e.target.value)}
+                                    rows={2}
+                                    className="w-full text-slate-700 border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                    placeholder="Scope description"
+                                  />
+                                </>
+                              ) : (
+                                <div>
+                                  <p className="font-bold text-slate-950 text-xs">{compressorRoiData.phaseTitle}</p>
+                                  <p className="text-slate-700 mt-0.5">{compressorRoiData.phaseDesc}</p>
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3 px-3 text-center align-top pt-3.5">
+                              {isEditingCompressorRoi ? (
+                                <input
+                                  type="text"
+                                  value={compressorRoiData.quantity}
+                                  onChange={(e) => updateCompressorRoiField('quantity', e.target.value)}
+                                  className="w-full font-medium text-center text-slate-900 border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                  placeholder="e.g. 5 Days"
+                                />
+                              ) : (
+                                <span className="font-semibold text-slate-900">{compressorRoiData.quantity}</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right align-top pt-3.5">
+                              {isEditingCompressorRoi ? (
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1 text-slate-500 font-bold">₹</span>
+                                  <input
+                                    type="number"
+                                    value={compressorRoiData.investmentRs}
+                                    onChange={(e) => {
+                                      const val = Number(e.target.value) || 0;
+                                      updateCompressorRoiField('investmentRs', val);
+                                    }}
+                                    className="w-full font-black text-right text-slate-900 border border-slate-300 rounded pl-6 pr-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                                    placeholder="175000"
+                                  />
+                                </div>
+                              ) : (
+                                <span className="font-black text-slate-950 text-sm">
+                                  ₹{Number(compressorRoiData.investmentRs).toLocaleString('en-IN')}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* ROI for Savings Interactive Editor */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-slate-900 text-sm">
+                        ROI for Savings &amp; Payback Matrix:
+                      </h4>
+                      <span className="text-xs text-slate-500 italic">
+                        * Values dynamically recalculate and sync with proposal preview
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Energy Loss & Electricity Cost Inputs */}
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                        <p className="font-bold text-slate-900 text-xs uppercase tracking-wide">
+                          Loss &amp; Tariff Parameters
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                              Compressed Air Leak CFM
+                            </label>
+                            {isEditingCompressorRoi ? (
+                              <input
+                                type="number"
+                                value={compressorRoiData.leakCfm}
+                                onChange={(e) => updateCompressorRoiField('leakCfm', e.target.value)}
+                                className="w-full font-bold text-slate-900 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                              />
+                            ) : (
+                              <div className="font-bold text-slate-900 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs">
+                                {compressorRoiData.leakCfm} CFM
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                              Energy Loss (kWh/Month)
+                            </label>
+                            {isEditingCompressorRoi ? (
+                              <input
+                                type="number"
+                                value={compressorRoiData.monthlyKwhLoss}
+                                onChange={(e) => updateCompressorRoiField('monthlyKwhLoss', e.target.value)}
+                                className="w-full font-bold text-slate-900 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                              />
+                            ) : (
+                              <div className="font-bold text-slate-900 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs">
+                                {Number(compressorRoiData.monthlyKwhLoss).toLocaleString('en-IN')} kWh
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                              Electricity Tariff (₹/kWh)
+                            </label>
+                            {isEditingCompressorRoi ? (
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={compressorRoiData.electricityCostPerKwh}
+                                onChange={(e) => updateCompressorRoiField('electricityCostPerKwh', e.target.value)}
+                                className="w-full font-bold text-slate-900 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                              />
+                            ) : (
+                              <div className="font-bold text-slate-900 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs">
+                                ₹{Number(compressorRoiData.electricityCostPerKwh).toFixed(2)} / kWh
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                              Energy Loss (kWh/Annum)
+                            </label>
+                            <div className="font-bold text-slate-800 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs">
+                              {Number(compressorRoiData.annualKwhLoss).toLocaleString('en-IN')} kWh
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-3">
+                          <div>
+                            <span className="text-[11px] text-slate-600">Monthly Loss:</span>
+                            <p className="text-sm font-black text-rose-700">₹{Number(compressorRoiData.monthlyLossRs).toLocaleString('en-IN')}</p>
+                          </div>
+                          <div>
+                            <span className="text-[11px] text-slate-600">Annual Recoverable Saving:</span>
+                            <p className="text-sm font-black text-emerald-700">₹{Number(compressorRoiData.totalAnnualRecoverableSavingRs).toLocaleString('en-IN')}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ROI & Payback Result Card */}
+                      <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-3 flex flex-col justify-between">
+                        <div>
+                          <p className="font-bold text-emerald-950 text-xs uppercase tracking-wide">
+                            ROI &amp; Payback Summary
+                          </p>
+                          <div className="mt-3 space-y-2 text-xs">
+                            <div className="flex justify-between py-1 border-b border-emerald-200/60">
+                              <span className="text-slate-700">Total Investment:</span>
+                              <span className="font-black text-slate-950">₹{Number(compressorRoiData.investmentRs).toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="flex justify-between py-1 border-b border-emerald-200/60">
+                              <span className="text-slate-700">Payback Period (Years):</span>
+                              <span className="font-black text-slate-950">{compressorRoiData.paybackYears} Years</span>
+                            </div>
+                            <div className="flex justify-between py-1">
+                              <span className="text-slate-700">Payback Period (Months):</span>
+                              <span className="font-black text-emerald-800 text-sm">{compressorRoiData.paybackMonths} Months</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white p-2.5 rounded-lg border border-emerald-200 text-center">
+                          <p className="text-[11px] text-emerald-900 font-semibold">
+                            Full ROI achieved within <strong>{compressorRoiData.paybackMonths} months</strong> with annual savings of <strong>₹{Number(compressorRoiData.totalAnnualRecoverableSavingRs).toLocaleString('en-IN')}</strong>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : isWeldDataDigitalized ? (
+                <div className="space-y-6">
+                  {/* Commercials Table for Digiweld */}
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                          Commercials
+                        </span>
+                        <span className="text-xs text-slate-600 font-medium">
+                          Scope &amp; Commercial Pricing for Digiweld (Weld Data Digitalization)
+                        </span>
+                      </div>
+                      {activeCostingSheet?.finalQuote && (
+                        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg">
+                          API Synced Value: ₹{Number(activeCostingSheet.finalQuote).toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Table 1: ONE TIME COST - PHASE 3 */}
+                    <div className="space-y-1">
+                      <div className="bg-slate-800 text-white px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wide rounded-t-xl">
+                        ONE TIME COST - PHASE 3
+                      </div>
+                      <div className="border border-slate-200 rounded-b-xl overflow-hidden text-xs">
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200 text-[11px]">
+                            <tr>
+                              <th className="py-2.5 px-3.5">Category</th>
+                              <th className="py-2.5 px-3.5">Remarks</th>
+                              <th className="py-2.5 px-3.5 text-right w-36">Price (₹)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                            {((activeCostingSheet as any)?.weldingSoftwareRows || INITIAL_DIGIWELD_SOFTWARE_ROWS).map((row: any, idx: number) => {
+                              const remarks = row.remarks || (row.item?.toLowerCase().includes('conversion') || row.item?.toLowerCase().includes('integration') || row.item?.toLowerCase().includes('checksheet') || row.item?.toLowerCase().includes('files') ? 'Excel to JSON Conversion for Phase 3' : row.item?.toLowerCase().includes('buffer') ? 'Additional Support Activities' : 'New Activity for Phase 3');
+                              const price = Number(row.price) || Number(row.unitPrice * (row.qty || 1)) || 0;
+                              return (
+                                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                  <td className="py-2 px-3.5 font-semibold text-slate-900 leading-snug">{row.item || row.description}</td>
+                                  <td className="py-2 px-3.5 text-slate-600">{remarks}</td>
+                                  <td className="py-2 px-3.5 text-right font-bold text-slate-900">{formatCurrency(price)}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot className="bg-slate-100 font-black text-slate-900 border-t border-slate-300">
+                            <tr>
+                              <td colSpan={2} className="py-2 px-3.5 uppercase text-xs tracking-wider text-right font-extrabold">
+                                Total One-Time (Phase 3)
+                              </td>
+                              <td className="py-2 px-3.5 text-right text-emerald-700 font-black text-sm">
+                                {formatCurrency(
+                                  ((activeCostingSheet as any)?.weldingSoftwareRows || INITIAL_DIGIWELD_SOFTWARE_ROWS)
+                                    .reduce((sum: number, r: any) => sum + (Number(r.price) || Number(r.unitPrice * (r.qty || 1)) || 0), 0)
+                                )}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Table 2: RECURRING COST */}
+                    <div className="space-y-1 pt-2">
+                      <div className="bg-slate-800 text-white px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wide rounded-t-xl">
+                        RECURRING COST
+                      </div>
+                      <div className="border border-slate-200 rounded-b-xl overflow-hidden text-xs">
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200 text-[11px]">
+                            <tr>
+                              <th className="py-2.5 px-3.5">Service</th>
+                              <th className="py-2.5 px-3.5">Remarks</th>
+                              <th className="py-2.5 px-3.5 text-right w-36">Price / Mo (₹)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                            {((activeCostingSheet as any)?.weldingCloudRows || INITIAL_DIGIWELD_CLOUD_ROWS).map((row: any, idx: number) => {
+                              const price = Number(row.monthlyPrice || row.unitMonthlyPrice || 0);
+                              return (
+                                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                  <td className="py-2 px-3.5 font-semibold text-slate-900 leading-snug">{row.component || row.description}</td>
+                                  <td className="py-2 px-3.5 text-slate-600">{row.remarks || 'Existing Infrastructure Enhancement'}</td>
+                                  <td className="py-2 px-3.5 text-right font-bold text-slate-900">{formatCurrency(price)}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot className="bg-slate-100 font-black text-slate-900 border-t border-slate-300">
+                            <tr>
+                              <td colSpan={2} className="py-2 px-3.5 uppercase text-xs tracking-wider text-right font-extrabold">
+                                Total Recurring (Monthly)
+                              </td>
+                              <td className="py-2 px-3.5 text-right text-emerald-700 font-black text-sm">
+                                {formatCurrency(
+                                  ((activeCostingSheet as any)?.weldingCloudRows || INITIAL_DIGIWELD_CLOUD_ROWS)
+                                    .reduce((sum: number, r: any) => sum + Number(r.monthlyPrice || r.unitMonthlyPrice || 0), 0)
+                                )} / mo
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Total Proposed Commercial Value Banner */}
+                    <div className="bg-slate-900 text-white p-3.5 px-5 flex justify-between items-center font-extrabold text-xs sm:text-sm rounded-xl mt-3">
+                      <span className="tracking-wide uppercase">TOTAL PROPOSED COMMERCIAL VALUE (INCL. TAXES)</span>
+                      <span className="text-emerald-400 text-base sm:text-lg font-black">
+                        {formatCurrency(Number(activeCostingSheet?.finalQuote || finalQuote || 0))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : isWeldingIot ? (
                 <div className="space-y-6">
                   {/* Commercials Table */}
                   <div className="space-y-3">

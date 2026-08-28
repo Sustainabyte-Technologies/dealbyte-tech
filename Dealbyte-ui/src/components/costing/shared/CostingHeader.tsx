@@ -28,10 +28,10 @@ export interface CostingHeaderProps {
   setSubServiceOption: (s: string) => void;
   customSubServiceText: string;
   setCustomSubServiceText: (txt: string) => void;
-  selectedProject: string;
-  setSelectedProject: (p: string) => void;
-  customProjectText: string;
-  setCustomProjectText: (txt: string) => void;
+  selectedProject?: string;
+  setSelectedProject?: (p: string) => void;
+  customProjectText?: string;
+  setCustomProjectText?: (txt: string) => void;
   stationType: string;
   handleStationTypeChange: (type: 'Local Station' | 'Outstation' | 'Both (Local & Outstation)') => void;
   syncAllSiteDays: (days: number) => void;
@@ -41,8 +41,11 @@ export interface CostingHeaderProps {
   dynamicIotServicesSubServices: string[];
   dynamicChillerManagementSubServices?: string[];
   dynamicWeldingIotSubServices: string[];
+  dynamicAutomationSubServices?: string[];
+  dynamicIrBlasterSubServices?: string[];
+  dynamicBmsCategorySubServices?: string[];
   dynamicHardwareSubServices: string[];
-  dynamicProjectsSubServices: string[];
+  dynamicProjectsSubServices?: string[];
 }
 
 export const CostingHeader: React.FC<CostingHeaderProps> = ({
@@ -59,21 +62,39 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
   setSubServiceOption,
   customSubServiceText,
   setCustomSubServiceText,
-  selectedProject,
-  setSelectedProject,
-  customProjectText,
-  setCustomProjectText,
   stationType,
   handleStationTypeChange,
   syncAllSiteDays,
   resetToModelDefaults,
   exportCSV,
   dynamicEnergyAuditSubServices,
-  dynamicIotServicesSubServices,
-  dynamicChillerManagementSubServices = ['CPM (Chiller Plant Management)', 'CPM', 'Chiller Plant Monitoring', 'Chiller Automation & Optimization', 'Custom'],
-  dynamicWeldingIotSubServices,
-  dynamicHardwareSubServices,
-  dynamicProjectsSubServices,
+  dynamicIotServicesSubServices = [
+    'Energy Management Solution',
+    'Compressed Air Monitoring',
+    'IoT Platform',
+    'Water Management Solution',
+  ],
+  dynamicChillerManagementSubServices = ['CPM (Chiller Plant Management)'],
+  dynamicWeldingIotSubServices = [
+    'Welding IoT & Kit',
+    'Digiweld',
+  ],
+  dynamicAutomationSubServices = [
+    'Compressed Air Automation',
+    'Water Automation',
+  ],
+  dynamicIrBlasterSubServices = [
+    'IR Blaster',
+  ],
+  dynamicBmsCategorySubServices = [
+    'BMS',
+  ],
+  dynamicHardwareSubServices = [
+    'Dew Point',
+    'Flanges',
+    'Flowmeter',
+    'Temperature Sensor',
+  ],
 }) => {
   const [isClientOpen, setIsClientOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
@@ -113,15 +134,21 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
     if (mainCategoryService === 'Energy Audit Services') return dynamicEnergyAuditSubServices;
     if (mainCategoryService === 'IoT & Controls') return dynamicIotServicesSubServices;
     if (mainCategoryService === 'Chiller Management') return dynamicChillerManagementSubServices;
-    if (mainCategoryService === 'Welding IoT') return dynamicWeldingIotSubServices;
+    if (mainCategoryService === 'Welding' || mainCategoryService === 'Welding IoT') return dynamicWeldingIotSubServices;
+    if (mainCategoryService === 'Automation') return dynamicAutomationSubServices;
+    if (mainCategoryService === 'IR Blaster') return dynamicIrBlasterSubServices;
+    if (mainCategoryService === 'BMS') return dynamicBmsCategorySubServices;
     if (mainCategoryService === 'Hardware') return dynamicHardwareSubServices;
-    return ['Custom'];
+    return [];
   }, [
     mainCategoryService,
     dynamicEnergyAuditSubServices,
     dynamicIotServicesSubServices,
     dynamicChillerManagementSubServices,
     dynamicWeldingIotSubServices,
+    dynamicAutomationSubServices,
+    dynamicIrBlasterSubServices,
+    dynamicBmsCategorySubServices,
     dynamicHardwareSubServices,
   ]);
 
@@ -202,7 +229,7 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
       </div>
 
       {/* Project Meta Info Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
         {/* Field 1: Client Name Searchable Dropdown */}
         <div className="relative" ref={clientDropdownRef}>
           <div className="flex items-center justify-between mb-1">
@@ -288,17 +315,21 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
               const category = e.target.value;
               setMainCategoryService(category);
               if (category === 'Energy Audit Services') {
-                setSubServiceOption('Air Audit');
+                setSubServiceOption('Compressor air leakage audit');
               } else if (category === 'IoT & Controls') {
                 setSubServiceOption('Energy Management Solution');
               } else if (category === 'Chiller Management') {
                 setSubServiceOption('CPM (Chiller Plant Management)');
-              } else if (category === 'Welding IoT') {
+              } else if (category === 'Welding' || category === 'Welding IoT') {
                 setSubServiceOption('Welding IoT & Kit');
+              } else if (category === 'Automation') {
+                setSubServiceOption('Compressed Air Automation');
+              } else if (category === 'IR Blaster') {
+                setSubServiceOption('IR Blaster');
+              } else if (category === 'BMS') {
+                setSubServiceOption('BMS');
               } else if (category === 'Hardware') {
-                setSubServiceOption('Hardware Installation');
-              } else if (category === 'Custom') {
-                setSubServiceOption('Custom');
+                setSubServiceOption('Dew Point');
               }
             }}
             className="w-full px-3.5 py-2 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-2xs cursor-pointer"
@@ -309,16 +340,6 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
               </option>
             ))}
           </select>
-
-          {mainCategoryService === 'Custom' && (
-            <input
-              type="text"
-              value={customCategoryText}
-              onChange={(e) => setCustomCategoryText(e.target.value)}
-              placeholder="Type custom service category..."
-              className="mt-2 w-full px-3.5 py-2 text-xs font-semibold text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-2xs"
-            />
-          )}
         </div>
 
         {/* Field 3: List of Services Selection (Scrollable Custom Dropdown) */}
@@ -331,7 +352,7 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
             className={`w-full px-3.5 py-2 text-xs font-extrabold rounded-xl border flex items-center justify-between shadow-2xs cursor-pointer transition-all text-left ${
               mainCategoryService === 'Energy Audit Services'
                 ? 'text-indigo-900 bg-indigo-50/50 border-indigo-300 hover:border-indigo-400 focus:ring-2 focus:ring-indigo-500'
-                : mainCategoryService === 'IoT & Controls' || mainCategoryService === 'Welding IoT'
+                : mainCategoryService === 'IoT & Controls' || mainCategoryService === 'Welding' || mainCategoryService === 'Welding IoT'
                 ? 'text-purple-900 bg-purple-50/50 border-purple-300 hover:border-purple-400 focus:ring-2 focus:ring-purple-500'
                 : mainCategoryService === 'Hardware'
                 ? 'text-amber-900 bg-amber-50/50 border-amber-300 hover:border-amber-400 focus:ring-2 focus:ring-amber-500'
@@ -395,53 +416,9 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
               </div>
             </div>
           )}
-
-          {(subServiceOption === 'Custom' || mainCategoryService === 'Custom') && (
-            <input
-              type="text"
-              value={customSubServiceText}
-              onChange={(e) => setCustomSubServiceText(e.target.value)}
-              placeholder="Type custom service scope..."
-              className="mt-2 w-full px-3.5 py-2 text-xs font-semibold text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-2xs"
-            />
-          )}
         </div>
 
-        {/* Field 4: Our Projects */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs font-bold text-slate-700">Our Projects</label>
-            {selectedProject && (
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Project Mapped
-              </span>
-            )}
-          </div>
-          <select
-            value={selectedProject}
-            onChange={(e) => setSelectedProject(e.target.value)}
-            className="w-full px-3.5 py-2 text-xs font-extrabold text-emerald-900 bg-emerald-50/50 border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-2xs cursor-pointer"
-          >
-            <option value="">None (Select Project...)</option>
-            {dynamicProjectsSubServices.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-
-          {selectedProject === 'Custom Project' && (
-            <input
-              type="text"
-              value={customProjectText}
-              onChange={(e) => setCustomProjectText(e.target.value)}
-              placeholder="Type custom project name..."
-              className="mt-2 w-full px-3.5 py-2 text-xs font-semibold text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-2xs"
-            />
-          )}
-        </div>
-
-        {/* Field 5: Station Type */}
+        {/* Field 4: Station Type */}
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="block text-xs font-bold text-slate-700">Station Type</label>

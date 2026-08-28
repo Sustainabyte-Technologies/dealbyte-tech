@@ -603,8 +603,192 @@ export default function ApprovalsPage() {
             </div>
 
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 text-xs">
-              {/* Conditional rendering for EMS vs standard sheet */}
+              {/* Conditional rendering for CPM vs EMS vs standard sheet */}
               {(() => {
+                const isCpm = activeCostingSheet.instrumentRows?.isCpm ||
+                              Boolean(activeCostingSheet.isCpm) ||
+                              activeCostingSheet.subService?.toLowerCase().includes('cpm') ||
+                              activeCostingSheet.subService?.toLowerCase().includes('chiller') ||
+                              activeCostingSheet.serviceCategory?.toLowerCase().includes('chiller');
+
+                if (isCpm) {
+                  const instObj = activeCostingSheet.instrumentRows || {};
+                  const hwRows = (activeCostingSheet.cpmHardwareRows || instObj.cpmHardwareRows || []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const elecRows = (activeCostingSheet.cpmElectricalRows || instObj.cpmElectricalRows || []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const commRows = (activeCostingSheet.cpmCommissioningManpowerRows || instObj.cpmCommissioningManpowerRows || activeCostingSheet.manpowerRows || []).filter((r: any) => Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0);
+                  const instManRows = (activeCostingSheet.cpmInstallationManpowerRows || instObj.cpmInstallationManpowerRows || []).filter((r: any) => Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0);
+                  const cloudRows = (activeCostingSheet.cpmCloudRows || instObj.cpmCloudRows || []).filter((r: any) => Number(r.qty || 0) > 0);
+
+                  return (
+                    <div className="space-y-6">
+                      {/* CPM Hardware */}
+                      {hwRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-sky-900">
+                            Step 1: Hardware Capex Matrix
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2 w-10">Sl</th>
+                                <th className="p-2">Brand / Model</th>
+                                <th className="p-2">Item Description</th>
+                                <th className="p-2 text-center w-16">Qty</th>
+                                <th className="p-2 text-center w-16">UoM</th>
+                                <th className="p-2 text-right w-28">Unit Cost</th>
+                                <th className="p-2 text-right w-28">Total Cost</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {hwRows.map((r: any, idx: number) => (
+                                <tr key={idx} className="hover:bg-slate-50/50">
+                                  <td className="p-2 text-slate-400 font-semibold">{r.slNo || idx + 1}</td>
+                                  <td className="p-2 text-slate-600 font-bold">{r.brand} {r.modelNo ? `(${r.modelNo})` : ''}</td>
+                                  <td className="p-2 text-slate-800">{r.itemDescription}</td>
+                                  <td className="p-2 text-center">{r.qty}</td>
+                                  <td className="p-2 text-center text-slate-500">{r.uom}</td>
+                                  <td className="p-2 text-right">₹{formatCurrency(r.unitCost || 0).replace('₹', '')}</td>
+                                  <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(Number(r.qty || 0) * Number(r.unitCost || 0)).replace('₹', '')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* CPM Electrical Consumables */}
+                      {elecRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-emerald-900">
+                            Step 2: Electrical Hardware & Consumables
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2 w-10">Sl</th>
+                                <th className="p-2">Item Description</th>
+                                <th className="p-2 text-center w-16">Qty</th>
+                                <th className="p-2 text-center w-16">UoM</th>
+                                <th className="p-2 text-right w-28">Unit Cost</th>
+                                <th className="p-2 text-right w-28">Total Cost</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {elecRows.map((r: any, idx: number) => (
+                                <tr key={idx} className="hover:bg-slate-50/50">
+                                  <td className="p-2 text-slate-400 font-semibold">{r.slNo || idx + 1}</td>
+                                  <td className="p-2 text-slate-800">{r.itemDescription}</td>
+                                  <td className="p-2 text-center">{r.qty}</td>
+                                  <td className="p-2 text-center text-slate-500">{r.uom}</td>
+                                  <td className="p-2 text-right">₹{formatCurrency(r.unitCost || 0).replace('₹', '')}</td>
+                                  <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(Number(r.qty || 0) * Number(r.unitCost || 0)).replace('₹', '')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* CPM Commissioning */}
+                      {commRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-indigo-900">
+                            Step 3: Testing and Commissioning Scope
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2">Role / Level</th>
+                                <th className="p-2 text-center w-24">Site Days</th>
+                                <th className="p-2 text-right w-28">Day Rate</th>
+                                <th className="p-2 text-right w-28">Total Cost</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {commRows.map((r: any, idx: number) => {
+                                const totalCost = (Number(r.siteWorkCost || 0) + Number(r.foodRatePerDay || 0)) * Number(r.siteWorkingDays || 0) +
+                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-800">{r.name ? `${r.name} (${r.roleLevel?.replace('_', ' ') || 'Engineer'})` : (r.roleLevel?.replace('_', ' ') || 'Engineer')}</td>
+                                    <td className="p-2 text-center">{r.siteWorkingDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* CPM Installation Manpower */}
+                      {instManRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-purple-900">
+                            Step 4: Installation Charges Mandays Scope
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2">Role / Level</th>
+                                <th className="p-2 text-center w-24">Site Days</th>
+                                <th className="p-2 text-right w-28">Day Rate</th>
+                                <th className="p-2 text-right w-28">Total Cost</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {instManRows.map((r: any, idx: number) => {
+                                const totalCost = (Number(r.siteWorkCost || 0) + Number(r.foodRatePerDay || 0)) * Number(r.siteWorkingDays || 0) +
+                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-800">{r.name ? `${r.name} (${r.roleLevel?.replace('_', ' ') || 'Technician'})` : (r.roleLevel?.replace('_', ' ') || 'Technician')}</td>
+                                    <td className="p-2 text-center">{r.siteWorkingDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* CPM Cloud Software */}
+                      {cloudRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-amber-900">
+                            Step 5: Software Cost (Cloud Basis)
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2">Module Description</th>
+                                <th className="p-2 text-center w-16">Qty</th>
+                                <th className="p-2 text-center w-16">UoM</th>
+                                <th className="p-2 text-right w-28">Unit Cost</th>
+                                <th className="p-2 text-right w-28">Total Cost</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {cloudRows.map((r: any, idx: number) => (
+                                <tr key={idx} className="hover:bg-slate-50/50">
+                                  <td className="p-2 text-slate-800">{r.itemDescription}</td>
+                                  <td className="p-2 text-center">{r.qty}</td>
+                                  <td className="p-2 text-center text-slate-500">{r.uom}</td>
+                                  <td className="p-2 text-right">₹{formatCurrency(r.unitCost || 0).replace('₹', '')}</td>
+                                  <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(Number(r.qty || 0) * Number(r.unitCost || 0)).replace('₹', '')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
                 const isEms = activeCostingSheet.instrumentRows?.isEms || 
                               activeCostingSheet.subService?.toLowerCase().includes('ems') ||
                               activeCostingSheet.serviceCategory?.toLowerCase().includes('iot');

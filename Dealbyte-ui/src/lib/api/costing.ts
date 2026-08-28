@@ -34,6 +34,14 @@ export interface SaveCostingTemplateInput {
   emsManpowerRows?: any[];
   emsPlatformRows?: any[];
   emsRecurringRows?: any[];
+  isCpm?: boolean;
+  cpmHardwareRows?: any[];
+  cpmElectricalRows?: any[];
+  cpmCommissioningManpowerRows?: any[];
+  cpmInstallationRows?: any[];
+  cpmInstallationManpowerRows?: any[];
+  cpmCloudRows?: any[];
+  roundingNearest?: number;
 }
 
 export interface CostingSheetItem {
@@ -71,6 +79,14 @@ export interface CostingSheetItem {
   emsManpowerRows?: any[];
   emsPlatformRows?: any[];
   emsRecurringRows?: any[];
+  isCpm?: boolean;
+  cpmHardwareRows?: any[];
+  cpmElectricalRows?: any[];
+  cpmCommissioningManpowerRows?: any[];
+  cpmInstallationRows?: any[];
+  cpmInstallationManpowerRows?: any[];
+  cpmCloudRows?: any[];
+  roundingNearest?: number;
   client?: any;
   service?: any;
   createdAt?: string;
@@ -111,6 +127,14 @@ export interface SaveCostingSheetInput {
   emsManpowerRows?: any[];
   emsPlatformRows?: any[];
   emsRecurringRows?: any[];
+  isCpm?: boolean;
+  cpmHardwareRows?: any[];
+  cpmElectricalRows?: any[];
+  cpmCommissioningManpowerRows?: any[];
+  cpmInstallationRows?: any[];
+  cpmInstallationManpowerRows?: any[];
+  cpmCloudRows?: any[];
+  roundingNearest?: number;
 }
 
 export interface GetCostingSheetsParams {

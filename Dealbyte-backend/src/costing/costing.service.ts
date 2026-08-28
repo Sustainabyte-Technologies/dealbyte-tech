@@ -266,10 +266,27 @@ export class CostingService {
 
     const isWelding = dto.isWeldingIot || dto.serviceName?.toLowerCase().includes('welding') || dto.categoryName?.toLowerCase().includes('welding');
     const isIotControls = dto.isIotControls || dto.serviceName?.toLowerCase().includes('controls') || dto.serviceName?.toLowerCase().includes('hardware') || dto.categoryName?.toLowerCase().includes('hardware');
-    const isEms = dto.isEms;
+    const isCpm = dto.isCpm || dto.serviceName?.toLowerCase().includes('cpm') || dto.serviceName?.toLowerCase().includes('chiller') || dto.categoryName?.toLowerCase().includes('chiller');
+    const isEms = dto.isEms && !isCpm;
 
-    const manpowerPayload = (isEms || isIotControls) ? (dto.emsManpowerRows || dto.manpowerRows || []) : (dto.manpowerRows || []);
-    const instrumentPayload = isIotControls
+    const manpowerPayload = isCpm
+      ? (dto.cpmCommissioningManpowerRows || [])
+      : (isEms || isIotControls) ? (dto.emsManpowerRows || dto.manpowerRows || []) : (dto.manpowerRows || []);
+    const instrumentPayload = isCpm
+      ? {
+          isCpm: true,
+          stationType: dto.stationType,
+          outstationStartLocation: dto.outstationStartLocation,
+          outstationEndLocation: dto.outstationEndLocation,
+          cpmHardwareRows: dto.cpmHardwareRows || [],
+          cpmElectricalRows: dto.cpmElectricalRows || [],
+          cpmCommissioningManpowerRows: dto.cpmCommissioningManpowerRows || [],
+          cpmInstallationRows: dto.cpmInstallationRows || [],
+          cpmInstallationManpowerRows: dto.cpmInstallationManpowerRows || [],
+          cpmCloudRows: dto.cpmCloudRows || [],
+          roundingNearest: dto.roundingNearest || 100,
+        }
+      : isIotControls
       ? {
           isIotControls: true,
           stationType: dto.stationType,
@@ -423,6 +440,24 @@ export class CostingService {
         };
       }
 
+      if (item.instrumentRows.isCpm) {
+        const cpmData = item.instrumentRows;
+        return {
+          ...baseResult,
+          isCpm: true,
+          stationType: item.stationType || cpmData.stationType || 'Local Station',
+          outstationStartLocation: item.outstationStartLocation || cpmData.outstationStartLocation || '',
+          outstationEndLocation: item.outstationEndLocation || cpmData.outstationEndLocation || '',
+          cpmHardwareRows: cpmData.cpmHardwareRows || [],
+          cpmElectricalRows: cpmData.cpmElectricalRows || [],
+          cpmCommissioningManpowerRows: item.manpowerRows || cpmData.cpmCommissioningManpowerRows || [],
+          cpmInstallationRows: cpmData.cpmInstallationRows || [],
+          cpmInstallationManpowerRows: cpmData.cpmInstallationManpowerRows || [],
+          cpmCloudRows: cpmData.cpmCloudRows || [],
+          roundingNearest: cpmData.roundingNearest || 100,
+        };
+      }
+
       if (item.instrumentRows.isEms) {
         const emsData = item.instrumentRows;
         return {
@@ -506,10 +541,27 @@ export class CostingService {
 
     const isWelding = dto.isWeldingIot || dto.subService?.toLowerCase().includes('welding') || dto.serviceCategory?.toLowerCase().includes('welding');
     const isIotControls = dto.isIotControls || dto.subService?.toLowerCase().includes('controls') || dto.subService?.toLowerCase().includes('hardware') || dto.serviceCategory?.toLowerCase().includes('hardware');
-    const isEms = dto.isEms;
+    const isCpm = dto.isCpm || dto.subService?.toLowerCase().includes('cpm') || dto.subService?.toLowerCase().includes('chiller') || dto.serviceCategory?.toLowerCase().includes('chiller');
+    const isEms = dto.isEms && !isCpm;
 
-    const manpowerPayload = isEms ? (dto.emsManpowerRows || []) : (dto.manpowerRows || []);
-    const instrumentPayload = isIotControls
+    const manpowerPayload = isCpm
+      ? (dto.cpmCommissioningManpowerRows || [])
+      : isEms ? (dto.emsManpowerRows || []) : (dto.manpowerRows || []);
+    const instrumentPayload = isCpm
+      ? {
+          isCpm: true,
+          stationType: dto.stationType,
+          outstationStartLocation: dto.outstationStartLocation,
+          outstationEndLocation: dto.outstationEndLocation,
+          cpmHardwareRows: dto.cpmHardwareRows || [],
+          cpmElectricalRows: dto.cpmElectricalRows || [],
+          cpmCommissioningManpowerRows: dto.cpmCommissioningManpowerRows || [],
+          cpmInstallationRows: dto.cpmInstallationRows || [],
+          cpmInstallationManpowerRows: dto.cpmInstallationManpowerRows || [],
+          cpmCloudRows: dto.cpmCloudRows || [],
+          roundingNearest: dto.roundingNearest || 100,
+        }
+      : isIotControls
       ? {
           isIotControls: true,
           stationType: dto.stationType,

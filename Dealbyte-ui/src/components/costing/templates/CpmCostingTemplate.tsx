@@ -240,9 +240,7 @@ export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => 
               <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
                 Step 1: Product Description &amp; Hardware Capex Matrix
               </h3>
-              <p className="text-[11px] text-cyan-200/80 font-medium">
-                Sensors, Main Controllers, Expander modules, Gateway &amp; Workstations
-              </p>
+              
             </div>
           </div>
           <div className="flex items-center gap-4 text-xs font-bold">
@@ -451,9 +449,7 @@ export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => 
               <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
                 <Zap className="h-4 w-4 text-emerald-400" /> Step 2: Electrical Hardware &amp; Consumables Matrix
               </h3>
-              <p className="text-[11px] text-emerald-200/80 font-medium">
-                Shielded RS-485 Cables, 2 Core Power Cables, GI Cable Trays, PVC Conduit Pipes &amp; Accessories
-              </p>
+             
             </div>
           </div>
           <div className="flex items-center gap-4 text-xs font-bold">
@@ -678,9 +674,7 @@ export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => 
               <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
                 <Cloud className="h-4 w-4 text-purple-300" /> Step 5: Software cost (Cloud Basis)
               </h3>
-              <p className="text-[11px] text-purple-200/80 font-medium">
-                Chiller Management SaaS Platform, Telemetry Ingestion, Time-Series DB, IoT SIM &amp; FDD Alerts
-              </p>
+              
             </div>
           </div>
           <div className="flex items-center gap-4 text-xs font-bold">
