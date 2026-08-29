@@ -38,6 +38,7 @@ import { dealsApi } from '@/lib/api/deals';
 import { quotesApi } from '@/lib/api/quotes';
 import { clientsApi, ClientItem } from '@/lib/api/clients';
 import { costingApi } from '@/lib/api/costing';
+import { proposalsApi } from '@/lib/api/proposals';
 import { ASSESSMENT_ASSETS } from '@/lib/constants/assessment-assets';
 import {
   INITIAL_WELDING_HARDWARE_ROWS,
@@ -52,6 +53,12 @@ import {
   INITIAL_EMS_MANPOWER_ROWS,
   INITIAL_EMS_PLATFORM_ROWS,
   INITIAL_EMS_RECURRING_ROWS,
+  DEFAULT_IR_BLASTER_STEP5_TEXT,
+  DEFAULT_IR_BLASTER_STEP6_TEXT,
+  DEFAULT_IAQ_SENSOR_STEP5_TEXT,
+  DEFAULT_IAQ_SENSOR_STEP6_TEXT,
+  DEFAULT_COMPRESSED_AIR_AUTOMATION_STEP5_TEXT,
+  DEFAULT_COMPRESSED_AIR_AUTOMATION_STEP6_TEXT,
   DEFAULT_WELDING_STEP5_TEXT,
   DEFAULT_WELDING_STEP6_TEXT,
   DEFAULT_WATER_MANAGEMENT_STEP5_TEXT,
@@ -92,6 +99,8 @@ import {
   INITIAL_WATER_MANAGEMENT_ELECTRICAL_HARDWARE_ROWS,
   INITIAL_WATER_MANAGEMENT_PLATFORM_ROWS,
   INITIAL_WATER_MANAGEMENT_RECURRING_ROWS,
+  DEFAULT_CLIENT_OPTIONS,
+  getClientPresetLogo,
 } from '@/components/costing/constants';
 import { calcPriceFromCost, roundToHundred } from '@/components/costing/utils';
 import { formatCurrency } from '@/lib/utils';
@@ -99,6 +108,38 @@ import QuoteSummaryCard from '@/components/quotes/QuoteSummaryCard';
 import FullPageWatermark from '@/components/common/FullPageWatermark';
 
 const DEFAULT_CLIENTS = [
+  'KONE Elevator',
+  'KONE Elevators India',
+  'MRF Tyres',
+  'Panasonic Life Solutions',
+  'Tata Electronics',
+  'Knauf',
+  'Gestamp',
+  'Gestamp India',
+  'Flextronics',
+  'Solid Pro',
+  'Sags Apparels',
+  'JN Machineries',
+  'PMEL India Pvt Ltd',
+  'Velmurugan Industries',
+  'Wheels India',
+  'Whirlpool',
+  'IMOP',
+  'Lucas TVS',
+  'Polyhose',
+  'SRM IST College Campus',
+  'KPR Mill Ltd',
+  'Dash Renewable Energy',
+  'Aatral Engineering',
+  'Visalam Energy',
+  'Parekh Place India Pvt',
+  'ITC',
+  'CII',
+  'Tidel Park',
+  'Chemech',
+  'Casagrand',
+  'HT Bharani Clothing',
+  'Knauf',
   'ABT Maruti',
   'Adam Compressors',
   'Aisan auto parts',
@@ -216,6 +257,28 @@ function NewQuoteContent() {
     enabled: !!editQuoteId,
   });
 
+  // Query all proposals to calculate next sequential proposal number for new quotes
+  const { data: allProposals = [] } = useQuery({
+    queryKey: ['proposals'],
+    queryFn: () => proposalsApi.getAll(),
+  });
+
+  useEffect(() => {
+    if (!editQuoteId && allProposals.length > 0) {
+      // Find highest numerical index from existing proposals
+      let maxNum = allProposals.length;
+      allProposals.forEach((p: any) => {
+        const pNumStr = (p.proposalNumber || '').replace(/[^0-9]/g, '');
+        const pNum = parseInt(pNumStr, 10);
+        if (!isNaN(pNum) && pNum > maxNum) {
+          maxNum = pNum;
+        }
+      });
+      const nextFormatted = `STPL-${String(maxNum + 1).padStart(3, '0')}`;
+      setProposalNumber((prev) => (prev === 'STPL-001' ? nextFormatted : prev));
+    }
+  }, [editQuoteId, allProposals]);
+
   // Searchable Dropdown Combobox State
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
@@ -234,7 +297,8 @@ function NewQuoteContent() {
   ];
 
   const IR_BLASTER_SUB_SERVICES = [
-    'IR Blaster',
+    'Old IR Blaster',
+    'New IR Blaster',
   ];
 
   const BMS_CATEGORY_SUB_SERVICES = [
@@ -253,10 +317,9 @@ function NewQuoteContent() {
   const ENERGY_AUDIT_SUB_SERVICES = [
     'Compressor Air Leakage rectification',
     'Compressor air leakage audit',
-    'nitrogen Gas Leakage Audit',
+    'Nitrogen Gas Leakage Audit',
     'Mixture Gas Leakage Audit',
     'Energy Audit',
-    'BMS',
     'Electrical Safety Audit',
     'Fire Safety Audit',
     'ASHRAE Level 2',
@@ -279,6 +342,7 @@ function NewQuoteContent() {
     'Dew Point',
     'Flanges',
     'Flowmeter',
+    'IAQ Sensor',
     'Temperature Sensor',
   ];
 
@@ -356,6 +420,23 @@ function NewQuoteContent() {
   });
 
   // Dynamically map sub-services from services array for each category
+  const dedupeStrings = (items: string[]) => {
+    const map = new Map<string, string>();
+    for (const item of items) {
+      if (!item) continue;
+      const key = item.toLowerCase().trim();
+      if (!map.has(key)) {
+        map.set(key, item);
+      } else {
+        const existing = map.get(key)!;
+        if (item === 'Nitrogen Gas Leakage Audit' || (item[0] === item[0]?.toUpperCase() && existing[0] !== existing[0]?.toUpperCase())) {
+          map.set(key, item);
+        }
+      }
+    }
+    return Array.from(map.values());
+  };
+
   const dynamicProjectsSubServices = React.useMemo(() => {
     const apiProjects = services
       .filter((s) => {
@@ -364,19 +445,20 @@ function NewQuoteContent() {
         return cat.includes('project') || ['optibyte', 'digiweld', 'tec byte', 'fix byte', 'compass'].includes(nm);
       })
       .map((s) => s.name);
-    return Array.from(new Set([...apiProjects, ...PROJECTS_SUB_SERVICES])).filter(
+    return dedupeStrings([...PROJECTS_SUB_SERVICES, ...apiProjects]).filter(
       (nm) => !['custom', 'custom project'].includes(nm.toLowerCase())
     );
   }, [services]);
 
   const dynamicEnergyAuditSubServices = React.useMemo(() => {
-    const excludedAudits = ['air audit', 'air audit rectification', 'flowmeter', 'flow meter', 'custom'];
+    const excludedAudits = ['air audit', 'air audit rectification', 'flowmeter', 'flow meter', 'custom', 'bms'];
     const apiAudits = services
       .filter((s) => (s.category || '').toLowerCase().includes('audit'))
       .map((s) => s.name);
-    return Array.from(new Set([...apiAudits, ...ENERGY_AUDIT_SUB_SERVICES])).filter(
+    const combined = [...ENERGY_AUDIT_SUB_SERVICES, ...apiAudits].filter(
       (nm) => !excludedAudits.includes(nm.toLowerCase())
     );
+    return dedupeStrings(combined);
   }, [services]);
 
   const dynamicIotServicesSubServices = React.useMemo(() => {
@@ -743,11 +825,30 @@ PAN Number – ABNCS4869A`;
     queryFn: () => clientsApi.getAll(),
   });
 
-  // Client Options List (from DB if present, or fallback default list)
-  const clientOptions: Array<{ id?: string; name: string }> =
-    dbClients.length > 0
-      ? dbClients.map((c) => ({ id: c.id, name: c.name }))
-      : clientList.map((name) => ({ name }));
+  // Client Options List (Merge DB clients with Preset Catalog Clients)
+  const clientOptions: Array<{ id?: string; name: string }> = React.useMemo(() => {
+    const map = new Map<string, { id?: string; name: string }>();
+
+    DEFAULT_CLIENT_OPTIONS.forEach((name) => {
+      if (name && name.trim()) {
+        map.set(name.toLowerCase().trim(), { name });
+      }
+    });
+
+    clientList.forEach((name) => {
+      if (name && name.trim()) {
+        map.set(name.toLowerCase().trim(), { name });
+      }
+    });
+
+    dbClients.forEach((c) => {
+      if (c && c.name) {
+        map.set(c.name.toLowerCase().trim(), { id: c.id, name: c.name });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [dbClients, clientList]);
 
   // Filtered Options for Search
   const filteredClientOptions = clientOptions.filter((c) =>
@@ -924,6 +1025,25 @@ PAN Number – ABNCS4869A`;
         setBufferPct(Number(existingQuote.bufferPct));
       }
 
+      // Pre-populate category and sub-service from existing quote
+      const quoteCat =
+        (existingQuote as any).category ||
+        (existingQuote.service as any)?.category ||
+        (existingQuote.deal?.service as any)?.category ||
+        '';
+      const quoteSub =
+        (existingQuote as any).serviceName ||
+        (existingQuote.service as any)?.name ||
+        (existingQuote.deal?.service as any)?.name ||
+        '';
+
+      if (quoteCat) {
+        setSelectedCategories([quoteCat]);
+      }
+      if (quoteSub) {
+        setSelectedSubServiceOptions([quoteSub]);
+      }
+
       // Pre-populate line items (Manpower & Instruments)
       if (existingQuote.lineItems && existingQuote.lineItems.length > 0) {
         const manpowerItems = existingQuote.lineItems
@@ -947,9 +1067,37 @@ PAN Number – ABNCS4869A`;
         if (instrumentItems.length > 0) {
           setInstruments(instrumentItems);
         }
+
+        // Also pre-populate custom line items into Step 5 / Step 4 breakdown
+        const customItems = existingQuote.lineItems
+          .filter((item) => item.type !== 'MANPOWER' && item.type !== 'INSTRUMENT' && item.type !== 'TRAVEL')
+          .map((item, idx) => ({
+            id: `quote-item-${idx}`,
+            stepNo: String(idx + 1),
+            description: item.description || 'Scope Item',
+            qty: Number(item.qty || 1),
+            uom: (item as any).uom || 'Nos',
+            customerPrice: Number(item.total || item.unitRate || 0),
+          }));
+
+        if (customItems.length > 0) {
+          setIotStep5Rows(customItems);
+        }
       }
     }
   }, [existingQuote]);
+
+  // Automatically load company logo when selecting a mapped client, or clear if unmapped
+  useEffect(() => {
+    if (clientName) {
+      const presetLogo = getClientPresetLogo(clientName);
+      if (presetLogo) {
+        setClientLogo(presetLogo);
+      } else if (clientLogo && clientLogo.startsWith('/logo/')) {
+        setClientLogo(null);
+      }
+    }
+  }, [clientName]);
 
 
   // Selected Costing Sheet ID (if multiple sheets exist for this client)
@@ -1053,17 +1201,46 @@ PAN Number – ABNCS4869A`;
 
   const activeCostingSheet = React.useMemo(() => {
     if (!clientCostingSheets || clientCostingSheets.length === 0) return null;
+    const currentSub = (selectedSubServiceOptions[0] || '').toLowerCase().trim();
+    const currentCat = (selectedCategories[0] || '').toLowerCase().trim();
+
     if (selectedCostingSheetId) {
       const found = clientCostingSheets.find(
         (s) => s.id === selectedCostingSheetId || s._id === selectedCostingSheetId
       );
-      if (found) return found;
+      if (found) {
+        const foundSub = (found.subService || '').toLowerCase();
+        const foundCat = (found.serviceCategory || '').toLowerCase();
+        if (
+          ((currentSub.includes('ir') || currentCat.includes('ir')) && (foundSub.includes('ir') || foundCat.includes('ir')) && !foundSub.includes('cpm') && !foundSub.includes('chiller')) ||
+          ((currentSub.includes('cpm') || currentCat.includes('chiller')) && (foundSub.includes('cpm') || foundCat.includes('chiller') || foundSub.includes('chiller'))) ||
+          (!currentSub.includes('ir') && !currentSub.includes('cpm') && !currentCat.includes('ir') && !currentCat.includes('chiller'))
+        ) {
+          return found;
+        }
+      }
     }
 
-    const currentSub = (selectedSubServiceOptions[0] || '').toLowerCase().trim();
-    if (!currentSub) return null;
+    if (!currentSub && !currentCat) return null;
 
-    // 1. BMS / Building Management
+    // 1. IR Blaster / New IR Blaster / Old IR Blaster (Strict priority)
+    if (
+      currentSub.includes('ir blaster') ||
+      currentSub.includes('ir') ||
+      currentSub.includes('new ir blaster') ||
+      currentSub.includes('old ir blaster') ||
+      currentCat.includes('ir blaster')
+    ) {
+      return (
+        clientCostingSheets.find((s) => {
+          const sub = (s.subService || '').toLowerCase().trim();
+          const cat = (s.serviceCategory || '').toLowerCase().trim();
+          return (sub.includes('ir blaster') || sub.includes('ir') || cat.includes('ir blaster')) && !sub.includes('cpm') && !sub.includes('chiller');
+        }) || null
+      );
+    }
+
+    // 2. BMS / Building Management
     if (currentSub.includes('bms') || currentSub.includes('building management')) {
       return (
         clientCostingSheets.find((s) => {
@@ -1073,7 +1250,7 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 2. Air / Compressor Leakage Rectification
+    // 3. Air / Compressor Leakage Rectification
     if (currentSub.includes('rectification')) {
       return (
         clientCostingSheets.find((s) => {
@@ -1083,7 +1260,7 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 3. Flowmeter
+    // 4. Flowmeter
     if (currentSub.includes('flowmeter')) {
       return (
         clientCostingSheets.find((s) => {
@@ -1093,7 +1270,7 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 4. Nitrogen Gas Leakage Audit
+    // 5. Nitrogen Gas Leakage Audit
     if (currentSub.includes('nitrogen')) {
       return (
         clientCostingSheets.find((s) => {
@@ -1103,7 +1280,7 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 5. Mixture Gas Leakage Audit
+    // 6. Mixture Gas Leakage Audit
     if (currentSub.includes('mixture')) {
       return (
         clientCostingSheets.find((s) => {
@@ -1113,12 +1290,34 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 6. Compressor Air Leakage Audit / Air Audit (strictly not rectification)
+    // Compressed Air Automation / Water Automation
+    if (
+      currentSub.includes('compressed air automation') ||
+      currentSub.includes('air automation') ||
+      currentSub.includes('water automation') ||
+      currentCat.includes('automation')
+    ) {
+      return (
+        clientCostingSheets.find((s) => {
+          const sub = (s.subService || '').toLowerCase().trim();
+          const cat = (s.serviceCategory || '').toLowerCase().trim();
+          return (
+            sub.includes('compressed air automation') ||
+            sub.includes('air automation') ||
+            sub.includes('water automation') ||
+            cat.includes('automation')
+          );
+        }) || null
+      );
+    }
+
+    // 7. Compressor Air Leakage Audit / Air Audit (strictly not rectification and not automation)
     if (
       (currentSub.includes('air audit') || currentSub.includes('compressor air leakage') || currentSub.includes('leakage audit')) &&
       !currentSub.includes('rectification') &&
       !currentSub.includes('nitrogen') &&
-      !currentSub.includes('mixture')
+      !currentSub.includes('mixture') &&
+      !currentSub.includes('automation')
     ) {
       return (
         clientCostingSheets.find((s) => {
@@ -1127,13 +1326,14 @@ PAN Number – ABNCS4869A`;
             (sub.includes('air audit') || sub.includes('compressor air leakage') || sub.includes('leakage audit')) &&
             !sub.includes('rectification') &&
             !sub.includes('nitrogen') &&
-            !sub.includes('mixture')
+            !sub.includes('mixture') &&
+            !sub.includes('automation')
           );
         }) || null
       );
     }
 
-    // 7. Energy Audit (Standard)
+    // 8. Energy Audit (Standard)
     if (currentSub === 'energy audit' || currentSub.includes('energy audit')) {
       return (
         clientCostingSheets.find((s) => {
@@ -1151,7 +1351,7 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 8. EMS / Energy Management Solution
+    // 9. EMS / Energy Management Solution
     if (currentSub.includes('energy management') || currentSub.includes('ems')) {
       return (
         clientCostingSheets.find((s) => {
@@ -1161,7 +1361,7 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 9. Welding IoT
+    // 10. Welding IoT
     if (currentSub.includes('welding')) {
       return (
         clientCostingSheets.find((s) => {
@@ -1171,8 +1371,8 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 10. CPM / Chiller Plant Management
-    if (currentSub.includes('cpm') || currentSub.includes('chiller')) {
+    // 11. CPM / Chiller Plant Management
+    if (currentSub.includes('cpm') || currentSub.includes('chiller') || currentCat.includes('chiller')) {
       return (
         clientCostingSheets.find((s) => {
           const sub = (s.subService || '').toLowerCase().trim();
@@ -1182,22 +1382,39 @@ PAN Number – ABNCS4869A`;
       );
     }
 
-    // 11. Exact match fallback for other specific subServices
+    // 12. Exact match fallback for other specific subServices
     const exactMatch = clientCostingSheets.find(
       (s) => (s.subService || '').toLowerCase().trim() === currentSub
     );
     if (exactMatch) return exactMatch;
 
-    return null;
-  }, [clientCostingSheets, selectedCostingSheetId, selectedSubServiceOptions]);
+  }, [clientCostingSheets, selectedCostingSheetId, selectedSubServiceOptions, selectedCategories]);
 
   // When activeCostingSheet is explicitly selected or changes, align categories and subServices
   useEffect(() => {
     if (selectedCostingSheetId && activeCostingSheet && !editQuoteId) {
-      if (activeCostingSheet.serviceCategory && (!selectedCategories || selectedCategories.length === 0)) {
-        setSelectedCategories([activeCostingSheet.serviceCategory]);
+      let targetCat = activeCostingSheet.serviceCategory || 'Energy Audit Services';
+      const sub = (activeCostingSheet.subService || '').toLowerCase();
+      if (sub.includes('compressed air automation') || sub.includes('water automation') || sub.includes('air automation')) {
+        targetCat = 'Automation';
+      } else if (sub.includes('cpm') || sub.includes('chiller')) {
+        targetCat = 'Chiller Management';
+      } else if (sub.includes('welding') || sub.includes('digiweld')) {
+        targetCat = 'Welding';
+      } else if (sub.includes('ir blaster') || sub.includes('ir')) {
+        targetCat = 'IR Blaster';
+      } else if (sub.includes('bms')) {
+        targetCat = 'BMS';
+      } else if (sub.includes('dew point') || sub.includes('flange') || sub.includes('flowmeter') || sub.includes('iaq sensor') || sub.includes('temperature sensor')) {
+        targetCat = 'Hardware';
+      } else if (sub.includes('energy management solution') || sub.includes('compressed air monitoring') || sub.includes('iot platform') || sub.includes('water management solution')) {
+        targetCat = 'IoT & Controls';
       }
-      if (activeCostingSheet.subService && (!selectedSubServiceOptions || selectedSubServiceOptions.length === 0)) {
+
+      if (targetCat) {
+        setSelectedCategories([targetCat]);
+      }
+      if (activeCostingSheet.subService) {
         setSelectedSubServiceOptions([activeCostingSheet.subService]);
       }
     }
@@ -1273,8 +1490,24 @@ PAN Number – ABNCS4869A`;
     );
   }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet, isWeldingIot]);
 
+  const isIrBlaster = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some(
+      (s) =>
+        s.includes('ir blaster') ||
+        s.includes('irblaster') ||
+        s.includes('new ir blaster') ||
+        s.includes('old ir blaster')
+    );
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
   const isIotControls = React.useMemo(() => {
-    if (isWeldingIot || isEms) return false;
+    if (isWeldingIot || isEms || isIrBlaster) return false;
     const combined = [
       ...selectedCategories,
       ...selectedSubServiceOptions,
@@ -1288,9 +1521,49 @@ PAN Number – ABNCS4869A`;
       Boolean((activeCostingSheet as any)?.isIotControls) ||
       Boolean((activeCostingSheet as any)?.iotControlsHardwareRows?.length > 0)
     );
-  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet, isWeldingIot, isEms]);
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet, isWeldingIot, isEms, isIrBlaster]);
 
-  const isIotOrControls = isWeldDataDigitalized || isWeldingIot || isIotControls || isEms;
+  const isWaterAutomation = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some(
+      (s) =>
+        s.includes('water automation') ||
+        (s.includes('water') && s.includes('automation'))
+    );
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isCompressedAirAutomation = React.useMemo(() => {
+    if (isWaterAutomation) return false;
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some(
+      (s) =>
+        s.includes('compressed air automation') ||
+        s.includes('air automation') ||
+        (s.includes('compressed air') && s.includes('automation'))
+    );
+  }, [isWaterAutomation, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isIaqSensor = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return !isCompressedAirAutomation && combined.some((s) => s.includes('iaq') || s.includes('indoor air'));
+  }, [isCompressedAirAutomation, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isIotOrControls = isWeldDataDigitalized || isWeldingIot || isIotControls || isEms || isIrBlaster || isIaqSensor || isCompressedAirAutomation;
 
   const isBms = React.useMemo(() => {
     const combined = [
@@ -1339,8 +1612,8 @@ PAN Number – ABNCS4869A`;
       activeCostingSheet?.serviceCategory || '',
       activeCostingSheet?.subService || '',
     ].map((s) => s.toLowerCase());
-    return !isFlangesHardware && combined.some((s) => s.includes('dew point'));
-  }, [isFlangesHardware, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+    return !isFlangesHardware && !isIaqSensor && combined.some((s) => s.includes('dew point'));
+  }, [isFlangesHardware, isIaqSensor, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
   const isNitrogenGasLeakageAudit = React.useMemo(() => {
     const combined = [
@@ -1370,6 +1643,7 @@ PAN Number – ABNCS4869A`;
       activeCostingSheet?.subService || '',
     ].map((s) => s.toLowerCase());
     return (
+      !isCompressedAirAutomation &&
       !isFlangesHardware &&
       !isDewPointHardware &&
       !isMixtureGasLeakageAudit &&
@@ -1377,14 +1651,15 @@ PAN Number – ABNCS4869A`;
       !isCompressorAirLeakageRectification &&
       combined.some(
         (s) =>
-          s.includes('compressor air leakage') ||
-          s.includes('air leakage audit') ||
-          s.includes('compressor air audit') ||
-          s.includes('compressed air audit') ||
-          (s.includes('leakage audit') && !s.includes('mixture') && !s.includes('gas') && !s.includes('nitrogen') && !s.includes('dew point') && !s.includes('flange'))
+          !s.includes('automation') &&
+          (s.includes('compressor air leakage') ||
+            s.includes('air leakage audit') ||
+            s.includes('compressor air audit') ||
+            s.includes('compressed air audit') ||
+            (s.includes('leakage audit') && !s.includes('mixture') && !s.includes('gas') && !s.includes('nitrogen') && !s.includes('dew point') && !s.includes('flange')))
       )
     );
-  }, [isFlangesHardware, isDewPointHardware, isMixtureGasLeakageAudit, isNitrogenGasLeakageAudit, isCompressorAirLeakageRectification, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+  }, [isCompressedAirAutomation, isFlangesHardware, isDewPointHardware, isMixtureGasLeakageAudit, isNitrogenGasLeakageAudit, isCompressorAirLeakageRectification, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
   const isCompressorAirLeakage = isCompressorAirLeakageRectification || isCompressorAirLeakageAudit;
 
@@ -1445,11 +1720,21 @@ PAN Number – ABNCS4869A`;
 
   // Auto-switch default texts when Weld Data Digitalized, Welding IoT, Water Management, BMS, EMS/IoT, Dew Point Hardware, Compressor Air Leakage Rectification / Audit, ASHRAE Level 2, HVAC Design, EC Fan, Mixture Gas Leakage Audit, Nitrogen Gas Leakage Audit, or Energy Audit mode changes
   useEffect(() => {
-    if (isWeldDataDigitalized) {
+    if (isCompressedAirAutomation) {
+      setEmsStep5Text(DEFAULT_COMPRESSED_AIR_AUTOMATION_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_COMPRESSED_AIR_AUTOMATION_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik Kumar\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nName: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED\nAccount number: 35860200000750\nIFSC: BARB0VELACH (fifth letter is ZERO)\nBank name: Bank of Baroda\nBranch: VELACHERY BRANCH`);
+    } else if (isWeldDataDigitalized) {
       setEmsStep5Text(DEFAULT_DIGIWELD_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_DIGIWELD_STEP6_TEXT);
       setStep7SubmittedBy(`Thanakarthik Kumar\nFounder & Managing Director\n8377007638\nthanakarthik@sustainabyte.ai`);
       setStep7BankDetails(`Bank Account details:\nBank – IDFC FIRST Bank\nAccount Number – 10184753095\nIFSC – IDFB0080125\nBranch – BESANT NAGAR BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A\nSWIFT Code - IDFBINBBMUM`);
+    } else if (isIrBlaster) {
+      setEmsStep5Text(DEFAULT_IR_BLASTER_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_IR_BLASTER_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik\nFounder & CEO\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nName: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED\nAccount number: 35860200000750\nIFSC: BARB0VELACH (fifth letter is ZERO)\nBank name: Bank of Baroda\nBranch: VELACHERY BRANCH`);
     } else if (isWeldingIot) {
       setEmsStep5Text(DEFAULT_WELDING_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_WELDING_STEP6_TEXT);
@@ -1521,7 +1806,7 @@ PAN Number – ABNCS4869A`;
       setEmsStep5Text(DEFAULT_ENERGY_AUDIT_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_ENERGY_AUDIT_STEP6_TEXT);
     }
-  }, [isWeldDataDigitalized, isWeldingIot, isWaterManagement, isBms, isIotOrControls, isCpmChillerManagement, isFlangesHardware, isDewPointHardware, isNitrogenGasLeakageAudit, isMixtureGasLeakageAudit, isCompressorAirLeakageRectification, isCompressorAirLeakageAudit, isHvacDesign, isEcFan, isAshraeLevel2, isIso50001, isEnergyAudit]);
+  }, [isCompressedAirAutomation, isWeldDataDigitalized, isWeldingIot, isWaterManagement, isBms, isIotOrControls, isCpmChillerManagement, isFlangesHardware, isDewPointHardware, isNitrogenGasLeakageAudit, isMixtureGasLeakageAudit, isCompressorAirLeakageRectification, isCompressorAirLeakageAudit, isHvacDesign, isEcFan, isAshraeLevel2, isIso50001, isEnergyAudit]);
 
   // Compressor Air Leakage ROI State & Phase Scope Details
   const [compressorRoiData, setCompressorRoiData] = useState<CompressorRoiData>(DEFAULT_COMPRESSOR_ROI_DATA);
@@ -1651,6 +1936,175 @@ PAN Number – ABNCS4869A`;
     return defaultPrice;
   };
 
+  // Helper to extract exact active commercial items from any costing sheet
+  const extractRowsFromCostingSheet = (sheet: any) => {
+    if (!sheet) return;
+    const sheetAny = sheet as any;
+    const sub = (sheetAny.subService || '').toLowerCase();
+    const cat = (sheetAny.serviceCategory || '').toLowerCase();
+
+    // 1. IR Blaster / New IR Blaster
+    if (sub.includes('ir blaster') || sub.includes('ir') || cat.includes('ir blaster')) {
+      const extracted: any[] = [];
+      const hwRows = sheetAny.iotControlsHardwareRows || sheetAny.hardwareRows || [];
+      const activeHw = hwRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0);
+
+      if (activeHw.length > 0) {
+        activeHw.forEach((r: any, idx: number) => {
+          const q = Number(r.quantity || r.qty || 1);
+          const unitPrice = r.unitPrice
+            ? Number(r.unitPrice)
+            : Math.round(Number(r.unitCost || 4500) / 0.6);
+          extracted.push({
+            id: `ir-hw-${idx}`,
+            section: '1. IR Blaster Hardware & Installation Scope',
+            stepNo: `${idx + 1}`,
+            description: r.productDescription || r.itemDescription || 'IR Blaster Unit',
+            qty: q,
+            uom: r.uom || 'Nos',
+            customerPrice: Math.round(q * unitPrice),
+          });
+        });
+      }
+
+      const mdRows = sheetAny.iotControlsMandaysRows || [];
+      const activeMd = mdRows.filter((r: any) => Number(r.mandays || 0) > 0 && Number(r.totalCost || r.ratePerDay || 0) > 0);
+      activeMd.forEach((r: any, idx: number) => {
+        extracted.push({
+          id: `ir-md-${idx}`,
+          section: '2. Engineering & Commissioning Scope',
+          stepNo: `${extracted.length + 1}`,
+          description: `${r.designation || 'Specialist'}: ${r.description || ''}`,
+          qty: Number(r.mandays || 1),
+          uom: 'Mandays',
+          customerPrice: resolvePrice(r, Number(r.totalCost || (r.ratePerDay ? r.ratePerDay * r.mandays : 25000))),
+        });
+      });
+
+      const opRows = sheetAny.iotControlsOpexRows || sheetAny.opexRows || [];
+      const activeOp = opRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.yearlyPrice || r.unitPrice || 0) > 0);
+      activeOp.forEach((r: any, idx: number) => {
+        const q = Number(r.quantity || r.qty || 1);
+        const price = Number(r.yearlyPrice || (r.unitPrice ? r.unitPrice * q : 0));
+        extracted.push({
+          id: `ir-op-${idx}`,
+          section: '3. Cloud & Platform Telemetry Scope',
+          stepNo: `${extracted.length + 1}`,
+          description: r.scopeDescription || r.item || 'OptiByte Cloud Platform Subscription (Yearly)',
+          qty: q,
+          uom: 'Year',
+          customerPrice: price,
+          isRecurring: true,
+        });
+      });
+
+      // Match exact finalQuote from API
+      if (Number(sheetAny.finalQuote) > 0 && extracted.length > 0) {
+        const sumExt = extracted.reduce((sum, item) => sum + item.customerPrice, 0);
+        if (sumExt !== Number(sheetAny.finalQuote)) {
+          const factor = Number(sheetAny.finalQuote) / (sumExt || 1);
+          extracted.forEach((item) => {
+            item.customerPrice = Math.round(item.customerPrice * factor);
+          });
+        }
+      }
+
+      if (extracted.length > 0) {
+        setIotStep5Rows(extracted);
+      }
+      return;
+    }
+
+    // 2. CPM (Chiller Plant Management)
+    if (sub.includes('cpm') || sub.includes('chiller') || cat.includes('chiller')) {
+      const extracted: any[] = [];
+      const hwRows = sheetAny.cpmHardwareRows || [];
+      const activeHw = hwRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.customerPrice || r.unitPrice || r.unitCost || 0) > 0);
+      activeHw.forEach((r: any, idx: number) => {
+        extracted.push({
+          id: `cpm-hw-${idx}`,
+          section: '1. Hardware Capex (Sensors, Server, DDC Panels & Gateway)',
+          stepNo: `${idx + 1}`,
+          description: r.description || r.item || 'Hardware Component',
+          qty: Number(r.quantity || r.qty || 1),
+          uom: r.unit || r.uom || 'Nos',
+          customerPrice: Number(r.customerPrice || (Number(r.unitPrice || r.unitCost || 0) * Number(r.quantity || 1))),
+        });
+      });
+
+      const elecRows = sheetAny.cpmElectricalRows || [];
+      const activeElec = elecRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.customerPrice || r.unitPrice || r.unitCost || 0) > 0);
+      activeElec.forEach((r: any, idx: number) => {
+        extracted.push({
+          id: `cpm-el-${idx}`,
+          section: '2. Electrical Consumables & Field Installation Materials',
+          stepNo: `${idx + 1}`,
+          description: r.description || r.item || 'Electrical Material',
+          qty: Number(r.quantity || r.qty || 1),
+          uom: r.unit || r.uom || 'Mtr',
+          customerPrice: Number(r.customerPrice || (Number(r.unitPrice || r.unitCost || 0) * Number(r.quantity || 1))),
+        });
+      });
+
+      const instPrice = Number(sheetAny.cpmInstManpowerTotalPrice || sheetAny.cpmInstallationCharges || 0);
+      if (instPrice > 0) {
+        extracted.push({
+          id: 'cpm-inst',
+          section: '3. Installation, Cabling & Sensor Mounting Charges',
+          stepNo: '1',
+          description: 'Installation charges for hardware and electrical items',
+          qty: 1,
+          uom: 'Lot',
+          customerPrice: instPrice,
+        });
+      }
+
+      const commPrice = Number(sheetAny.cpmCommissioningTotalPrice || sheetAny.cpmTestingCommissioningCharges || 0);
+      if (commPrice > 0) {
+        extracted.push({
+          id: 'cpm-comm',
+          section: '4. Testing & Commissioning Scope',
+          stepNo: '1',
+          description: 'Testing & Commissioning of CPM Plant Automation & DDC Interface',
+          qty: 1,
+          uom: 'Lot',
+          customerPrice: commPrice,
+        });
+      }
+
+      const cloudRows = sheetAny.cpmCloudChargeRows || [];
+      const activeCloud = cloudRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.customerPrice || r.unitPrice || 0) > 0);
+      activeCloud.forEach((r: any, idx: number) => {
+        extracted.push({
+          id: `cpm-cl-${idx}`,
+          section: '5. Software & Cloud Telemetry Scope',
+          stepNo: `${idx + 1}`,
+          description: `${r.scope || r.description || 'Cloud Service'}: ${r.softwarePlatform || ''}`,
+          qty: Number(r.quantity || 1),
+          uom: 'Year',
+          customerPrice: Number(r.customerPrice || r.unitPrice || 0),
+          isRecurring: true,
+        });
+      });
+
+      // Match exact finalQuote
+      if (Number(sheetAny.finalQuote) > 0 && extracted.length > 0) {
+        const sumExt = extracted.reduce((sum, item) => sum + item.customerPrice, 0);
+        if (sumExt !== Number(sheetAny.finalQuote)) {
+          const factor = Number(sheetAny.finalQuote) / (sumExt || 1);
+          extracted.forEach((item) => {
+            item.customerPrice = Math.round(item.customerPrice * factor);
+          });
+        }
+      }
+
+      if (extracted.length > 0) {
+        setIotStep5Rows(extracted);
+      }
+      return;
+    }
+  };
+
   // Sync parameters from activeCostingSheet when matched
   useEffect(() => {
     if (activeCostingSheet && !editQuoteId) {
@@ -1672,7 +2126,9 @@ PAN Number – ABNCS4869A`;
 
       const sheetAny = activeCostingSheet as any;
 
-      if (isWeldDataDigitalized) {
+      if (isIrBlaster || isCpmChillerManagement) {
+        extractRowsFromCostingSheet(sheetAny);
+      } else if (isWeldDataDigitalized) {
         const extracted: Array<{
           id: string;
           section?: string;
@@ -1809,6 +2265,198 @@ PAN Number – ABNCS4869A`;
         });
 
         setIotStep5Rows(extracted);
+      } else if (isIrBlaster) {
+        const extracted: Array<{
+          id: string;
+          section?: string;
+          stepNo: number | string;
+          description: string;
+          qty: number;
+          uom: string;
+          customerPrice: number;
+          isRecurring?: boolean;
+        }> = [];
+
+        const hwRows =
+          sheetAny?.iotControlsHardwareRows && sheetAny.iotControlsHardwareRows.length > 0
+            ? sheetAny.iotControlsHardwareRows
+            : sheetAny?.hardwareRows || [];
+
+        const activeHw = hwRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0);
+
+        if (activeHw.length > 0) {
+          activeHw.forEach((r: any, idx: number) => {
+            const q = Number(r.quantity || r.qty || 1);
+            const unitPrice = r.unitPrice
+              ? Number(r.unitPrice)
+              : Math.round(Number(r.unitCost || 4500) / 0.6);
+            extracted.push({
+              id: `ir-hw-${idx}`,
+              section: '1. IR Blaster Hardware & Installation Scope',
+              stepNo: `${idx + 1}`,
+              description: r.productDescription || r.itemDescription || 'IR Blaster Unit',
+              qty: q,
+              uom: r.uom || 'Nos',
+              customerPrice: Math.round(q * unitPrice),
+            });
+          });
+        }
+
+        const mdRows = sheetAny?.iotControlsMandaysRows || [];
+        const activeMd = mdRows.filter((r: any) => Number(r.mandays || 0) > 0 && Number(r.totalCost || r.ratePerDay || 0) > 0);
+        activeMd.forEach((r: any, idx: number) => {
+          extracted.push({
+            id: `ir-md-${idx}`,
+            section: '2. Engineering & Commissioning Scope',
+            stepNo: `${extracted.length + 1}`,
+            description: `${r.designation || 'Specialist'}: ${r.description || ''}`,
+            qty: Number(r.mandays || 1),
+            uom: 'Mandays',
+            customerPrice: resolvePrice(r, Number(r.totalCost || (r.ratePerDay ? r.ratePerDay * r.mandays : 25000))),
+          });
+        });
+
+        const opRows = sheetAny?.iotControlsOpexRows || sheetAny?.opexRows || [];
+        const activeOp = opRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.yearlyPrice || r.unitPrice || 0) > 0);
+        activeOp.forEach((r: any, idx: number) => {
+          const q = Number(r.quantity || r.qty || 1);
+          const price = Number(r.yearlyPrice || (r.unitPrice ? r.unitPrice * q : 0));
+          extracted.push({
+            id: `ir-op-${idx}`,
+            section: '3. Cloud & Platform Telemetry Scope',
+            stepNo: `${extracted.length + 1}`,
+            description: r.scopeDescription || r.item || 'OptiByte Cloud Platform Subscription (Yearly)',
+            qty: q,
+            uom: 'Year',
+            customerPrice: price,
+            isRecurring: true,
+          });
+        });
+
+        // If sheet has a specific finalQuote, scale items to match exactly
+        if (Number(sheetAny?.finalQuote) > 0 && extracted.length > 0) {
+          const sumExt = extracted.reduce((sum, item) => sum + item.customerPrice, 0);
+          if (sumExt !== Number(sheetAny.finalQuote)) {
+            const factor = Number(sheetAny.finalQuote) / (sumExt || 1);
+            extracted.forEach((item) => {
+              item.customerPrice = Math.round(item.customerPrice * factor);
+            });
+          }
+        }
+
+        if (extracted.length > 0) {
+          setIotStep5Rows(extracted);
+        }
+      } else if (isCpmChillerManagement) {
+        const extracted: Array<{
+          id: string;
+          section?: string;
+          stepNo: number | string;
+          description: string;
+          qty: number;
+          uom: string;
+          customerPrice: number;
+          isRecurring?: boolean;
+        }> = [];
+
+        const hwRows = sheetAny?.cpmHardwareRows || [];
+        const activeHw = hwRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.customerPrice || r.unitPrice || r.unitCost || 0) > 0);
+        activeHw.forEach((r: any, idx: number) => {
+          extracted.push({
+            id: `cpm-hw-${idx}`,
+            section: '1. Hardware Capex (Sensors, Server, DDC Panels & Gateway)',
+            stepNo: `${idx + 1}`,
+            description: r.description || r.item || 'Hardware Component',
+            qty: Number(r.quantity || r.qty || 1),
+            uom: r.unit || r.uom || 'Nos',
+            customerPrice: Number(r.customerPrice || (Number(r.unitPrice || r.unitCost || 0) * Number(r.quantity || 1))),
+          });
+        });
+
+        const elecRows = sheetAny?.cpmElectricalRows || [];
+        const activeElec = elecRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.customerPrice || r.unitPrice || r.unitCost || 0) > 0);
+        activeElec.forEach((r: any, idx: number) => {
+          extracted.push({
+            id: `cpm-el-${idx}`,
+            section: '2. Electrical Consumables & Field Installation Materials',
+            stepNo: `${idx + 1}`,
+            description: r.description || r.item || 'Electrical Material',
+            qty: Number(r.quantity || r.qty || 1),
+            uom: r.unit || r.uom || 'Mtr',
+            customerPrice: Number(r.customerPrice || (Number(r.unitPrice || r.unitCost || 0) * Number(r.quantity || 1))),
+          });
+        });
+
+        const instPrice = Number(sheetAny?.cpmInstManpowerTotalPrice || sheetAny?.cpmInstallationCharges || 0);
+        if (instPrice > 0) {
+          extracted.push({
+            id: 'cpm-inst',
+            section: '3. Installation, Cabling & Sensor Mounting Charges',
+            stepNo: '1',
+            description: 'Installation charges for hardware and electrical items (cabling, GI tray, conduit pipe & panel mounting)',
+            qty: 1,
+            uom: 'Lot',
+            customerPrice: instPrice,
+          });
+        }
+
+        const commPrice = Number(sheetAny?.cpmCommissioningTotalPrice || sheetAny?.cpmTestingCommissioningCharges || 0);
+        if (commPrice > 0) {
+          extracted.push({
+            id: 'cpm-comm',
+            section: '4. Testing & Commissioning Scope',
+            stepNo: '1',
+            description: 'Testing & Commissioning of CPM Plant Automation, Sensors, Modbus Controller Logic & DDC Interface',
+            qty: 1,
+            uom: 'Lot',
+            customerPrice: commPrice,
+          });
+        }
+
+        const cloudRows = sheetAny?.cpmCloudChargeRows || [];
+        const activeCloud = cloudRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.customerPrice || r.unitPrice || 0) > 0);
+        activeCloud.forEach((r: any, idx: number) => {
+          extracted.push({
+            id: `cpm-cl-${idx}`,
+            section: '5. Software & Cloud Telemetry Scope',
+            stepNo: `${idx + 1}`,
+            description: `${r.scope || r.description || 'Cloud Service'}: ${r.softwarePlatform || ''}`,
+            qty: Number(r.quantity || 1),
+            uom: 'Year',
+            customerPrice: Number(r.customerPrice || r.unitPrice || 0),
+            isRecurring: true,
+          });
+        });
+
+        const onPremRows = sheetAny?.cpmOnPremiseRows || [];
+        const activeOnPrem = onPremRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.customerPrice || r.unitPrice || 0) > 0);
+        activeOnPrem.forEach((r: any, idx: number) => {
+          extracted.push({
+            id: `cpm-op-${idx}`,
+            section: '6. On-Premise Platform & AMC Scope',
+            stepNo: `${idx + 1}`,
+            description: `${r.scope || r.description || 'On-Premise'}: ${r.softwarePlatform || ''}`,
+            qty: Number(r.quantity || 1),
+            uom: 'Year',
+            customerPrice: Number(r.customerPrice || r.unitPrice || 0),
+            isRecurring: true,
+          });
+        });
+
+        // Ensure total matches finalQuote exactly
+        if (Number(sheetAny?.finalQuote) > 0 && extracted.length > 0) {
+          const sumExt = extracted.reduce((sum, item) => sum + item.customerPrice, 0);
+          if (sumExt !== Number(sheetAny.finalQuote)) {
+            const factor = Number(sheetAny.finalQuote) / (sumExt || 1);
+            extracted.forEach((item) => {
+              item.customerPrice = Math.round(item.customerPrice * factor);
+            });
+          }
+        }
+
+        if (extracted.length > 0) {
+          setIotStep5Rows(extracted);
+        }
       } else if (isIotControls) {
         const extracted: Array<{
           id: string;
@@ -1826,28 +2474,27 @@ PAN Number – ABNCS4869A`;
             ? sheetAny.iotControlsHardwareRows
             : INITIAL_IOT_CONTROLS_HARDWARE_ROWS;
 
-        hwRows.forEach((r: any, idx: number) => {
+        const activeHw = hwRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0);
+        activeHw.forEach((r: any, idx: number) => {
+          const q = Number(r.quantity || r.qty || 1);
           extracted.push({
             id: `ich-${idx}`,
             section: '1. IoT Hardware & Control Panel Scope',
             stepNo: r.slNo || `${idx + 1}`,
             description: r.productDescription || r.itemDescription || 'Hardware Control Component',
-            qty: Number(r.quantity || r.qty || 1),
+            qty: q,
             uom: 'Nos',
-            customerPrice: resolvePrice(r, Math.round(Number(r.unitPrice || 5000) * Number(r.quantity || 1))),
+            customerPrice: resolvePrice(r, Math.round(Number(r.unitPrice || 5000) * q)),
           });
         });
 
-        const mdRows =
-          sheetAny?.iotControlsMandaysRows && sheetAny.iotControlsMandaysRows.length > 0
-            ? sheetAny.iotControlsMandaysRows
-            : INITIAL_IOT_CONTROLS_MANDAYS_ROWS;
-
-        mdRows.forEach((r: any, idx: number) => {
+        const mdRows = sheetAny?.iotControlsMandaysRows || [];
+        const activeMd = mdRows.filter((r: any) => Number(r.mandays || 0) > 0 && Number(r.totalCost || r.ratePerDay || 0) > 0);
+        activeMd.forEach((r: any, idx: number) => {
           extracted.push({
             id: `icm-${idx}`,
             section: '2. Engineering & Commissioning Mandays Scope',
-            stepNo: `${idx + 1}`,
+            stepNo: `${extracted.length + 1}`,
             description: `${r.designation || 'Specialist'}: ${r.description || ''}`,
             qty: Number(r.mandays || 1),
             uom: 'Mandays',
@@ -1855,25 +2502,24 @@ PAN Number – ABNCS4869A`;
           });
         });
 
-        const opRows =
-          sheetAny?.iotControlsOpexRows && sheetAny.iotControlsOpexRows.length > 0
-            ? sheetAny.iotControlsOpexRows
-            : INITIAL_IOT_CONTROLS_OPEX_ROWS;
-
-        opRows.forEach((r: any, idx: number) => {
+        const opRows = sheetAny?.iotControlsOpexRows || [];
+        const activeOp = opRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.yearlyPrice || r.unitPrice || 0) > 0);
+        activeOp.forEach((r: any, idx: number) => {
           extracted.push({
             id: `ico-${idx}`,
             section: '3. Annual Maintenance & Cloud OPEX Scope',
-            stepNo: `${idx + 1}`,
+            stepNo: `${extracted.length + 1}`,
             description: `${r.item || 'OPEX Support'}: ${r.description || ''}`,
-            qty: 1,
+            qty: Number(r.quantity || 1),
             uom: 'Year',
             customerPrice: resolvePrice(r, Number(r.yearlyPrice || 12000)),
             isRecurring: true,
           });
         });
 
-        setIotStep5Rows(extracted);
+        if (extracted.length > 0) {
+          setIotStep5Rows(extracted);
+        }
       } else if (isEms) {
         const roundToNearest = (val: number, nearest: number = 100): number => {
           const step = Number(nearest) || 1;
@@ -2139,8 +2785,25 @@ PAN Number – ABNCS4869A`;
         throw new Error('Please select a client name and service');
       }
 
-      const selectedCategory = selectedCategories[0] || 'Energy Audit Services';
-      const selectedSubService = selectedSubServiceOptions[0] || 'Air Audit';
+      let selectedCategory = selectedCategories[0] || 'Energy Audit Services';
+      let selectedSubService = selectedSubServiceOptions[0] || 'Air Audit';
+
+      if (isWaterAutomation) {
+        selectedCategory = 'Automation';
+        selectedSubService = 'Water Automation';
+      } else if (isCompressedAirAutomation) {
+        selectedCategory = 'Automation';
+        selectedSubService = 'Compressed Air Automation';
+      } else if (isCpmChillerManagement) {
+        selectedCategory = 'Chiller Management';
+        selectedSubService = 'CPM (Chiller Plant Management)';
+      } else if (isWeldingIot) {
+        selectedCategory = 'Welding';
+        selectedSubService = 'Welding IoT & Kit';
+      } else if (isBms) {
+        selectedCategory = 'BMS';
+        selectedSubService = 'BMS';
+      }
 
       const computedFinalQuote = isCompressorAirLeakageRectification
         ? Number(compressorRoiData.investmentRs || 175000)
@@ -2409,12 +3072,26 @@ PAN Number – ABNCS4869A`;
                     <button
                       type="button"
                       onClick={() => setIsClientDropdownOpen(!isClientDropdownOpen)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 hover:border-indigo-400 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between transition-colors"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 hover:border-indigo-400 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center justify-between transition-colors shadow-2xs"
                     >
-                      <span className={clientName ? 'font-bold text-slate-900' : 'text-slate-400'}>
-                        {clientName || '-- Search or Select a Client --'}
-                      </span>
-                      <ChevronDown className="h-4 w-4 text-slate-400 shrink-0" />
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {clientName && getClientPresetLogo(clientName) ? (
+                          <div className="h-6 w-8 bg-white border border-slate-200 rounded p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={getClientPresetLogo(clientName)!}
+                              alt={clientName}
+                              className="max-h-full max-w-full object-contain"
+                            />
+                          </div>
+                        ) : clientName ? (
+                          <Building className="h-4 w-4 text-indigo-600 shrink-0" />
+                        ) : null}
+                        <span className={clientName ? 'font-bold text-slate-900 truncate' : 'text-slate-400'}>
+                          {clientName || '-- Search or Select a Client --'}
+                        </span>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-slate-400 shrink-0 ml-2" />
                     </button>
 
                     {isClientDropdownOpen && (
@@ -2463,23 +3140,44 @@ PAN Number – ABNCS4869A`;
                               No matching clients found for &quot;{clientSearchQuery}&quot;
                             </div>
                           ) : (
-                            filteredClientOptions.map((c, idx) => (
-                              <button
-                                key={idx}
-                                type="button"
-                                onClick={() => {
-                                  setClientName(c.name);
-                                  setIsClientDropdownOpen(false);
-                                  setClientSearchQuery('');
-                                }}
-                                className={`w-full text-left px-3.5 py-2.5 hover:bg-indigo-50 transition-colors flex items-center justify-between ${
-                                  clientName === c.name ? 'bg-indigo-50/80 font-bold text-indigo-700' : 'text-slate-800'
-                                }`}
-                              >
-                                <span>{c.name}</span>
-                                {clientName === c.name && <Check className="h-3.5 w-3.5 text-indigo-600" />}
-                              </button>
-                            ))
+                            filteredClientOptions.map((c, idx) => {
+                              const itemLogo = getClientPresetLogo(c.name);
+                              const isSelected = clientName === c.name;
+                              return (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => {
+                                    setClientName(c.name);
+                                    setIsClientDropdownOpen(false);
+                                    setClientSearchQuery('');
+                                    if (itemLogo) {
+                                      setClientLogo(itemLogo);
+                                    } else if (clientLogo && clientLogo.startsWith('/logo/')) {
+                                      setClientLogo(null);
+                                    }
+                                  }}
+                                  className={`w-full text-left px-3.5 py-2 hover:bg-indigo-50 transition-colors flex items-center justify-between gap-3 ${
+                                    isSelected ? 'bg-indigo-50/80 font-bold text-indigo-700' : 'text-slate-800'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    {itemLogo ? (
+                                      <div className="h-6 w-8 bg-white border border-slate-200 rounded p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={itemLogo} alt={c.name} className="max-h-full max-w-full object-contain" />
+                                      </div>
+                                    ) : (
+                                      <div className="h-6 w-8 bg-slate-100 border border-slate-200 rounded flex items-center justify-center shrink-0 text-slate-400">
+                                        <Building className="h-3.5 w-3.5" />
+                                      </div>
+                                    )}
+                                    <span className="truncate">{c.name}</span>
+                                  </div>
+                                  {isSelected && <Check className="h-3.5 w-3.5 text-indigo-600 shrink-0" />}
+                                </button>
+                              );
+                            })
                           )}
                         </div>
                       </div>
@@ -2526,7 +3224,7 @@ PAN Number – ABNCS4869A`;
                             } else if (cat === 'Automation') {
                               setSelectedSubServiceOptions(['Compressed Air Automation']);
                             } else if (cat === 'IR Blaster') {
-                              setSelectedSubServiceOptions(['IR Blaster']);
+                              setSelectedSubServiceOptions(['Old IR Blaster']);
                             } else if (cat === 'BMS') {
                               setSelectedSubServiceOptions(['BMS']);
                             } else if (cat === 'Hardware') {
@@ -2588,57 +3286,129 @@ PAN Number – ABNCS4869A`;
               )}
             </div>
 
-            {/* Saved Costing Sheets Available for Chosen Client */}
-            {clientCostingSheets.length > 0 && (
-              <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-emerald-950 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                    Saved Costing Sheets for {clientName} ({clientCostingSheets.length} Found):
-                  </span>
-                  <span className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider">
-                    Click to load into Step 4
-                  </span>
+            {/* Saved Costing Sheets Available for Chosen Client (Filtered by Selected Service) */}
+            {(() => {
+              const currentSub = (selectedSubServiceOptions[0] || '').toLowerCase().trim();
+              const currentCat = (selectedCategories[0] || '').toLowerCase().trim();
+
+              const displayedSheets = clientCostingSheets.filter((sheet: any) => {
+                const sheetSub = (sheet.subService || '').toLowerCase().trim();
+                const sheetCat = (sheet.serviceCategory || '').toLowerCase().trim();
+
+                if (currentSub.includes('ir') || currentCat.includes('ir')) {
+                  return (sheetSub.includes('ir') || sheetCat.includes('ir')) && !sheetSub.includes('cpm') && !sheetSub.includes('chiller');
+                }
+                if (currentSub.includes('cpm') || currentCat.includes('chiller') || sheetSub.includes('chiller')) {
+                  return sheetSub.includes('cpm') || sheetCat.includes('chiller') || sheetSub.includes('chiller');
+                }
+                if (currentSub.includes('welding') || currentCat.includes('welding')) {
+                  return sheetSub.includes('welding') || sheetCat.includes('welding');
+                }
+                if (currentSub.includes('rectification')) {
+                  return sheetSub.includes('rectification');
+                }
+                if (currentSub.includes('nitrogen')) {
+                  return sheetSub.includes('nitrogen');
+                }
+                if (currentSub.includes('mixture')) {
+                  return sheetSub.includes('mixture');
+                }
+                if (currentSub.includes('flowmeter')) {
+                  return sheetSub.includes('flowmeter');
+                }
+                if (currentSub.includes('dew point') || currentSub.includes('flange')) {
+                  return sheetSub.includes('dew point') || sheetSub.includes('flange') || sheetCat.includes('hardware');
+                }
+                return true;
+              });
+
+              if (displayedSheets.length === 0) return null;
+
+              return (
+                <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-emerald-950 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      Saved Costing Sheets for {clientName} ({displayedSheets.length} Found):
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider">
+                      Click to load into Step 4
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-0.5">
+                    {displayedSheets.map((sheet: any) => {
+                      const isSelected = activeCostingSheet?.id === sheet.id || activeCostingSheet?._id === sheet._id;
+                      const sheetQuote =
+                        Number(sheet.finalQuote) ||
+                        Number(sheet.emsTotalStep5CustomerPrice) ||
+                        Number(sheet.totalCustomerPrice) ||
+                        Number(sheet.finalPrice) ||
+                        0;
+
+                      let createdDateStr = '';
+                      const rawDate = sheet.createdAt || sheet.createdDate || sheet.updatedAt || sheet.date;
+                      if (rawDate) {
+                        try {
+                          const d = new Date(rawDate);
+                          if (!isNaN(d.getTime())) {
+                            createdDateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                          }
+                        } catch {}
+                      }
+
+                      return (
+                        <button
+                          key={sheet.id || sheet._id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCostingSheetId(sheet.id || sheet._id);
+                            let targetCat = sheet.serviceCategory || 'Energy Audit Services';
+                            const sub = (sheet.subService || '').toLowerCase();
+                            if (sub.includes('compressed air automation') || sub.includes('water automation') || sub.includes('air automation')) {
+                              targetCat = 'Automation';
+                            } else if (sub.includes('cpm') || sub.includes('chiller')) {
+                              targetCat = 'Chiller Management';
+                            } else if (sub.includes('welding') || sub.includes('digiweld')) {
+                              targetCat = 'Welding IoT';
+                            } else if (sub.includes('ir blaster') || sub.includes('ir')) {
+                              targetCat = 'IR Blaster';
+                            } else if (sub.includes('bms')) {
+                              targetCat = 'BMS';
+                            } else if (sub.includes('dew point') || sub.includes('flange') || sub.includes('flowmeter') || sub.includes('iaq sensor') || sub.includes('temperature sensor')) {
+                              targetCat = 'Hardware';
+                            } else if (sub.includes('energy management solution') || sub.includes('compressed air monitoring') || sub.includes('iot platform') || sub.includes('water management solution')) {
+                              targetCat = 'IoT & Controls';
+                            }
+
+                            setSelectedCategories([targetCat]);
+                            if (sheet.subService) {
+                              setSelectedSubServiceOptions([sheet.subService]);
+                            }
+                            toast.success(`Loaded costing for ${sheet.subService || targetCat}!`);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                            isSelected
+                              ? 'bg-emerald-700 text-white shadow-xs'
+                              : 'bg-white text-emerald-800 hover:bg-emerald-100 border border-emerald-300'
+                          }`}
+                        >
+                          <span>{sheet.subService || sheet.serviceCategory || 'Costing Sheet'}</span>
+                          <span className="opacity-70 font-normal">•</span>
+                          <span className={isSelected ? 'text-emerald-200' : 'text-emerald-900 font-black'}>
+                            {sheetQuote > 0 ? `₹${sheetQuote.toLocaleString('en-IN')}` : '₹0 (Draft)'}
+                          </span>
+                          {createdDateStr && (
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${isSelected ? 'bg-emerald-800/80 text-emerald-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'}`}>
+                              {createdDateStr}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2 pt-0.5">
-                  {clientCostingSheets.map((sheet: any) => {
-                    const isSelected = activeCostingSheet?.id === sheet.id || activeCostingSheet?._id === sheet._id;
-                    const sheetQuote =
-                      Number(sheet.finalQuote) ||
-                      Number(sheet.emsTotalStep5CustomerPrice) ||
-                      Number(sheet.totalCustomerPrice) ||
-                      Number(sheet.finalPrice) ||
-                      (Array.isArray(sheet.emsHardwareRows)
-                        ? sheet.emsHardwareRows.reduce((sum: number, r: any) => sum + (Number(r.customerPrice) || (Number(r.unitPrice) || 0) * (Number(r.quantity) || 1) || 0), 0)
-                        : 0) ||
-                      0;
-                    return (
-                      <button
-                        key={sheet.id || sheet._id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedCostingSheetId(sheet.id || sheet._id);
-                          if (sheet.serviceCategory) setSelectedCategories([sheet.serviceCategory]);
-                          if (sheet.subService) setSelectedSubServiceOptions([sheet.subService]);
-                          toast.success(`Loaded oriented costing for ${sheet.subService || sheet.serviceCategory}!`);
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                          isSelected
-                            ? 'bg-emerald-700 text-white shadow-xs'
-                            : 'bg-white text-emerald-800 hover:bg-emerald-100 border border-emerald-300'
-                        }`}
-                      >
-                        <span>{sheet.subService || sheet.serviceCategory || 'Costing Sheet'}</span>
-                        <span className="opacity-70 font-normal">•</span>
-                        <span className={isSelected ? 'text-emerald-200' : 'text-emerald-900 font-black'}>
-                          {sheetQuote > 0 ? `₹${sheetQuote.toLocaleString('en-IN')}` : '₹0 (Draft)'}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Row 4: Asset Categories (Shown ONLY for Energy Audit Services) */}
             {isEnergyAudit && (
@@ -3161,30 +3931,93 @@ PAN Number – ABNCS4869A`;
                     <Network className="h-5 w-5 text-indigo-600" />
                     <div>
                       <h3 className="font-bold text-slate-900 text-sm">
-                        {isWaterManagement
+                        {isIaqSensor
+                          ? 'Step 3: Technical Capabilities & Dashboard View — IAQ Sensor (Indoor Air Quality)'
+                          : isIrBlaster
+                          ? 'Step 3: Technical Capabilities & Solution Architecture — IR Blaster AC Energy Automation'
+                          : isWaterManagement
                           ? 'Step 3: Solution Architecture — Water Management System (IoT & Controls Platform)'
                           : 'Step 3: Solution Architecture — IoT & Controls Platform'}
                       </h3>
-                      <p className="text-xs text-slate-500">Comprehensive edge-to-cloud IoT topology, sensors, OptiLink gateway &amp; analytics dashboard</p>
+                      <p className="text-xs text-slate-500">
+                        {isIaqSensor
+                          ? 'Optibyte Air Intelligence Dashboard, multi-gas telemetry (CO2, PM2.5, PM10, TVOC) & ventilation control'
+                          : isIrBlaster
+                          ? 'Product showcase, plug-and-play retrofit topology, cloud MQTT telemetry & BEE energy savings'
+                          : 'Comprehensive edge-to-cloud IoT topology, sensors, OptiLink gateway & analytics dashboard'}
+                      </p>
                     </div>
                   </div>
                   <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full shrink-0">
-                    Architecture Blueprint
+                    {isIaqSensor ? 'Dashboard Blueprint' : 'Architecture Blueprint'}
                   </span>
                 </div>
 
-                <div className="p-4 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-4">
-                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-white p-3 shadow-2xs flex justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/iot-solution-architecture.png"
-                      alt="IoT & Controls Solution Architecture Diagram"
-                      className="max-h-[440px] w-auto object-contain rounded-lg"
-                    />
+                {isIaqSensor ? (
+                  <div className="space-y-6">
+                    <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-3 flex flex-col items-center shadow-lg">
+                      <div className="flex items-center justify-between w-full px-2">
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded border border-emerald-800">
+                          3 Dashboard View: Optibyte Air Intelligence
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">Live Telemetry • Multi-Parameter</span>
+                      </div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/iaq-dashboard.png"
+                        alt="Optibyte Air Quality Dashboard"
+                        className="max-h-[320px] w-auto object-contain rounded-xl shadow-md border border-slate-800"
+                      />
+                      <p className="text-[11px] text-slate-300 text-center font-medium">
+                        Real-time IAQ Analytics: CO2, PM2.5, PM10, Temperature, Humidity, TVOC &amp; Composite Health Index
+                      </p>
+                    </div>
                   </div>
-
-                  
-                </div>
+                ) : isIrBlaster ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-3 flex flex-col items-center">
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 self-start">
+                          Product Showcase
+                        </span>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="/irimag11.jpeg"
+                          alt="IR Blaster Unit"
+                          className="max-h-[240px] w-auto object-contain rounded-xl shadow-xs"
+                        />
+                        <p className="text-[11px] text-slate-600 text-center font-medium">
+                          Plug &amp; Play Retrofit — Universal HVAC compatibility (Split, Cassette, Package AC)
+                        </p>
+                      </div>
+                      <div className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-3 flex flex-col items-center">
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200 self-start">
+                          Solution Architecture
+                        </span>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="/irarchitec.png"
+                          alt="IR Blaster Solution Architecture"
+                          className="max-h-[240px] w-auto object-contain rounded-xl shadow-xs"
+                        />
+                        <p className="text-[11px] text-slate-600 text-center font-medium">
+                          Edge IR Blaster to OptiByte Cloud Telemetry, Automated Scheduling &amp; Alarms
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-slate-50/70 border border-slate-200 rounded-2xl space-y-4">
+                    <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-white p-3 shadow-2xs flex justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/iot-solution-architecture.png"
+                        alt="IoT & Controls Solution Architecture Diagram"
+                        className="max-h-[440px] w-auto object-contain rounded-lg"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -4095,12 +4928,16 @@ PAN Number – ABNCS4869A`;
           )}
 
           {/* Step 5: Scope of Work / Key Issues / Assessment Scope (Editable, Row-Wise, Black Text) */}
-          {(isIotOrControls || isBms || isEnergyAudit) && (
+          {(isIotOrControls || isBms || isEnergyAudit || isIaqSensor) && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
-                  <h3 className="font-bold text-slate-950 text-sm">
-                    {isWeldingIot
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    {isIaqSensor
+                      ? 'Step 5: Scope of Supply, Technical Specifications & Monitored Parameters — IAQ Sensor'
+                      : isIrBlaster
+                      ? 'Step 5: Scope of Work, Technical Capabilities & Energy Benefits — IR Blaster AC Energy Solutions'
+                      : isWeldingIot
                       ? 'Step 5: Scope of Work, POC Success Criteria & Benefits — Welding IoT & Kit'
                       : isWaterManagement
                       ? 'Step 5: Scope of Work & Solution Overview — Water Management Solution'
@@ -4111,7 +4948,11 @@ PAN Number – ABNCS4869A`;
                       : 'Step 5: Scope of Work & Platform Benefits — Energy Management Solution'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {isWeldingIot
+                    {isIaqSensor
+                      ? 'Scope of Supply, About IAQ Sensor, Monitored Parameters (CO2, PM2.5, PM10, TVOC) & Cloud Analytics'
+                      : isIrBlaster
+                      ? 'Scope of Supply, About IR Blaster, Key Automation Features & Measurable Energy Savings'
+                      : isWeldingIot
                       ? 'Scope of Supply, Customer Dependencies, POC Criteria, Timeline & Welding Benefits'
                       : isWaterManagement
                       ? 'Water Management Scope of Work, Centralized Dashboard & Digitalization Overview'
@@ -4127,7 +4968,11 @@ PAN Number – ABNCS4869A`;
                     type="button"
                     onClick={() => {
                       setEmsStep5Text(
-                        isWeldingIot
+                        isIaqSensor
+                          ? DEFAULT_IAQ_SENSOR_STEP5_TEXT
+                          : isIrBlaster
+                          ? DEFAULT_IR_BLASTER_STEP5_TEXT
+                          : isWeldingIot
                           ? DEFAULT_WELDING_STEP5_TEXT
                           : isWaterManagement
                           ? DEFAULT_WATER_MANAGEMENT_STEP5_TEXT
@@ -4274,12 +5119,16 @@ PAN Number – ABNCS4869A`;
           )}
 
           {/* Step 6: Notes, Client Support & Terms and Conditions (Editable, Row-Wise, Black Text) */}
-          {(isIotOrControls || isBms || isEnergyAudit) && (
+          {(isIotOrControls || isBms || isEnergyAudit || isIaqSensor) && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
-                  <h3 className="font-bold text-slate-950 text-sm">
-                    {isWeldingIot
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    {isIaqSensor
+                      ? 'Step 6: Commercial Terms, Warranty & Payment Schedule — IAQ Sensor'
+                      : isIrBlaster
+                      ? 'Step 6: Client Support, Terms and Conditions & Payment Schedule — IR Blaster'
+                      : isWeldingIot
                       ? 'Step 6: Client Support, Terms and Conditions & Payment Schedule — Welding IoT & Kit'
                       : isWaterManagement
                       ? 'Step 6: Client Support, Terms and Conditions & Payment Schedule — Water Management Solution'
@@ -4290,7 +5139,11 @@ PAN Number – ABNCS4869A`;
                       : 'Step 6: Notes, Client Support & Terms and Conditions'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {isWeldingIot
+                    {isIaqSensor
+                      ? '100% Upfront Hardware Payment, 5-6 Weeks Delivery, 12/18 Months Warranty & Support Terms'
+                      : isIrBlaster
+                      ? 'Client SPOC Support, Accessibility, 100% Upfront Hardware & 50/50 Installation Terms'
+                      : isWeldingIot
                       ? 'Client SPOC & Maintenance Support, 70/30 Payment Schedule & 11 Commercial Terms'
                       : isWaterManagement
                       ? 'Client Deliverables, Water Shutdown Terms & Milestone Payment Schedule'
@@ -4306,7 +5159,11 @@ PAN Number – ABNCS4869A`;
                     type="button"
                     onClick={() => {
                       setEmsStep6Text(
-                        isWeldingIot
+                        isIaqSensor
+                          ? DEFAULT_IAQ_SENSOR_STEP6_TEXT
+                          : isIrBlaster
+                          ? DEFAULT_IR_BLASTER_STEP6_TEXT
+                          : isWeldingIot
                           ? DEFAULT_WELDING_STEP6_TEXT
                           : isWaterManagement
                           ? DEFAULT_WATER_MANAGEMENT_STEP6_TEXT

@@ -99,13 +99,19 @@ export class QuotesService {
 
     const parsedDate = dto.proposalDate ? new Date(dto.proposalDate) : new Date();
 
+    const totalProps = await this.prisma.proposal.count();
+    const generatedSeq = `STPL-${String(totalProps + 1).padStart(3, '0')}`;
+    const effectiveProposalNumber = dto.proposalNumber && dto.proposalNumber !== 'STPL-001'
+      ? dto.proposalNumber
+      : generatedSeq;
+
     // Create quote + line items in a transaction
     const quote = await this.prisma.$transaction(async (tx) => {
       const newQuote = await tx.quote.create({
         data: {
           dealId: resolvedDealId,
           serviceId: validServiceId,
-          proposalNumber: dto.proposalNumber || 'STPL-001',
+          proposalNumber: effectiveProposalNumber,
           proposalDate: parsedDate,
           clientLogo: dto.clientLogo || null,
           siteDays: dto.siteDays,
@@ -158,7 +164,7 @@ export class QuotesService {
         data: {
           quoteId: newQuote.id,
           dealId: resolvedDealId,
-          proposalNumber: dto.proposalNumber || 'STPL-001',
+          proposalNumber: effectiveProposalNumber,
           proposalDate: parsedDate,
           clientLogo: dto.clientLogo || null,
           status: 'DRAFT',
@@ -174,8 +180,8 @@ export class QuotesService {
             entityType: 'Quote',
             entityId: newQuote.id,
             details: {
-              description: `Created Commercial Proposal ${dto.proposalNumber || 'STPL-001'} for "${dto.clientName || 'Client'}" (Total: ₹${Number(result.finalQuote).toLocaleString('en-IN')})`,
-              proposalNumber: dto.proposalNumber || 'STPL-001',
+              description: `Created Commercial Proposal ${effectiveProposalNumber} for "${dto.clientName || 'Client'}" (Total: ₹${Number(result.finalQuote).toLocaleString('en-IN')})`,
+              proposalNumber: effectiveProposalNumber,
               clientName: dto.clientName || 'Client',
               finalQuote: result.finalQuote,
             },

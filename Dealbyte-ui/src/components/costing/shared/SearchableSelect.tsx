@@ -19,7 +19,7 @@ export interface SearchableSelectProps {
   onChange: (value: string, selectedOption?: SearchableOption) => void;
   placeholder?: string;
   customOptionLabel?: string;
-  theme?: 'purple' | 'indigo' | 'emerald' | 'slate';
+  theme?: 'purple' | 'indigo' | 'emerald' | 'slate' | 'cyan' | 'blue' | 'green' | 'teal' | 'amber';
   className?: string;
   buttonClassName?: string;
   disabled?: boolean;
@@ -87,7 +87,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   }, [options, searchTerm]);
 
   // Theme styling tokens
-  const themeStyles = {
+  const themeStylesMap = {
     purple: {
       buttonBorder: 'border-purple-200 hover:border-purple-400 focus:border-purple-600',
       badgeBg: 'bg-purple-100 text-purple-900 border-purple-200',
@@ -109,6 +109,41 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       focusRing: 'focus:ring-emerald-500',
       accentText: 'text-emerald-600',
     },
+    green: {
+      buttonBorder: 'border-emerald-200 hover:border-emerald-400 focus:border-emerald-600',
+      badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+      activeItem: 'bg-emerald-50 text-emerald-950 font-bold',
+      focusRing: 'focus:ring-emerald-500',
+      accentText: 'text-emerald-600',
+    },
+    cyan: {
+      buttonBorder: 'border-cyan-200 hover:border-cyan-400 focus:border-cyan-600',
+      badgeBg: 'bg-cyan-100 text-cyan-900 border-cyan-200',
+      activeItem: 'bg-cyan-50 text-cyan-950 font-bold',
+      focusRing: 'focus:ring-cyan-500',
+      accentText: 'text-cyan-600',
+    },
+    blue: {
+      buttonBorder: 'border-cyan-200 hover:border-cyan-400 focus:border-cyan-600',
+      badgeBg: 'bg-cyan-100 text-cyan-900 border-cyan-200',
+      activeItem: 'bg-cyan-50 text-cyan-950 font-bold',
+      focusRing: 'focus:ring-cyan-500',
+      accentText: 'text-cyan-600',
+    },
+    teal: {
+      buttonBorder: 'border-teal-200 hover:border-teal-400 focus:border-teal-600',
+      badgeBg: 'bg-teal-100 text-teal-900 border-teal-200',
+      activeItem: 'bg-teal-50 text-teal-950 font-bold',
+      focusRing: 'focus:ring-teal-500',
+      accentText: 'text-teal-600',
+    },
+    amber: {
+      buttonBorder: 'border-amber-200 hover:border-amber-400 focus:border-amber-600',
+      badgeBg: 'bg-amber-100 text-amber-900 border-amber-200',
+      activeItem: 'bg-amber-50 text-amber-950 font-bold',
+      focusRing: 'focus:ring-amber-500',
+      accentText: 'text-amber-600',
+    },
     slate: {
       buttonBorder: 'border-slate-200 hover:border-slate-400 focus:border-slate-600',
       badgeBg: 'bg-slate-100 text-slate-900 border-slate-200',
@@ -116,7 +151,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       focusRing: 'focus:ring-slate-500',
       accentText: 'text-slate-600',
     },
-  }[theme];
+  };
+  const themeStyles = themeStylesMap[theme as keyof typeof themeStylesMap] || themeStylesMap.purple;
 
   const handleSelect = (opt: SearchableOption) => {
     onChange(opt.value, opt);

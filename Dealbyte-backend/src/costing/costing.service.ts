@@ -319,6 +319,8 @@ export class CostingService {
           emsGatewayHardwareRows: dto.emsGatewayHardwareRows || [],
           emsElectricalHardwareRows: dto.emsElectricalHardwareRows || [],
           emsManpowerRows: dto.emsManpowerRows || [],
+          caaAutoManpowerRows: dto.caaAutoManpowerRows || [],
+          caaInstManpowerRows: dto.caaInstManpowerRows || [],
           emsPlatformRows: dto.emsPlatformRows || [],
           emsRecurringRows: dto.emsRecurringRows || [],
         }
@@ -594,6 +596,8 @@ export class CostingService {
           emsGatewayHardwareRows: dto.emsGatewayHardwareRows || [],
           emsElectricalHardwareRows: dto.emsElectricalHardwareRows || [],
           emsManpowerRows: dto.emsManpowerRows || [],
+          caaAutoManpowerRows: dto.caaAutoManpowerRows || [],
+          caaInstManpowerRows: dto.caaInstManpowerRows || [],
           emsPlatformRows: dto.emsPlatformRows || [],
           emsRecurringRows: dto.emsRecurringRows || [],
           roundingNearest: dto.roundingNearest || 100,

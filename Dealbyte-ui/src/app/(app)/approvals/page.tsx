@@ -789,18 +789,32 @@ export default function ApprovalsPage() {
                   );
                 }
 
+                const isCompressedAir =
+                  activeCostingSheet.subService?.toLowerCase().includes('compressed air') ||
+                  activeCostingSheet.subService?.toLowerCase().includes('air automation');
+
                 const isEms = activeCostingSheet.instrumentRows?.isEms || 
+                              Boolean(activeCostingSheet.isEms) ||
                               activeCostingSheet.subService?.toLowerCase().includes('ems') ||
+                              activeCostingSheet.subService?.toLowerCase().includes('compressed air') ||
+                              activeCostingSheet.subService?.toLowerCase().includes('automation') ||
+                              activeCostingSheet.serviceCategory?.toLowerCase().includes('automation') ||
                               activeCostingSheet.serviceCategory?.toLowerCase().includes('iot');
 
                 if (isEms) {
                   const instObj = activeCostingSheet.instrumentRows || {};
-                  const hwRows = (instObj.emsHardwareRows || []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const hwRows = (activeCostingSheet.emsHardwareRows || instObj.emsHardwareRows || []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const caaAutoRows = (activeCostingSheet.caaAutoManpowerRows || instObj.caaAutoManpowerRows || []).filter((r: any) => 
+                    Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0
+                  );
+                  const caaInstRows = (activeCostingSheet.caaInstManpowerRows || instObj.caaInstManpowerRows || []).filter((r: any) => 
+                    Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0
+                  );
                   const mpRows = (activeCostingSheet.manpowerRows || instObj.emsManpowerRows || []).filter((r: any) => 
                     Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0
                   );
-                  const pfRows = (instObj.emsPlatformRows || []).filter((r: any) => Number(r.qty || 0) > 0);
-                  const rcRows = (instObj.emsRecurringRows || []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const pfRows = (activeCostingSheet.emsPlatformRows || instObj.emsPlatformRows || []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const rcRows = (activeCostingSheet.emsRecurringRows || instObj.emsRecurringRows || []).filter((r: any) => Number(r.qty || 0) > 0);
 
                   return (
                     <div className="space-y-6">
@@ -808,7 +822,7 @@ export default function ApprovalsPage() {
                       {hwRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-indigo-900">
-                            1. Hardware supply
+                            1. Hardware Supply
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
@@ -837,11 +851,77 @@ export default function ApprovalsPage() {
                         </div>
                       )}
 
-                      {/* EMS Manpower */}
-                      {mpRows.length > 0 && (
+                      {/* Compressed Air: Step 2 Automation Scope */}
+                      {isCompressedAir && caaAutoRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-purple-900">
-                            2. Manpower, site & engineering expenses
+                            2. Automation & Commissioning Engineering Scope
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2">Member / Role</th>
+                                <th className="p-2 text-center w-24">Site Days</th>
+                                <th className="p-2 text-right w-28">Site Day Rate</th>
+                                <th className="p-2 text-right w-28">Total Cost</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {caaAutoRows.map((r: any, idx: number) => {
+                                const totalCost = (Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0)) + 
+                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-800">{r.name ? `${r.name} (${r.roleLevel?.replace('_', ' ') || 'Engineer'})` : (r.roleLevel?.replace('_', ' ') || 'Engineer')}</td>
+                                    <td className="p-2 text-center font-bold text-slate-900">{r.siteWorkingDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Compressed Air: Step 3 Installation Scope */}
+                      {isCompressedAir && caaInstRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-indigo-900">
+                            3. Installation, Commissioning & Site Engineering Scope
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2">Member / Role</th>
+                                <th className="p-2 text-center w-24">Site Days</th>
+                                <th className="p-2 text-right w-28">Site Day Rate</th>
+                                <th className="p-2 text-right w-28">Total Cost</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {caaInstRows.map((r: any, idx: number) => {
+                                const totalCost = (Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0)) + 
+                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-800">{r.name ? `${r.name} (${r.roleLevel?.replace('_', ' ') || 'Technician'})` : (r.roleLevel?.replace('_', ' ') || 'Technician')}</td>
+                                    <td className="p-2 text-center font-bold text-slate-900">{r.siteWorkingDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Standard EMS Manpower (if not dual compressed air) */}
+                      {!isCompressedAir && mpRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-purple-900">
+                            2. Manpower, Site & Engineering Expenses
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>

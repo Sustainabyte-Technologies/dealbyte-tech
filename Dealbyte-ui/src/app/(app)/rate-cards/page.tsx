@@ -12,6 +12,11 @@ import {
   PRESET_TEAM_MEMBERS,
   STANDARD_EMS_GATEWAY_HARDWARE_CATALOG,
   STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG,
+  getActiveGatewayHardwareCatalog,
+  getActiveElectricalHardwareCatalog,
+  getHardwareOverrides,
+  getActiveTeamMembers,
+  getManpowerOverrides,
 } from '@/components/costing/constants';
 
 export default function RateCardsPage() {
@@ -35,6 +40,9 @@ export default function RateCardsPage() {
   const [unitCost, setUnitCost] = useState(1000);
   const [category, setCategory] = useState('1. Sustainabyte Edge IoT Gateway Hardware');
   const [uom, setUom] = useState('Nos');
+
+  const [hardwareOverridesState, setHardwareOverridesState] = useState<Record<string, any>>(() => getHardwareOverrides());
+  const [manpowerOverridesState, setManpowerOverridesState] = useState<Record<string, any>>(() => getManpowerOverrides());
 
   // Custom added team members from local storage or memory
   const [customTeamMembers, setCustomTeamMembers] = useState<any[]>(() => {
@@ -78,9 +86,9 @@ export default function RateCardsPage() {
     queryFn: rateCardsApi.getHardware,
   });
 
-  // Map dynamic team members from PRESET_TEAM_MEMBERS + custom added members
+  // Map dynamic team members with persistent overrides + custom added members
   const manpowerList = React.useMemo(() => {
-    const baseList = PRESET_TEAM_MEMBERS.map((m, idx) => ({
+    return getActiveTeamMembers().map((m, idx) => ({
       id: `mp-preset-${idx}`,
       name: m.name,
       role: m.roleTitle,
@@ -90,9 +98,7 @@ export default function RateCardsPage() {
       foodRatePerDay: m.foodRatePerDay,
       currency: 'INR',
     }));
-
-    return [...baseList, ...customTeamMembers];
-  }, [customTeamMembers]);
+  }, [customTeamMembers, manpowerOverridesState]);
 
   // Filter out older instrument data and merge new 14 instruments
   const instruments = React.useMemo(() => {
@@ -138,27 +144,26 @@ export default function RateCardsPage() {
     return combined;
   }, [dbInstruments]);
 
-  // Map hardware catalog items + custom added hardware items
+  // Map hardware catalog items with persistent overrides + custom added hardware items
   const hardwareList = React.useMemo(() => {
-    const catalog = [
-      ...STANDARD_EMS_GATEWAY_HARDWARE_CATALOG.filter((h) => h.unitCost > 0).map((h, i) => ({
-        id: `gw-preset-${i}`,
-        name: h.description,
-        category: '1. Sustainabyte Edge IoT Gateway Hardware',
-        uom: h.uom,
-        unitCost: h.unitCost,
-      })),
-      ...STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG.filter((h) => h.unitCost > 0).map((h, i) => ({
-        id: `el-preset-${i}`,
-        name: h.description,
-        category: '2. Electrical Hardware & Accessories',
-        uom: h.uom,
-        unitCost: h.unitCost,
-      })),
-      ...customHardwareList,
-    ];
-    return catalog;
-  }, [customHardwareList]);
+    const gwItems = getActiveGatewayHardwareCatalog().filter((h) => h.unitCost > 0).map((h, i) => ({
+      id: `gw-preset-${i}`,
+      name: h.description,
+      category: '1. Sustainabyte Edge IoT Gateway Hardware',
+      uom: h.uom,
+      unitCost: h.unitCost,
+    }));
+
+    const elItems = getActiveElectricalHardwareCatalog().filter((h) => h.unitCost > 0).map((h, i) => ({
+      id: `el-preset-${i}`,
+      name: h.description,
+      category: '2. Electrical Hardware & Accessories',
+      uom: h.uom,
+      unitCost: h.unitCost,
+    }));
+
+    return [...gwItems, ...elItems];
+  }, [customHardwareList, hardwareOverridesState]);
 
   // Mutations
   const createManpowerMutation = useMutation({
@@ -371,15 +376,31 @@ export default function RateCardsPage() {
   };
 
   const handleUpdateManpower = async (id: string, updatedFields: Record<string, any>) => {
+    const overrides = getManpowerOverrides();
+
     if (id.startsWith('mp-preset-')) {
       const idx = parseInt(id.replace('mp-preset-', ''), 10);
       const target = PRESET_TEAM_MEMBERS[idx];
       if (target) {
-        if (updatedFields.name !== undefined) target.name = updatedFields.name;
-        if (updatedFields.role !== undefined) target.roleTitle = updatedFields.role;
-        if (updatedFields.siteWorkCost !== undefined) target.siteWorkCost = Number(updatedFields.siteWorkCost);
-        if (updatedFields.reportWorkCost !== undefined) target.reportWorkCost = Number(updatedFields.reportWorkCost);
-        if (updatedFields.foodRatePerDay !== undefined) target.foodRatePerDay = Number(updatedFields.foodRatePerDay);
+        const newName = updatedFields.name !== undefined ? updatedFields.name : target.name;
+        const newRole = updatedFields.role !== undefined ? updatedFields.role : target.roleTitle;
+        const newSiteCost = updatedFields.siteWorkCost !== undefined ? Number(updatedFields.siteWorkCost) : target.siteWorkCost;
+        const newReportCost = updatedFields.reportWorkCost !== undefined ? Number(updatedFields.reportWorkCost) : target.reportWorkCost;
+        const newFoodCost = updatedFields.foodRatePerDay !== undefined ? Number(updatedFields.foodRatePerDay) : target.foodRatePerDay;
+
+        target.name = newName;
+        target.roleTitle = newRole;
+        target.siteWorkCost = newSiteCost;
+        target.reportWorkCost = newReportCost;
+        target.foodRatePerDay = newFoodCost;
+
+        overrides[id] = { name: newName, roleTitle: newRole, siteWorkCost: newSiteCost, reportWorkCost: newReportCost, foodRatePerDay: newFoodCost };
+        overrides[newName] = { name: newName, roleTitle: newRole, siteWorkCost: newSiteCost, reportWorkCost: newReportCost, foodRatePerDay: newFoodCost };
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('dealbyte_manpower_overrides', JSON.stringify(overrides));
+        }
+        setManpowerOverridesState({ ...overrides });
       }
       toast.success('Team member rate updated');
       queryClient.invalidateQueries({ queryKey: ['rate-cards-manpower'] });
@@ -388,6 +409,15 @@ export default function RateCardsPage() {
       setCustomTeamMembers(updated);
       if (typeof window !== 'undefined') {
         localStorage.setItem('dealbyte_custom_team_members', JSON.stringify(updated));
+      }
+      const matched = updated.find((m) => m.id === id);
+      if (matched) {
+        overrides[id] = { name: matched.name, roleTitle: matched.role, siteWorkCost: matched.siteWorkCost, reportWorkCost: matched.reportWorkCost, foodRatePerDay: matched.foodRatePerDay };
+        overrides[matched.name] = { name: matched.name, roleTitle: matched.role, siteWorkCost: matched.siteWorkCost, reportWorkCost: matched.reportWorkCost, foodRatePerDay: matched.foodRatePerDay };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('dealbyte_manpower_overrides', JSON.stringify(overrides));
+        }
+        setManpowerOverridesState({ ...overrides });
       }
       toast.success('Team member rate updated');
     }
@@ -399,17 +429,37 @@ export default function RateCardsPage() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('dealbyte_custom_team_members', JSON.stringify(updated));
     }
+    const overrides = getManpowerOverrides();
+    delete overrides[id];
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dealbyte_manpower_overrides', JSON.stringify(overrides));
+    }
+    setManpowerOverridesState({ ...overrides });
     toast.success('Team member rate deleted');
   };
 
   const handleUpdateHardware = async (id: string, updatedFields: Record<string, any>) => {
+    const overrides = getHardwareOverrides();
+
     if (id.startsWith('gw-preset-')) {
       const idx = parseInt(id.replace('gw-preset-', ''), 10);
       const target = STANDARD_EMS_GATEWAY_HARDWARE_CATALOG[idx];
       if (target) {
-        if (updatedFields.name !== undefined) target.description = updatedFields.name;
-        if (updatedFields.uom !== undefined) target.uom = updatedFields.uom;
-        if (updatedFields.unitCost !== undefined) target.unitCost = Number(updatedFields.unitCost);
+        const newName = updatedFields.name !== undefined ? updatedFields.name : target.description;
+        const newUom = updatedFields.uom !== undefined ? updatedFields.uom : target.uom;
+        const newUnitCost = updatedFields.unitCost !== undefined ? Number(updatedFields.unitCost) : target.unitCost;
+
+        target.description = newName;
+        target.name = newName;
+        target.uom = newUom;
+        target.unitCost = newUnitCost;
+
+        overrides[id] = { name: newName, description: newName, uom: newUom, unitCost: newUnitCost };
+        overrides[newName] = { name: newName, description: newName, uom: newUom, unitCost: newUnitCost };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('dealbyte_hardware_overrides', JSON.stringify(overrides));
+        }
+        setHardwareOverridesState({ ...overrides });
       }
       toast.success('Hardware item updated');
       queryClient.invalidateQueries({ queryKey: ['rate-cards-hardware'] });
@@ -417,9 +467,21 @@ export default function RateCardsPage() {
       const idx = parseInt(id.replace('el-preset-', ''), 10);
       const target = STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG[idx];
       if (target) {
-        if (updatedFields.name !== undefined) target.description = updatedFields.name;
-        if (updatedFields.uom !== undefined) target.uom = updatedFields.uom;
-        if (updatedFields.unitCost !== undefined) target.unitCost = Number(updatedFields.unitCost);
+        const newName = updatedFields.name !== undefined ? updatedFields.name : target.description;
+        const newUom = updatedFields.uom !== undefined ? updatedFields.uom : target.uom;
+        const newUnitCost = updatedFields.unitCost !== undefined ? Number(updatedFields.unitCost) : target.unitCost;
+
+        target.description = newName;
+        target.name = newName;
+        target.uom = newUom;
+        target.unitCost = newUnitCost;
+
+        overrides[id] = { name: newName, description: newName, uom: newUom, unitCost: newUnitCost };
+        overrides[newName] = { name: newName, description: newName, uom: newUom, unitCost: newUnitCost };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('dealbyte_hardware_overrides', JSON.stringify(overrides));
+        }
+        setHardwareOverridesState({ ...overrides });
       }
       toast.success('Hardware item updated');
       queryClient.invalidateQueries({ queryKey: ['rate-cards-hardware'] });
@@ -428,6 +490,15 @@ export default function RateCardsPage() {
       setCustomHardwareList(updated);
       if (typeof window !== 'undefined') {
         localStorage.setItem('dealbyte_custom_hardware_items', JSON.stringify(updated));
+      }
+      const matched = updated.find((h) => h.id === id);
+      if (matched) {
+        overrides[id] = { name: matched.name, description: matched.name, uom: matched.uom, unitCost: matched.unitCost };
+        overrides[matched.name] = { name: matched.name, description: matched.name, uom: matched.uom, unitCost: matched.unitCost };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('dealbyte_hardware_overrides', JSON.stringify(overrides));
+        }
+        setHardwareOverridesState({ ...overrides });
       }
       toast.success('Hardware item updated');
     }
@@ -439,6 +510,12 @@ export default function RateCardsPage() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('dealbyte_custom_hardware_items', JSON.stringify(updated));
     }
+    const overrides = getHardwareOverrides();
+    delete overrides[id];
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dealbyte_hardware_overrides', JSON.stringify(overrides));
+    }
+    setHardwareOverridesState({ ...overrides });
     toast.success('Hardware item deleted');
   };
 

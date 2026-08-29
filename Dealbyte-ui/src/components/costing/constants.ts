@@ -14,10 +14,43 @@ import {
   WeldingInstallationRow,
   WeldingSoftwareRow,
   CpmHardwareRow,
-  CpmCloudRow,
+  CpmOnPremiseRow,
+  CpmCloudChargeRow,
 } from './types';
 
 export const DEFAULT_CLIENT_OPTIONS = [
+  'KONE Elevator',
+  'KONE Elevators India',
+  'MRF Tyres',
+  'Panasonic Life Solutions',
+  'Tata Electronics',
+  'Knauf',
+  'Gestamp',
+  'Gestamp India',
+  'Flextronics',
+  'Solid Pro',
+  'Sags Apparels',
+  'JN Machineries',
+  'PMEL India Pvt Ltd',
+  'Velmurugan Industries',
+  'Wheels India',
+  'Whirlpool',
+  'IMOP',
+  'Lucas TVS',
+  'Polyhose',
+  'SRM IST College Campus',
+  'KPR Mill Ltd',
+  'Dash Renewable Energy',
+  'Aatral Engineering',
+  'Visalam Energy',
+  'Parekh Place India Pvt',
+  'ITC',
+  'CII',
+  'Tidel Park',
+  'Chemech',
+  'Casagrand',
+  'HT Bharani Clothing',
+  'Knauf',
   'Apollo Tyres Ltd',
   'Vishnu Cars',
   'ABT Maruti',
@@ -39,6 +72,110 @@ export const DEFAULT_CLIENT_OPTIONS = [
   'Saint-Gobain Glass',
   'TVS Motor Company',
 ];
+
+export const CLIENT_LOGOS_MAP: Record<string, string> = {
+  'apollo tyres': '/logo/Apollo Tyres.png',
+  'apollo tyres ltd': '/logo/Apollo Tyres.png',
+  'casagrand': '/logo/Casagrand-Logo1.png',
+  'chemech': '/logo/Chemech.gif',
+  'denali': '/logo/DENALI_Full_Logo.avif',
+  'denali india': '/logo/DENALI_Full_Logo.avif',
+  'dash renewable energy': '/logo/Dash Green.png',
+  'dash green': '/logo/Dash Green.png',
+  'dashrenevable energy': '/logo/Dash Green.png',
+  'flextronics': '/logo/Flextronics.svg',
+  'gestamp': '/logo/gestamlogoss1.svg',
+  'gestamp india': '/logo/gestamlogoss1.svg',
+  'ge stamp': '/logo/gestamlogoss1.svg',
+  'itc': '/logo/ITC.webp',
+  'itc limited': '/logo/ITC.webp',
+  'jn machineries': '/logo/JN Machineries.jpg',
+  'sags apparels': '/logo/Sags Apparels.svg',
+  'solid pro': '/logo/Solid Pro.svg',
+  'solidpro': '/logo/Solid Pro.svg',
+  'aatral engineering': '/logo/aatral engineering.webp',
+  'aatral': '/logo/aatral engineering.webp',
+  'blue star': '/logo/blue_star.png',
+  'blue star climatech': '/logo/blue_star.png',
+  'bluestar-climatech': '/logo/blue_star.png',
+  'cii': '/logo/cii-logoNew.png',
+  'cii-logo': '/logo/cii-logoNew.png',
+  'danfoss': '/logo/dnafoss.webp',
+  'danfoss industries ltd': '/logo/dnafoss.webp',
+  'dnafoss': '/logo/dnafoss.webp',
+  'imop': '/logo/imop.webp',
+  'kp mills': '/logo/kp Mills.png',
+  'kpr mill ltd': '/logo/kp Mills.png',
+  'kkp spinning mill': '/logo/kp Mills.png',
+  'lucas tvs': '/logo/lucastvs.webp',
+  'lucas tvs padi': '/logo/lucastvs.webp',
+  'lucas tvs -pondichery': '/logo/lucastvs.webp',
+  'lucastvs': '/logo/lucastvs.webp',
+  'parekh place india pvt': '/logo/parekhplastindiapvt.webp',
+  'parekh plast india pvt': '/logo/parekhplastindiapvt.webp',
+  'parekh place': '/logo/parekhplastindiapvt.webp',
+  'parekhplastindiapvt': '/logo/parekhplastindiapvt.webp',
+  'pmel': '/logo/pmel.webp',
+  'pmel india pvt ltd': '/logo/pmel.webp',
+  'polyhose': '/logo/polyhose.svg',
+  'srm': '/logo/srmmedicalcollege.webp',
+  'srm ist college campus': '/logo/srmmedicalcollege.webp',
+  'srm ist valliammai campus': '/logo/srmmedicalcollege.webp',
+  'srm glowguard': '/logo/srmmedicalcollege.webp',
+  'srm medical college': '/logo/srmmedicalcollege.webp',
+  'tidel park': '/logo/tidel park.png',
+  'tidlepark': '/logo/tidel park.png',
+  'knauf': '/logo/KNAUFLogo2024sRGB.png',
+  'kanuf': '/logo/KNAUFLogo2024sRGB.png',
+  'mrf': '/logo/mrf-logo.png',
+  'mrf tyres': '/logo/mrf-logo.png',
+  'panasonic': '/logo/panasonic.svg',
+  'panasonic life solutions': '/logo/panasonic.svg',
+  'tata electronics': '/logo/Tata_Electronics_Logo.jpg',
+  'tata': '/logo/Tata_Electronics_Logo.jpg',
+  'kone': '/logo/KONE.svg.png',
+  'kone elevator': '/logo/KONE.svg.png',
+  'kone elevators': '/logo/KONE.svg.png',
+  'kone elevators india': '/logo/KONE.svg.png',
+  'velmurugan': '/logo/velmurugan.webp',
+  'velmurugan industries': '/logo/velmurugan.webp',
+  'visalam energy': '/logo/visalamenergy.webp',
+  'visalamenergy': '/logo/visalamenergy.webp',
+  'wheels india': '/logo/wheelsindiapvt.webp',
+  'wheels india eepd division': '/logo/wheelsindiapvt.webp',
+  'wheels india fab unit': '/logo/wheelsindiapvt.webp',
+  'wheels india sriperampudur unit': '/logo/wheelsindiapvt.webp',
+  'wheelsindiapvt': '/logo/wheelsindiapvt.webp',
+  'whirlpool': '/logo/whirlpool.webp',
+  'whirlpool - pune': '/logo/whirlpool.webp',
+  'whirlpool - pondichery': '/logo/whirlpool.webp',
+};
+
+const normalizeClientKey = (str: string) => {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/(ltd|pvt|limited|private|industries|technologies|group|corp|india|unit|division)/g, '');
+};
+
+export const getClientPresetLogo = (name?: string | null): string | null => {
+  if (!name || typeof name !== 'string' || !name.trim()) return null;
+  const clean = name.toLowerCase().trim();
+  if (CLIENT_LOGOS_MAP[clean]) return CLIENT_LOGOS_MAP[clean];
+
+  const normTarget = normalizeClientKey(name);
+  if (!normTarget || normTarget.length < 3) return null;
+
+  for (const [key, logoPath] of Object.entries(CLIENT_LOGOS_MAP)) {
+    const normKey = normalizeClientKey(key);
+    if (normKey && normKey.length >= 3) {
+      if (normTarget === normKey || normTarget.startsWith(normKey) || normKey.startsWith(normTarget)) {
+        return logoPath;
+      }
+    }
+  }
+  return null;
+};
 
 export const PRESET_TEAM_MEMBERS: PresetTeamMember[] = [
   {
@@ -115,27 +252,67 @@ export const PRESET_TEAM_MEMBERS: PresetTeamMember[] = [
   },
 ];
 
+export interface ManpowerOverride {
+  name?: string;
+  roleTitle?: string;
+  roleLevel?: ManpowerRow['roleLevel'];
+  siteWorkCost?: number;
+  reportWorkCost?: number;
+  foodRatePerDay?: number;
+}
+
+export const getManpowerOverrides = (): Record<string, ManpowerOverride> => {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('dealbyte_manpower_overrides');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+  }
+  return {};
+};
+
 export const getActiveTeamMembers = (): PresetTeamMember[] => {
+  const overrides = getManpowerOverrides();
+  const baseMembers: PresetTeamMember[] = PRESET_TEAM_MEMBERS.map((m, idx) => {
+    const key = `mp-preset-${idx}`;
+    const override = overrides[key] || overrides[m.name];
+    if (override) {
+      return {
+        ...m,
+        name: override.name || m.name,
+        roleTitle: override.roleTitle || m.roleTitle,
+        roleLevel: override.roleLevel || m.roleLevel,
+        siteWorkCost: override.siteWorkCost !== undefined ? Number(override.siteWorkCost) : m.siteWorkCost,
+        reportWorkCost: override.reportWorkCost !== undefined ? Number(override.reportWorkCost) : m.reportWorkCost,
+        foodRatePerDay: override.foodRatePerDay !== undefined ? Number(override.foodRatePerDay) : m.foodRatePerDay,
+      };
+    }
+    return m;
+  });
+
   if (typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem('dealbyte_custom_team_members');
       if (saved) {
         const custom: any[] = JSON.parse(saved);
-        const mappedCustom: PresetTeamMember[] = custom.map((c) => ({
-          name: c.name,
-          roleLevel: c.roleLevel || 'SENIOR_ENERGY',
-          roleTitle: c.role || c.roleTitle || 'Energy Engineer',
-          siteWorkCost: Number(c.siteWorkCost) || 0,
-          reportWorkCost: Number(c.reportWorkCost) || 0,
-          foodRatePerDay: Number(c.foodRatePerDay) || 0,
-        }));
-        return [...PRESET_TEAM_MEMBERS, ...mappedCustom];
+        const mappedCustom: PresetTeamMember[] = custom.map((c) => {
+          const override = overrides[c.id] || overrides[c.name];
+          return {
+            name: override?.name || c.name,
+            roleLevel: override?.roleLevel || c.roleLevel || 'SENIOR_ENERGY',
+            roleTitle: override?.roleTitle || c.role || c.roleTitle || 'Energy Engineer',
+            siteWorkCost: override?.siteWorkCost !== undefined ? Number(override.siteWorkCost) : Number(c.siteWorkCost) || 0,
+            reportWorkCost: override?.reportWorkCost !== undefined ? Number(override.reportWorkCost) : Number(c.reportWorkCost) || 0,
+            foodRatePerDay: override?.foodRatePerDay !== undefined ? Number(override.foodRatePerDay) : Number(c.foodRatePerDay) || 0,
+          };
+        });
+        return [...baseMembers, ...mappedCustom];
       }
     } catch (e) {
       // ignore
     }
   }
-  return PRESET_TEAM_MEMBERS;
+  return baseMembers;
 };
 
 export const STANDARD_INSTRUMENT_CATALOG = [
@@ -460,6 +637,62 @@ export const STANDARD_EMS_GATEWAY_HARDWARE_CATALOG: EmsHardwareCatalogItem[] = [
   },
  
   {
+    name: 'Flanged Type Vortex Flow Meter - Pride',
+    description: 'Flanged Type Vortex Precious Flow Meter High Pressure with digital communication feasibility (RS 485)',
+    category: '1. Compressed Air Automation',
+    uom: 'Nos',
+    unitCost: 175000,
+  },
+  {
+    name: 'Gateway with Panel Board, DDC Controller & AI Insights',
+    description: 'Gateway with Panel Board, DDC Controller, I/O Module, Relay Module & services including AI-based insights, leakage identification using ultrasonic acoustic leak detector, re-verification support and IM&V support',
+    category: '1. Compressed Air Automation',
+    uom: 'Nos',
+    unitCost: 400000,
+  },
+  {
+    name: 'Energy Meter with Wall Mounting Panel',
+    description: 'Supply of Energy Meter with necessary accessories and wall mounting Panel',
+    category: '1. Compressed Air Automation',
+    uom: 'Nos',
+    unitCost: 8500,
+  },
+  {
+    name: 'Vibration Sensor - IFM',
+    description: 'Vibration Sensor for Compressors, ',
+    category: '1. Compressed Air Automation',
+    uom: 'Nos',
+    unitCost: 15000,
+  },
+  {
+    name: 'Temperature & Humidity Sensor',
+    description: 'Temperature & Humidity Sensor',
+    category: '1. Compressed Air Automation',
+    uom: 'Nos',
+    unitCost: 9800,
+  },
+  {
+    name: 'Pressure Sensor',
+    description: 'Pressure',
+    category: '1. Compressed Air Automation',
+    uom: 'Nos',
+    unitCost: 6000,
+  },
+  {
+    name: 'DP Sensor',
+    description: 'DP',
+    category: '1. Compressed Air Automation',
+    uom: 'Nos',
+    unitCost: 7500,
+  },
+  {
+    name: 'Communication & Power Cables',
+    description: 'Communication Cable (RS 485) & Power Cables',
+    category: '1. Compressed Air Automation',
+    uom: 'Job',
+    unitCost: 25000,
+  },
+  {
     name: 'Custom Gateway / IoT Hardware',
     description: 'Custom Sustainabyte Edge IoT Gateway / Sensor Hardware component',
     category: 'Sustainabyte Edge IoT Gateway Hardware',
@@ -589,6 +822,34 @@ export const STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG: EmsHardwareCatalogItem[] 
     unitCost: 92,
   },
   {
+    name: 'Flanged Type Vortex Flow Meter (CAM) - Pride',
+    description: 'Flanged Type Vortex Precious Flow Meter High Pressure with digital communication feasibility (RS 485), Make: Pride',
+    category: '2. Compressed Air Monitoring',
+    uom: 'Nos',
+    unitCost: 175000,
+  },
+  {
+    name: 'Insertion Type Thermal Mass Flow Meter - CS Instruments',
+    description: 'Insertion Type Thermal Mass Flow Meter with digital communication, ',
+    category: '2. Compressed Air Monitoring',
+    uom: 'Nos',
+    unitCost: 236800,
+  },
+  {
+    name: 'Gateway with Panel Board',
+    description: 'Gateway with Panel Board',
+    category: '2. Compressed Air Monitoring',
+    uom: 'Nos',
+    unitCost: 15000,
+  },
+  {
+    name: 'Communication Cable (RS 485) & Power Cables (CAM)',
+    description: 'Communication Cable (RS 485) & Power Cables',
+    category: '2. Compressed Air Monitoring',
+    uom: 'Job',
+    unitCost: 7500,
+  },
+  {
     name: 'Custom Electrical Accessory',
     description: 'Custom Electrical Hardware / Cable / Accessory',
     category: 'Electrical Hardware',
@@ -597,7 +858,44 @@ export const STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG: EmsHardwareCatalogItem[] 
   },
 ];
 
+export interface HardwareOverride {
+  id?: string;
+  name?: string;
+  description?: string;
+  unitCost?: number;
+  uom?: string;
+  category?: string;
+}
+
+export const getHardwareOverrides = (): Record<string, HardwareOverride> => {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('dealbyte_hardware_overrides');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+  }
+  return {};
+};
+
 export const getActiveGatewayHardwareCatalog = (): EmsHardwareCatalogItem[] => {
+  const overrides = getHardwareOverrides();
+  const baseCatalog: EmsHardwareCatalogItem[] = STANDARD_EMS_GATEWAY_HARDWARE_CATALOG.map((item, idx) => {
+    const key = `gw-preset-${idx}`;
+    const byKey = overrides[key];
+    const byDesc = overrides[item.description] || overrides[item.name];
+    const override = byKey || byDesc;
+    if (override) {
+      return {
+        ...item,
+        name: override.name || item.name,
+        description: override.description || override.name || item.description,
+        uom: override.uom || item.uom,
+        unitCost: override.unitCost !== undefined ? Number(override.unitCost) : item.unitCost,
+      };
+    }
+    return item;
+  });
+
   if (typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem('dealbyte_custom_hardware_items');
@@ -612,14 +910,32 @@ export const getActiveGatewayHardwareCatalog = (): EmsHardwareCatalogItem[] => {
             uom: c.uom || 'Nos',
             unitCost: Number(c.unitCost) || 0,
           }));
-        return [...STANDARD_EMS_GATEWAY_HARDWARE_CATALOG, ...gatewayCustom];
+        return [...baseCatalog, ...gatewayCustom];
       }
     } catch (e) {}
   }
-  return STANDARD_EMS_GATEWAY_HARDWARE_CATALOG;
+  return baseCatalog;
 };
 
 export const getActiveElectricalHardwareCatalog = (): EmsHardwareCatalogItem[] => {
+  const overrides = getHardwareOverrides();
+  const baseCatalog: EmsHardwareCatalogItem[] = STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG.map((item, idx) => {
+    const key = `el-preset-${idx}`;
+    const byKey = overrides[key];
+    const byDesc = overrides[item.description] || overrides[item.name];
+    const override = byKey || byDesc;
+    if (override) {
+      return {
+        ...item,
+        name: override.name || item.name,
+        description: override.description || override.name || item.description,
+        uom: override.uom || item.uom,
+        unitCost: override.unitCost !== undefined ? Number(override.unitCost) : item.unitCost,
+      };
+    }
+    return item;
+  });
+
   if (typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem('dealbyte_custom_hardware_items');
@@ -634,11 +950,27 @@ export const getActiveElectricalHardwareCatalog = (): EmsHardwareCatalogItem[] =
             uom: c.uom || 'Nos',
             unitCost: Number(c.unitCost) || 0,
           }));
-        return [...STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG, ...elCustom];
+        return [...baseCatalog, ...elCustom];
       }
     } catch (e) {}
   }
-  return STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG;
+  return baseCatalog;
+};
+
+export const getInitialEmsGatewayHardwareRows = (): EmsHardwareRow[] => {
+  const catalog = getActiveGatewayHardwareCatalog();
+  return INITIAL_EMS_GATEWAY_HARDWARE_ROWS.map((r) => {
+    const matched = catalog.find((c) => c.description === r.description || c.name === r.description);
+    return matched ? { ...r, unitCost: matched.unitCost, uom: matched.uom } : r;
+  });
+};
+
+export const getInitialEmsElectricalHardwareRows = (): EmsHardwareRow[] => {
+  const catalog = getActiveElectricalHardwareCatalog();
+  return INITIAL_EMS_ELECTRICAL_HARDWARE_ROWS.map((r) => {
+    const matched = catalog.find((c) => c.description === r.description || c.name === r.description);
+    return matched ? { ...r, unitCost: matched.unitCost, uom: matched.uom } : r;
+  });
 };
 
 export const INITIAL_EMS_GATEWAY_HARDWARE_ROWS: EmsHardwareRow[] = [
@@ -660,6 +992,89 @@ export const INITIAL_EMS_GATEWAY_HARDWARE_ROWS: EmsHardwareRow[] = [
     qty: 0,
     uom: 'Nos',
     unitCost: 11000,
+    marginPct: 40,
+  },
+];
+
+export const INITIAL_COMPRESSED_AIR_AUTOMATION_GATEWAY_ROWS: EmsHardwareRow[] = [
+  {
+    id: 'caa_h1_1',
+    code: '1a',
+    category: '1. Compressed Air Automation',
+    description: 'Flanged Type Vortex Precious Flow Meter High Pressure with digital communication feasibility (RS 485)',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 175000,
+    marginPct: 40,
+  },
+  {
+    id: 'caa_h1_2',
+    code: '1b',
+    category: '1. Compressed Air Automation',
+    description: 'Gateway with Panel Board, DDC Controller, I/O Module, Relay Module & services including AI-based insights, leakage identification using ultrasonic acoustic leak detector, re-verification support and IM&V support',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 400000,
+    marginPct: 40,
+  },
+  {
+    id: 'caa_h1_3',
+    code: '1c',
+    category: '1. Compressed Air Automation',
+    description: 'Supply of Energy Meter with necessary accessories and wall mounting Panel',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 8500,
+    marginPct: 40,
+  },
+  {
+    id: 'caa_h1_4',
+    code: '1d',
+    category: '1. Compressed Air Automation',
+    description: 'Vibration Sensor for Compressors',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 15000,
+    marginPct: 40,
+  },
+  {
+    id: 'caa_h1_5',
+    code: '1e',
+    category: '1. Compressed Air Automation',
+    description: 'Temperature & Humidity Sensor',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 9800,
+    marginPct: 40,
+  },
+  {
+    id: 'caa_h1_6',
+    code: '1f',
+    category: '1. Compressed Air Automation',
+    description: 'Pressure',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 6000,
+    marginPct: 40,
+  },
+  {
+    id: 'caa_h1_7',
+    code: '1g',
+    category: '1. Compressed Air Automation',
+    description: 'DP',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 7500,
+    marginPct: 40,
+  },
+  {
+    id: 'caa_h1_8',
+    code: '1h',
+    category: '1. Compressed Air Automation',
+    description: 'Communication Cable (RS 485) & Power Cables',
+    qty: 0,
+    uom: 'Job',
+    unitCost: 25000,
     marginPct: 40,
   },
 ];
@@ -697,6 +1112,49 @@ export const INITIAL_EMS_ELECTRICAL_HARDWARE_ROWS: EmsHardwareRow[] = [
   },
 ];
 
+export const INITIAL_COMPRESSED_AIR_MONITORING_ELECTRICAL_ROWS: EmsHardwareRow[] = [
+  {
+    id: 'cam_h2_1',
+    code: '2a',
+    category: '2. Compressed Air Monitoring',
+    description: 'Flanged Type Vortex Precious Flow Meter High Pressure with digital communication feasibility (RS 485),',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 175000,
+    marginPct: 40,
+  },
+  {
+    id: 'cam_h2_2',
+    code: '2b',
+    category: '2. Compressed Air Monitoring',
+    description: 'Insertion Type Thermal Mass Flow Meter with digital communication',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 236800,
+    marginPct: 40,
+  },
+  {
+    id: 'cam_h2_3',
+    code: '2c',
+    category: '2. Compressed Air Monitoring',
+    description: 'Gateway with Panel Board',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 15000,
+    marginPct: 40,
+  },
+  {
+    id: 'cam_h2_4',
+    code: '2d',
+    category: '2. Compressed Air Monitoring',
+    description: 'Communication Cable (RS 485) & Power Cables',
+    qty: 0,
+    uom: 'Job',
+    unitCost: 7500,
+    marginPct: 40,
+  },
+];
+
 export const INITIAL_EMS_MANPOWER_ROWS: ManpowerRow[] = [
   {
     id: 'ems_m1',
@@ -705,6 +1163,82 @@ export const INITIAL_EMS_MANPOWER_ROWS: ManpowerRow[] = [
     foodRatePerDay: 600,
     siteWorkCost: 6000,
     reportWorkCost: 4200,
+    siteWorkingDays: 0,
+    reportWorkingDays: 0,
+  },
+];
+
+export const INITIAL_COMPRESSED_AIR_AUTOMATION_MANPOWER_ROWS: ManpowerRow[] = [
+  {
+    id: 'caa_m1',
+    name: 'Vijayan',
+    roleLevel: 'SENIOR_ENERGY',
+    foodRatePerDay: 350,
+    siteWorkCost: 5000,
+    reportWorkCost: 0,
+    siteWorkingDays: 0,
+    reportWorkingDays: 0,
+  },
+  {
+    id: 'caa_m2',
+    name: 'Raja Prabakar',
+    roleLevel: 'IOT_ENGINEER',
+    foodRatePerDay: 350,
+    siteWorkCost: 4000,
+    reportWorkCost: 0,
+    siteWorkingDays: 0,
+    reportWorkingDays: 0,
+  },
+  {
+    id: 'caa_m3',
+    name: 'Karthikeyan',
+    roleLevel: 'JUNIOR_ENERGY',
+    foodRatePerDay: 350,
+    siteWorkCost: 3000,
+    reportWorkCost: 0,
+    siteWorkingDays: 0,
+    reportWorkingDays: 0,
+  },
+  {
+    id: 'caa_m4',
+    name: 'Jowshva',
+    roleLevel: 'IOT_ENGINEER',
+    foodRatePerDay: 350,
+    siteWorkCost: 3000,
+    reportWorkCost: 0,
+    siteWorkingDays: 0,
+    reportWorkingDays: 0,
+  },
+  {
+    id: 'caa_m5',
+    name: 'Sub contract',
+    roleLevel: 'IOT_ENGINEER',
+    foodRatePerDay: 350,
+    siteWorkCost: 6000,
+    reportWorkCost: 0,
+    siteWorkingDays: 0,
+    reportWorkingDays: 0,
+  },
+];
+
+export const INITIAL_COMPRESSED_AIR_INSTALLATION_MANPOWER_ROWS: ManpowerRow[] = [
+  {
+    id: 'cai_m1',
+    name: 'Electrical Technician',
+    roleLevel: 'CUSTOM',
+    foodRatePerDay: 350,
+    siteWorkCost: 3000,
+    reportWorkCost: 0,
+    siteWorkingDays: 0,
+    reportWorkingDays: 0,
+  },
+  {
+    id: 'cai_m2',
+    name: 'Field Specialist',
+    roleLevel: 'IOT_ENGINEER',
+    foodRatePerDay: 350,
+    siteWorkCost: 3500,
+    reportWorkCost: 0,
     siteWorkingDays: 0,
     reportWorkingDays: 0,
   },
@@ -1600,7 +2134,8 @@ export const SERVICE_CATEGORY_OPTIONS = [
 ];
 
 export const IR_BLASTER_SUB_SERVICES = [
-  'IR Blaster',
+  'Old IR Blaster',
+  'New IR Blaster',
 ];
 
 export const BMS_CATEGORY_SUB_SERVICES = [
@@ -1619,10 +2154,9 @@ export const CHILLER_MANAGEMENT_SUB_SERVICES = [
 export const ENERGY_AUDIT_SUB_SERVICES = [
   'Compressor Air Leakage rectification',
   'Compressor air leakage audit',
-  'nitrogen Gas Leakage Audit',
+  'Nitrogen Gas Leakage Audit',
   'Mixture Gas Leakage Audit',
   'Energy Audit',
-  'BMS',
   'Electrical Safety Audit',
   'Fire Safety Audit',
   'ASHRAE Level 2',
@@ -1883,44 +2417,43 @@ export const INITIAL_CPM_INSTALLATION_MANPOWER_ROWS: ManpowerRow[] = [
   },
 ];
 
-export const INITIAL_CPM_CLOUD_ROWS: CpmCloudRow[] = [
+export const INITIAL_CPM_ON_PREMISE_ROWS: CpmOnPremiseRow[] = [
   {
-    id: 'cpm_cloud_1',
-    itemDescription: 'Chiller Plant Management & AI Optimization SaaS License (Annual Cloud Platform Access)',
-    billingCycle: 'Annual',
+    id: 'cpm_onprem_1',
+    commercialLayer: 'Controller-Gateway To OptiByte Platform',
     qty: 0,
-    uom: 'Year',
-    unitCost: 120000,
+    unitCost: 100000,
     marginPct: 40,
   },
   {
-    id: 'cpm_cloud_2',
-    itemDescription: 'Cloud Server Infrastructure, Telemetry Ingestion & Time-Series DB Storage (PostgreSQL / InfluxDB)',
-    billingCycle: 'Annual',
+    id: 'cpm_onprem_2',
+    commercialLayer: 'Application / Configuration Charge',
     qty: 0,
-    uom: 'Year',
-    unitCost: 36000,
-    marginPct: 40,
-  },
-  {
-    id: 'cpm_cloud_3',
-    itemDescription: 'Industrial 4G/5G M2M Gateway IoT Data SIM Pack with Multi-Operator Roaming (Annual)',
-    billingCycle: 'Annual',
-    qty: 0,
-    uom: 'Nos/Year',
-    unitCost: 6000,
-    marginPct: 40,
-  },
-  {
-    id: 'cpm_cloud_4',
-    itemDescription: 'Automated Fault Detection & Diagnostics (FDD), KPI Reports & Instant WhatsApp / Email Alerts',
-    billingCycle: 'Annual',
-    qty: 0,
-    uom: 'Year',
-    unitCost: 18000,
+    unitCost: 100000,
     marginPct: 40,
   },
 ];
+
+export const INITIAL_CPM_CLOUD_CHARGE_ROWS: CpmCloudChargeRow[] = [
+  {
+    id: 'cpm_cld_1',
+    basis: 'Monthly',
+    calculation: 'Base cost',
+    qty: 0,
+    unitCost: 20000,
+    marginPct: 40,
+  },
+  {
+    id: 'cpm_cld_2',
+    basis: 'Annual',
+    calculation: 'Month × 12',
+    qty: 0,
+    unitCost: 240000,
+    marginPct: 40,
+  },
+];
+
+export const INITIAL_CPM_CLOUD_ROWS: any[] = [];
 
 
 
@@ -2145,6 +2678,7 @@ export const HARDWARE_SUB_SERVICES = [
   'Dew Point',
   'Flanges',
   'Flowmeter',
+  'IAQ Sensor',
   'Temperature Sensor',
 ];
 
@@ -2268,19 +2802,78 @@ IFSC: BARB0VELACH (fifth letter is ZERO)
 Bank name: Bank of Baroda
 Branch: VELACHERY BRANCH`;
 
+export const DEFAULT_IR_BLASTER_STEP5_TEXT = `Scope of Work:
+In this proposal, we will carry out the supply, installation, testing, and commissioning of Seven IR Blasters.
+
+About IR Blaster – AC Energy Solutions:
+• Turns standalone AC units into smart, connected systems.
+• Eliminates operational inconsistencies and aligns cooling with defined standards.
+• Operates on a secure, cloud-connected framework for remote configuration, logging, and diagnostics.
+• Plug & Play retrofit – No wiring required.
+• Works with major HVAC brands – compatible with split, cassette, and package AC units.
+
+Key Features:
+• Smart Alarms – Alerts for AC units left ON during idle hours.
+• Centralized Control – Manage multiple AC units from one platform.
+• Setpoint Management – Enforce temperature limits to avoid overcooling/overheating.
+• Scheduling – Automate ON/OFF based on occupancy or operating hours.
+
+Benefits:
+• 10–15% energy savings by eliminating unnecessary runtime and correcting setpoints.
+• Ensures measurable temperature discipline in line with BEE recommendations.
+• Every 1°C increase in set point can deliver 6–10% energy savings.
+• Supports Net Zero strategy by lowering HVAC-related carbon emissions.
+• Improves operational efficiency and reduces energy costs.`;
+
+export const DEFAULT_IR_BLASTER_STEP6_TEXT = `Support required from the client:
+• SPOC (Single point of Contact) for support and coordination during the installation and Commissioning phase.
+• Accessibility to each area.
+• 1 person required from the client side with knowledge of electrical routing and provide manpower support for installation.
+
+Terms and Conditions:
+• Payment schedule:
+   - Supply of hardware – 100% upfront
+   - Installation and commissioning – 50% Advance and Balance 50% After successful installation.
+• Applicable taxes and duties will be extra.
+• The timelines for execution will be mutually discussed and agreed upon during the project kick-off discussion.
+• All kinds of authority approvals, work permission, and site passes if required.
+• Secure onsite storage area and all soft integration support.
+• Any material beyond the current scope will be charged at actuals.
+
+Submitted By:
+Thanakarthik
+Founder & CEO, Sustainabyte Technologies
++91-8377007638 • thanakarthik@sustainabyte.ai
+
+Bank Account details:
+Name: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED
+Account number: 35860200000750
+IFSC: BARB0VELACH (fifth letter is ZERO)
+Bank name: Bank of Baroda
+Branch: VELACHERY BRANCH`;
+
 export const INITIAL_IOT_CONTROLS_HARDWARE_ROWS: IotControlsHardwareRow[] = [
-  { id: 'ich_1', slNo: '1a', productDescription: 'IR blaster', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_2', slNo: '1b', productDescription: 'Installation and commissioning', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_3', slNo: '2a', productDescription: 'CT', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_4', slNo: '2b', productDescription: 'Energy Meter', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_5', slNo: '2c', productDescription: 'Gateway lite', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_6', slNo: '2d', productDescription: 'Gateway pro', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_7', slNo: '2e', productDescription: 'Installation and commissioning (Cable Laying, Meter Configuration, Panel Fixing, CT connection, Gateway Configuration)', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_8', slNo: '3a', productDescription: 'Temperature sensor', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_9', slNo: '3b', productDescription: 'HVAC Controller', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_10', slNo: '3c', productDescription: 'Lighting Controller', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_11', slNo: '3d', productDescription: 'Control Panel Box(contactor,selecter switch,wiring, I/O Module)', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
-  { id: 'ich_12', slNo: '3e', productDescription: 'Installation and commisioing(Controll logic,cable laying,wiring)', quantity: 0, unitCost: 0, marginPct: 40, unitPrice: 0 },
+  { id: 'ich_1', slNo: '1', productDescription: 'IR blaster', quantity: 0, unitCost: 4500, marginPct: 40, unitPrice: 7500 },
+  { id: 'ich_2', slNo: '2', productDescription: 'Installation and commisioing', quantity: 0, unitCost: 500, marginPct: 40, unitPrice: 833.33 },
+  { id: 'ich_3', slNo: '3', productDescription: 'CT', quantity: 0, unitCost: 1500, marginPct: 40, unitPrice: 2500 },
+  { id: 'ich_4', slNo: '4', productDescription: 'Energy Meter', quantity: 0, unitCost: 5000, marginPct: 40, unitPrice: 8333.33 },
+  { id: 'ich_5', slNo: '5', productDescription: 'Gateway lite', quantity: 0, unitCost: 6000, marginPct: 40, unitPrice: 10000 },
+  { id: 'ich_6', slNo: '6', productDescription: 'Gateway pro', quantity: 0, unitCost: 11000, marginPct: 50, unitPrice: 22000 },
+  { id: 'ich_7', slNo: '7', productDescription: 'Installation and commisioing(Cable Laying ,Meter Conifguration,Panel Fixing,CT connection,Gateway Conifguration)', quantity: 0, unitCost: 3000, marginPct: 40, unitPrice: 5000 },
+  { id: 'ich_8', slNo: '8', productDescription: 'Temperature sensor', quantity: 0, unitCost: 2800, marginPct: 40, unitPrice: 4666.67 },
+  { id: 'ich_9', slNo: '9', productDescription: 'HVAC Controller', quantity: 0, unitCost: 7500, marginPct: 40, unitPrice: 12500 },
+  { id: 'ich_10', slNo: '10', productDescription: 'Lighting Controller', quantity: 0, unitCost: 7500, marginPct: 40, unitPrice: 12500 },
+  { id: 'ich_11', slNo: '11', productDescription: 'Control Panel Box(contactor,selecter switch,wiring, I/O Module)', quantity: 0, unitCost: 9000, marginPct: 40, unitPrice: 15000 },
+  { id: 'ich_12', slNo: '12', productDescription: 'Installation and commisioing(Controll logic,cable laying,wiring)', quantity: 0, unitCost: 2000, marginPct: 40, unitPrice: 3333.33 },
+];
+
+export const INITIAL_NEW_IR_BLASTER_HARDWARE_ROWS: IotControlsHardwareRow[] = [
+  { id: 'nich_1', slNo: '1', productDescription: 'IR blaster', quantity: 0, unitCost: 5000, marginPct: 40, unitPrice: 8333.33 },
+  { id: 'nich_2', slNo: '2', productDescription: 'Installation, Commissioning and M&V Charges', quantity: 0, unitCost: 800, marginPct: 40, unitPrice: 1333.33 },
+];
+
+export const INITIAL_NEW_IR_BLASTER_OPEX_ROWS: IotControlsOpexRow[] = [
+  { id: 'nico_1', slNo: '1', item: 'Annual Recurring Charge Cloud Charges', quantity: 0, unitCost: 900, marginPct: 40, unitPrice: 1500, yearlyPrice: 0, description: 'Annual cloud analytics and remote device telemetry' },
 ];
 
 export const INITIAL_IOT_CONTROLS_MANDAYS_ROWS: IotControlsMandaysRow[] = [
@@ -2297,7 +2890,10 @@ export const INITIAL_IOT_CONTROLS_TRAVEL_ROWS: IotControlsTravelRow[] = [
 ];
 
 export const INITIAL_IOT_CONTROLS_OPEX_ROWS: IotControlsOpexRow[] = [
-  { id: 'ico_1', item: 'Cloud Platform & Analytical Services', yearlyPrice: 0, description: 'Cloud infrastructure, analytics algorithms, alerting engine & automated reporting' },
+  { id: 'ico_1', slNo: '1', item: 'Cloud charges (IR Blaster)', quantity: 0, unitCost: 800, marginPct: 40, unitPrice: 1333.33, yearlyPrice: 0, description: 'Cloud infrastructure & telemetry for IR Blaster' },
+  { id: 'ico_2', slNo: '2', item: 'Cloud Charges (Energy Meter)', quantity: 0, unitCost: 1500, marginPct: 40, unitPrice: 2500, yearlyPrice: 0, description: 'Energy meter data logging & analytics' },
+  { id: 'ico_3', slNo: '3', item: 'HVAC & Lighting', quantity: 0, unitCost: 800, marginPct: 40, unitPrice: 1333.33, yearlyPrice: 0, description: 'HVAC & lighting control logic monitoring' },
+  { id: 'ico_4', slNo: '4', item: 'SIM Charges', quantity: 0, unitCost: 1800, marginPct: 40, unitPrice: 3000, yearlyPrice: 0, description: 'Annual cellular data & SIM card connectivity' },
 ];
 
 export const INITIAL_IOT_CONTROLS_ROI_STATE: IotControlsRoiState = {
@@ -2390,4 +2986,110 @@ export const addCustomSiteDistance = (siteName: string, distanceKm: number) => {
     SITE_DISTANCE_MAP[siteName] = distanceKm;
   }
 };
+
+export const DEFAULT_IAQ_SENSOR_STEP5_TEXT = `Scope of Supply & System Specifications — IAQ Sensor (Indoor Air Quality Solutions):
+In this proposal, Sustainabyte will supply and deploy advanced Indoor Air Quality (IAQ) Multi-Parameter Sensors with cloud/on-premise telemetry monitoring.
+
+About IAQ Sensor – Air Intelligence Solutions:
+• Real-time multi-gas & particulate matter sensing for occupational health, safety, and energy optimization.
+• Integrated Parameters:
+  - CO2 (Carbon Dioxide): 400 – 5000 ppm
+  - PM2.5 & PM10 (Particulate Matter): 0 – 1000 µg/m³
+  - Temperature: -10°C to +60°C
+  - Relative Humidity: 0 – 100% RH
+  - TVOC (Total Volatile Organic Compounds): 0 – 60,000 ppb
+  - Overall IAQ Index Score (0 – 100 Gauge: Excellent, Good, Moderate, Poor)
+• Communication: RS485 Modbus RTU / 4G IoT Gateway / Wi-Fi Cloud Connectivity.
+• Plug & Play deployment with pre-calibrated industrial grade sensing elements.
+
+Key Features & Dashboard Telemetry:
+• Live Air Quality Dashboard with multi-parameter telemetry tables and color-coded status badges.
+• Intelligent Threshold Alarms (SMS, Email & Webhook alerts on threshold breach).
+• HVAC Integration: Modulate fresh air dampers & ventilation systems based on real-time CO2 and VOC levels.
+• Historic Analytics & CSV Reporting for compliance reporting (WELL, LEED, OSHA & ASHRAE 62.1).`;
+
+export const DEFAULT_IAQ_SENSOR_STEP6_TEXT = `Terms and Conditions:
+1) Payment schedule: 100% payment for hardware advance against the PO.
+2) Taxes: Applicable taxes and duties will be extra (GST @ 18%).
+3) Delivery Period: Within 5-6 weeks from date of receipt of advance along with P.O.
+4) Warranty: 12 months from the date of installation or 18 months from the date of dispatch whichever is earlier.
+5) Validity of Offer: 30 days from the date of proposal submission.
+6) Installation & Support: Site access, electrical cabling provisions, and network access to be facilitated by the client.
+
+Submitted by,
+Sustainabyte Technologies Private Limited
+
+Bank Account details:
+Name: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED
+Account number: 35860200000750
+IFSC: BARB0VELACH (fifth letter is ZERO)
+Bank name: Bank of Baroda
+Branch: VELACHERY BRANCH`;
+
+export const DEFAULT_COMPRESSED_AIR_AUTOMATION_STEP5_TEXT = `Scope of Supply & Technical Specifications — Compressed Air Automation:
+Introduction:
+This scope outlines the monitoring and automation of an industrial facility, focusing on analysing plant air demand, evaluating compressor efficiency, and optimizing lead–lag sequencing to enhance performance and achieve energy savings.
+
+Compressed Air Digitalization Deliverables:
+1. Plant Demand Monitoring:
+• Flow & Demand Profile Analytics (Min, Avg, Peak CFM / m³/hr).
+• Artificial Demand & Header Pressure Stabilization.
+• Right-Sizing & Balancing Recommendations.
+
+2. Compressor Efficiency Monitoring (SEC & FAD):
+• Specific Energy Consumption (kW/100 CFM or kWh/m³).
+• Free Air Delivery (FAD) at operating pressure.
+• Merit-Order Compressor Efficiency Ranking.
+
+3. Intelligent Sequencing & Lead-Lag Optimization:
+• Automated lead-lag sequencing logic to match varying loads.
+• Unloaded running hour elimination (saving 15–30% energy).
+• Equalized run hours and narrow header pressure band (±0.1 bar).
+
+4. IoT Monitoring in HP Compressors:
+• Continuous telemetry: pressure, discharge temperature, power, vibration.
+• Real-time web dashboard analytics, alerts, and predictive health.
+
+5. Additional Scope: Ultrasonic Leakage Identification & Tagging:
+• Systematic detection (20–100 kHz) down to 0.05 mm @ 7 bar.
+• Serialized physical tagging and annualized loss quantification.
+
+6. Implementation Validation:
+• Post-rectification audit comparing baseline vs post-implementation parameters.`;
+
+export const DEFAULT_COMPRESSED_AIR_AUTOMATION_STEP6_TEXT = `Support Required from Client:
+• For HP Compressors Oil Tank Provisions for installing sensors is Danfoss Scope which requires OEM support. Sensor supply is under Sustainabyte Scope.
+• Dedicated SPOC for coordination and access approvals.
+• 1 pipeline specialist from client side to assist during flow meter tapping.
+• 1/2" Ball valve tapping points for pressure sensors and counter-flanges/gaskets for flow meters under client scope.
+• 230V AC UPS power supply point and safe onsite storage.
+• Site ladders, scaffoldings, safety caution boards, and lifts under client scope.
+
+Terms and Conditions:
+1) Offer Validity: 1 Month from quotation date.
+2) Payment Terms: 50% advance against Pro-Forma Invoice; 40% against Supply within 15 days; 10% after completion of the project.
+3) Taxes: GST @ 18% extra.
+4) Freight: Material Packing & Forwarding / Transport is Inclusive.
+5) Delivery Period: 10 to 12 Weeks from approved date of PO.
+6) Warranty for Supply: 1 year from the date of material delivery at site.
+7) Installation & Commissioning: 6 to 8 weeks after receiving materials at site.
+8) Project timelines depend on shutdowns provided for fixing sensors.
+9) Power fluctuations / voltage variations to field devices to be managed under client care.
+
+General Exclusions:
+• Site accommodation and boarding.
+• Removal and disposal of redundant equipment and materials.
+• Builders work, panel bases, wall chasing, cutting holes, and painting.
+• Provision and cost of fuel and power for installation and testing.
+
+Submitted by,
+Sustainabyte Technologies Private Limited
+
+Bank Account Details:
+Name: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED
+Account Number: 35860200000750
+IFSC: BARB0VELACH (fifth letter is ZERO)
+Bank: Bank of Baroda
+Branch: VELACHERY BRANCH`;
+
 

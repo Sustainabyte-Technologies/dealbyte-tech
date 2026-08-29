@@ -12,7 +12,7 @@ import {
   Check,
   Search,
 } from 'lucide-react';
-import { SERVICE_CATEGORY_OPTIONS } from '../constants';
+import { SERVICE_CATEGORY_OPTIONS, IR_BLASTER_SUB_SERVICES, HARDWARE_SUB_SERVICES, getClientPresetLogo } from '../constants';
 
 export interface CostingHeaderProps {
   clientName: string;
@@ -83,18 +83,11 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
     'Compressed Air Automation',
     'Water Automation',
   ],
-  dynamicIrBlasterSubServices = [
-    'IR Blaster',
-  ],
+  dynamicIrBlasterSubServices = IR_BLASTER_SUB_SERVICES,
   dynamicBmsCategorySubServices = [
     'BMS',
   ],
-  dynamicHardwareSubServices = [
-    'Dew Point',
-    'Flanges',
-    'Flowmeter',
-    'Temperature Sensor',
-  ],
+  dynamicHardwareSubServices = HARDWARE_SUB_SERVICES,
 }) => {
   const [isClientOpen, setIsClientOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
@@ -246,8 +239,15 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
             onClick={() => setIsClientOpen((prev) => !prev)}
             className="w-full px-3.5 py-2 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-300 hover:border-slate-400 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-2xs cursor-pointer flex items-center justify-between transition-all text-left"
           >
-            <div className="flex items-center gap-1.5 truncate">
-              <Building className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-2 truncate">
+              {clientName && getClientPresetLogo(clientName) ? (
+                <div className="h-5 w-6 bg-white border border-slate-200 rounded p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={getClientPresetLogo(clientName)!} alt={clientName} className="max-h-full max-w-full object-contain" />
+                </div>
+              ) : (
+                <Building className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              )}
               <span className="truncate">{clientName || 'Select Client...'}</span>
             </div>
             <ChevronDown
@@ -280,6 +280,7 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
                 ) : (
                   filteredClients.map((c) => {
                     const isSelected = clientName === c;
+                    const cLogo = getClientPresetLogo(c);
                     return (
                       <button
                         key={c}
@@ -289,14 +290,24 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
                           setIsClientOpen(false);
                           setClientSearch('');
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold text-left transition-colors cursor-pointer ${
+                        className={`w-full px-2.5 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-between gap-2 text-left transition-colors cursor-pointer ${
                           isSelected
                             ? 'bg-indigo-50 text-indigo-700 font-bold'
-                            : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                            : 'text-slate-700 hover:bg-slate-50'
                         }`}
                       >
-                        <span className="truncate">{c}</span>
-                        {isSelected && <Check className="h-3.5 w-3.5 text-indigo-600 shrink-0 ml-1.5" />}
+                        <div className="flex items-center gap-2 truncate">
+                          {cLogo ? (
+                            <div className="h-5 w-6 bg-white border border-slate-200 rounded p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={cLogo} alt={c} className="max-h-full max-w-full object-contain" />
+                            </div>
+                          ) : (
+                            <Building className="h-3 w-3 text-slate-400 shrink-0" />
+                          )}
+                          <span className="truncate">{c}</span>
+                        </div>
+                        {isSelected && <Check className="h-3.5 w-3.5 text-indigo-600 shrink-0" />}
                       </button>
                     );
                   })
@@ -325,7 +336,7 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
               } else if (category === 'Automation') {
                 setSubServiceOption('Compressed Air Automation');
               } else if (category === 'IR Blaster') {
-                setSubServiceOption('IR Blaster');
+                setSubServiceOption('Old IR Blaster');
               } else if (category === 'BMS') {
                 setSubServiceOption('BMS');
               } else if (category === 'Hardware') {

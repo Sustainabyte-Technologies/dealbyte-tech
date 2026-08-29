@@ -1,6 +1,14 @@
 'use client';
 
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { costingApi } from '@/lib/api/costing';
+import {
+  INITIAL_CPM_HARDWARE_ROWS,
+  INITIAL_CPM_ELECTRICAL_ROWS,
+  INITIAL_CPM_ON_PREMISE_ROWS,
+  INITIAL_CPM_CLOUD_CHARGE_ROWS,
+} from '@/components/costing/constants';
 
 interface CpmProposalPagesProps {
   deal: any;
@@ -9,16 +17,18 @@ interface CpmProposalPagesProps {
   proposalDate: string;
   finalPrice: number;
   formatCurrency: (amount: number) => string;
+  costingSheet?: any;
 }
 
-export function CpmProposalPages({
-  deal,
-  proposal,
-  proposalRef,
-  proposalDate,
-  finalPrice,
-  formatCurrency,
-}: CpmProposalPagesProps) {
+export function CpmProposalPages(props: CpmProposalPagesProps) {
+  const {
+    deal,
+    proposal,
+    proposalRef,
+    proposalDate,
+    finalPrice,
+    formatCurrency,
+  } = props;
   const totalPages = 8;
 
   const PageHeader = ({ subtitle = 'Central Plant Monitoring (CPM) System Proposal' }: { subtitle?: string }) => (
@@ -114,6 +124,237 @@ export function CpmProposalPages({
     'Vashi Integrated Solutions Limited',
     'Ahlstrom Fiber Composite Pvt Ltd',
   ];
+
+  // Dynamically fetch and resolve the client's current saved costing sheet
+  const clientName = deal?.clientName || (proposal as any)?.clientName || proposal?.quote?.deal?.clientName;
+
+  const { data: dbCostingSheet } = useQuery({
+    queryKey: ['cpm-proposal-costing-sheet', clientName],
+    queryFn: async () => {
+      if (!clientName) return null;
+      try {
+        const sheets = await costingApi.getSheets({ clientName });
+        if (sheets && sheets.length > 0) {
+          const cpm = sheets.find(
+            (s: any) =>
+              s.isCpm ||
+              s.subService?.toLowerCase().includes('cpm') ||
+              s.subService?.toLowerCase().includes('chiller') ||
+              s.serviceCategory?.toLowerCase().includes('chiller')
+          );
+          if (cpm) return cpm;
+          return sheets[0];
+        }
+      } catch (e) {
+        console.error('Error fetching costing sheets for proposal', e);
+      }
+      return null;
+    },
+    staleTime: 30000,
+  });
+
+  const costingSheet =
+    props.costingSheet ||
+    (proposal as any)?.costingSheet ||
+    (proposal as any)?.costing_sheet ||
+    (proposal as any)?.costingData ||
+    (proposal as any)?.costing_data ||
+    (proposal as any)?.quote?.costingSheet ||
+    (deal as any)?.costingSheet ||
+    (deal as any)?.quote?.costingSheet ||
+    dbCostingSheet ||
+    {};
+
+  const calcRowPrice = (unitCost: number, marginPct: number = 40): number => {
+    if (marginPct >= 100) return unitCost * 2;
+    return Math.round(unitCost / Math.max(0.01, (100 - marginPct) / 100));
+  };
+
+  // Step 1: Hardware Capex Matrix
+  const rawHwRows: any[] = costingSheet.cpmHardwareRows || costingSheet.instrumentRows?.cpmHardwareRows || [];
+  const activeHwRows = rawHwRows.filter((r) => Number(r.qty || 0) > 0);
+
+  // Step 2: Electrical Consumables
+  const rawElecRows: any[] = costingSheet.cpmElectricalRows || costingSheet.instrumentRows?.cpmElectricalRows || [];
+  const activeElecRows = rawElecRows.filter((r) => Number(r.qty || 0) > 0);
+
+  // Step 4: Installation Charges
+  const instPrice = Number(
+    costingSheet.cpmInstManpowerTotalPrice ||
+    costingSheet.totalInstallationCost ||
+    costingSheet.cpmInstallationTotalPrice ||
+    costingSheet.cpmInstManpowerTotalCost ||
+    0
+  );
+
+  // Step 3: Testing & Commissioning
+  const commPrice = Number(
+    costingSheet.cpmCommissioningTotalPrice ||
+    costingSheet.totalCommissioningCost ||
+    costingSheet.cpmCommissioningTotalCost ||
+    0
+  );
+
+  // Step 6: Software & Cloud Charges
+  const rawCloudRows: any[] = costingSheet.cpmCloudChargeRows || costingSheet.cpmCloudRows || [];
+  const activeCloudRows = rawCloudRows.filter((r) => Number(r.qty || 0) > 0);
+  const cloudPrice = Number(costingSheet.cpmCloudChargeTotalPrice || costingSheet.totalCloudCost || costingSheet.cpmCloudTotalPrice || 0);
+
+  // Step 5: On-Premise Application Charges
+  const rawOnPremiseRows: any[] = costingSheet.cpmOnPremiseRows || [];
+  const activeOnPremiseRows = rawOnPremiseRows.filter((r) => Number(r.qty || 0) > 0);
+  const onPremisePrice = Number(costingSheet.cpmOnPremiseTotalPrice || costingSheet.totalOnPremiseCost || 0);
+
+  interface ProposalCommercialRow {
+    description: string;
+    count: string | number;
+    unit: string;
+    cost: number;
+  }
+
+  const commercialItems: ProposalCommercialRow[] = [];
+
+  // Add Step 1 Hardware Items
+  activeHwRows.forEach((r) => {
+    const unitPrice = r.unitPrice ? Number(r.unitPrice) : calcRowPrice(Number(r.unitCost || 0), Number(r.marginPct ?? 40));
+    const totalRowPrice = Math.round(Number(r.qty || 1) * unitPrice);
+    commercialItems.push({
+      description: r.brand ? `${r.itemDescription} (${r.brand})` : r.itemDescription,
+      count: r.qty,
+      unit: r.uom || 'Nos',
+      cost: totalRowPrice,
+    });
+  });
+
+  // Add Step 2 Electrical Consumables
+  activeElecRows.forEach((r) => {
+    const unitPrice = r.unitPrice ? Number(r.unitPrice) : calcRowPrice(Number(r.unitCost || 0), Number(r.marginPct ?? 40));
+    const totalRowPrice = Math.round(Number(r.qty || 1) * unitPrice);
+    commercialItems.push({
+      description: r.brand ? `${r.itemDescription} (${r.brand})` : r.itemDescription,
+      count: r.qty,
+      unit: r.uom || 'Mtr',
+      cost: totalRowPrice,
+    });
+  });
+
+  // Add Step 4 Installation Charges
+  if (instPrice > 0) {
+    commercialItems.push({
+      description: 'Installation Charges',
+      count: '',
+      unit: '',
+      cost: instPrice,
+    });
+  }
+
+  // Add Step 3 Testing & Commissioning
+  if (commPrice > 0) {
+    commercialItems.push({
+      description: 'Testing & Commissioning',
+      count: '',
+      unit: '',
+      cost: commPrice,
+    });
+  }
+
+  // Add Step 6 Cloud & Software Subscriptions
+  if (activeCloudRows.length > 0) {
+    activeCloudRows.forEach((r) => {
+      const unitPrice = r.unitPrice ? Number(r.unitPrice) : calcRowPrice(Number(r.unitCost || 0), Number(r.marginPct ?? 40));
+      const totalRowPrice = Math.round(Number(r.qty || 1) * unitPrice);
+      commercialItems.push({
+        description: (r as any).component || (r.basis ? `Cloud & Software Subscription (${r.basis})` : 'Software cost / Cloud Charges'),
+        count: r.qty || '',
+        unit: (r as any).uom || 'Subscription',
+        cost: totalRowPrice,
+      });
+    });
+  } else if (cloudPrice > 0) {
+    commercialItems.push({
+      description: 'Software cost',
+      count: '',
+      unit: '',
+      cost: cloudPrice,
+    });
+  }
+
+  // Add Step 5 On-Premise Application Cost
+  if (activeOnPremiseRows.length > 0) {
+    activeOnPremiseRows.forEach((r) => {
+      const unitPrice = r.unitPrice ? Number(r.unitPrice) : calcRowPrice(Number(r.unitCost || 0), Number(r.marginPct ?? 40));
+      const totalRowPrice = Math.round(Number(r.qty || 1) * unitPrice);
+      commercialItems.push({
+        description: (r as any).commercialLayer || (r as any).itemDescription || 'Application / Configuration Cost',
+        count: r.qty || '',
+        unit: (r as any).uom || 'Platform',
+        cost: totalRowPrice,
+      });
+    });
+  } else if (onPremisePrice > 0) {
+    commercialItems.push({
+      description: 'Application Cost',
+      count: '',
+      unit: '',
+      cost: onPremisePrice,
+    });
+  }
+
+  // Add 3% Packaging Charges if calculated in costing
+  const cpmHardware3PctPrice = Number(costingSheet.cpmHardware3PctPrice || 0);
+  if (cpmHardware3PctPrice > 0) {
+    commercialItems.push({
+      description: 'Packaging Charges (3% of Total Hardware & Consumables)',
+      count: 1,
+      unit: 'Lot',
+      cost: cpmHardware3PctPrice,
+    });
+  }
+
+  // Add Negotiation Buffer if present
+  const cpmBufferAmount = Number(costingSheet.cpmBufferAmount || costingSheet.bufferAmount || 0);
+  if (cpmBufferAmount > 0) {
+    commercialItems.push({
+      description: `Negotiation & Contingency Buffer (${costingSheet.bufferPct || 10}%)`,
+      count: '',
+      unit: '',
+      cost: cpmBufferAmount,
+    });
+  }
+
+  // Dynamic Fallback Rows computed directly from Master CPM Costing Catalog Models & Formulas
+  const fallbackCommercialItems: ProposalCommercialRow[] = [
+    ...INITIAL_CPM_HARDWARE_ROWS.map((r) => ({
+      description: r.itemDescription,
+      count: r.qty > 0 ? r.qty : 1,
+      unit: r.uom || 'Nos',
+      cost: Math.round((r.qty > 0 ? r.qty : 1) * calcRowPrice(r.unitCost, r.marginPct ?? 40)),
+    })),
+    ...INITIAL_CPM_ELECTRICAL_ROWS.map((r) => ({
+      description: r.itemDescription,
+      count: r.qty > 0 ? r.qty : (r.uom === 'Mtr' ? 100 : 1),
+      unit: r.uom || 'Mtr',
+      cost: Math.round((r.qty > 0 ? r.qty : (r.uom === 'Mtr' ? 100 : 1)) * calcRowPrice(r.unitCost, r.marginPct ?? 40)),
+    })),
+    { description: 'Installation Charges', count: '', unit: '', cost: 45000 },
+    { description: 'Testing & Commissioning', count: '', unit: '', cost: 120000 },
+    ...INITIAL_CPM_CLOUD_CHARGE_ROWS.map((r) => ({
+      description: r.basis ? `Cloud & Software Subscription (${r.basis})` : 'Software cost',
+      count: r.qty > 0 ? r.qty : '',
+      unit: 'Subscription',
+      cost: Math.round((r.qty > 0 ? r.qty : 1) * calcRowPrice(r.unitCost, r.marginPct ?? 40)),
+    })),
+    ...INITIAL_CPM_ON_PREMISE_ROWS.map((r) => ({
+      description: r.commercialLayer || 'Application Cost',
+      count: r.qty > 0 ? r.qty : '',
+      unit: 'Platform',
+      cost: Math.round((r.qty > 0 ? r.qty : 1) * calcRowPrice(r.unitCost, r.marginPct ?? 40)),
+    })),
+  ];
+
+  const displayCommercialItems = commercialItems.length > 0 ? commercialItems : fallbackCommercialItems;
+  const calculatedCommercialTotal = displayCommercialItems.reduce((sum, item) => sum + item.cost, 0);
+  const displayFinalTotal = finalPrice && finalPrice > 0 ? finalPrice : calculatedCommercialTotal;
 
   return (
     <>
@@ -248,44 +489,52 @@ export function CpmProposalPages({
               Annexure – I: Commercial Investment (Current CPM Cost)
             </h3>
 
-            {/* Commercials Table */}
-            <div className="border border-slate-900 rounded-xl overflow-hidden text-xs shadow-xs mb-3">
-              <table className="w-full text-left">
-                <thead className="bg-slate-900 text-white font-extrabold text-[10.5px] tracking-wide">
-                  <tr>
-                    <th className="py-2 px-3 text-center w-12">S.No</th>
-                    <th className="py-2 px-4 w-3/5">Scope Description</th>
-                    <th className="py-2 px-3 text-center">Delivery Period</th>
-                    <th className="py-2 px-4 text-right w-36">Customer Price (INR)</th>
+            {/* Commercials Table matching user image */}
+            <div className="border border-slate-900 rounded-md overflow-hidden text-xs shadow-xs mb-3">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  {/* Plant 1 Top Header Row */}
+                  <tr className="border-b border-slate-900 bg-slate-100 text-slate-900 font-black text-center text-xs">
+                    <th colSpan={4} className="py-1 px-3 uppercase tracking-wider text-center font-black text-xs">
+                      {deal?.projectName || deal?.clientName || 'Plant 1'}
+                    </th>
+                  </tr>
+                  {/* Column Headers */}
+                  <tr className="border-b border-slate-900 bg-white font-extrabold text-[11px] text-slate-900">
+                    <th className="py-1.5 px-3 border-r border-slate-900 text-left font-extrabold">Description</th>
+                    <th className="py-1.5 px-2 border-r border-slate-900 text-center w-16 font-extrabold">Count</th>
+                    <th className="py-1.5 px-2 border-r border-slate-900 text-center w-16 font-extrabold">Unit</th>
+                    <th className="py-1.5 px-3 text-right w-28 font-extrabold">Cost</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 text-slate-800 text-xs">
-                  <tr className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-2.5 px-3 text-center font-bold text-slate-700 align-top">1</td>
-                    <td className="py-2.5 px-4 font-semibold text-slate-900 leading-relaxed align-top">
-                      <p className="font-bold text-slate-950 text-xs mb-0.5">
-                        Central Plant Monitoring (CPM) System &amp; Chiller Automation
-                      </p>
-                      <p className="text-[10px] text-slate-600 font-normal leading-relaxed">
-                        Complete turn-key supply: Server PC / Workstation with 21&quot; Colour Monitor, Sensor package (RTD, Pressure transmitters, Flow Switches), DDC Controller Panels with I/O modules, Shielded twisted-pair RS-485 cable, GI Cable Trays (300mm &amp; 100mm), PVC conduit &amp; flexible hoses, installation charges, testing &amp; commissioning, software licenses, and cloud application charges.
-                      </p>
+                <tbody className="divide-y divide-slate-300 text-slate-900 text-[10px]">
+                  {displayCommercialItems.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50/70">
+                      <td className="py-1 px-3 border-r border-slate-900 font-medium text-slate-900 leading-tight">
+                        {item.description}
+                      </td>
+                      <td className="py-1 px-2 border-r border-slate-900 text-center font-bold text-slate-800">
+                        {item.count !== undefined && item.count !== null && item.count !== 0 ? item.count : ''}
+                      </td>
+                      <td className="py-1 px-2 border-r border-slate-900 text-center font-medium text-slate-700">
+                        {item.unit || ''}
+                      </td>
+                      <td className="py-1 px-3 text-right font-mono font-bold text-slate-950">
+                        {formatCurrency(item.cost).replace('₹', '').trim()}
+                      </td>
+                    </tr>
+                  ))}
+                  {/* Total Row */}
+                  <tr className="border-t-2 border-slate-900 font-black bg-slate-100 text-xs">
+                    <td colSpan={3} className="py-1.5 px-4 text-center uppercase tracking-wider font-black border-r border-slate-900">
+                      Total
                     </td>
-                    <td className="py-2.5 px-3 text-center font-medium text-slate-700 align-top text-xs">
-                      10–12 Weeks
-                    </td>
-                    <td className="py-2.5 px-4 text-right font-black text-slate-950 text-sm align-top">
-                      {formatCurrency(finalPrice)}
+                    <td className="py-1.5 px-3 text-right font-black font-mono text-slate-950 text-xs">
+                      {formatCurrency(displayFinalTotal).replace('₹', '').trim()}
                     </td>
                   </tr>
                 </tbody>
               </table>
-
-              <div className="bg-slate-900 text-white p-2.5 px-5 flex justify-between items-center font-extrabold text-xs sm:text-sm">
-                <span className="tracking-wide uppercase text-xs">TOTAL COMMERCIAL INVESTMENT</span>
-                <span className="text-emerald-400 text-base sm:text-lg font-black tracking-tight">
-                  {formatCurrency(finalPrice)}
-                </span>
-              </div>
             </div>
           </div>
 
@@ -342,47 +591,37 @@ export function CpmProposalPages({
 
       {/* ── PAGE 4: ANNEXURE III — TERMS & CONDITIONS & COMMERCIAL CONDITIONS ── */}
       <PageShell pageNum={4} subtitle="Annexure – III: Terms, Commercial Conditions & Basis of Offer">
-        <div className="space-y-2.5 text-slate-900 text-left font-normal text-[10px] leading-relaxed">
+        <div className="space-y-4 text-slate-900 text-left font-normal text-[11px] leading-relaxed">
           <div>
-            <h3 className="font-bold text-slate-950 underline underline-offset-4 decoration-2 decoration-slate-900 text-xs mb-1.5">
+            <h3 className="font-bold text-slate-950 underline underline-offset-4 decoration-2 decoration-slate-900 text-sm mb-3">
               Terms &amp; Conditions:
             </h3>
-            <div className="grid grid-cols-2 gap-2 text-[9.5px]">
-              <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 space-y-1">
-                <p><strong>1) Offer Validity:</strong> One Month from date of issue.</p>
-                <p><strong>2) Payment Terms:</strong> 50% advance against Pro-Forma Invoice, 40% against Supply within 15 days, and 10% after completion of the project.</p>
-                <p><strong>3) Taxes:</strong> As per GST @ 18% (Material Packing &amp; Forwarding / Transport: Inclusive).</p>
-                <p><strong>4) Delivery:</strong> 10 to 12 Weeks from approved PO and Design Document.</p>
+            <div className="space-y-2.5 text-slate-800 text-[11px] leading-relaxed">
+              <p>1) Offer Validity: One Month (30 Days)</p>
+              <div>
+                <p>2) Payment Terms:</p>
+                <div className="pl-6 space-y-1 text-slate-700">
+                  <p>• 50% advance against Pro-Forma Invoice</p>
+                  <p>• 40% against Supply within 15 days</p>
+                  <p>• 10% after completion of the project</p>
+                </div>
               </div>
-              <div className="bg-slate-50 p-2 rounded-lg border border-slate-200 space-y-1">
-                <p><strong>5) Warranty for Supply:</strong> 1 year from the date of material delivery at site.</p>
-                <p><strong>6) Power Fluctuations:</strong> Input voltage protection for field devices in customer scope.</p>
-                <p><strong>7) Environmental:</strong> Customer responsible for external site damage/environment.</p>
-                <p><strong>8) Commissioning:</strong> Completed 5 to 6 weeks after receiving material at site.</p>
-              </div>
+              <p>3) Taxes: As per GST @ 18% (Material Packing &amp; Forwarding / Transport: Inclusive).</p>
+              <p>4) Delivery: 10 to 12 Weeks from the approved date of PO and Design Document by Customer as per site requirement.</p>
+              <p>5) Warranty for Supply: 1 year from the date of Delivery of the material at site.</p>
+              <p>6) If any Power fluctuations / variations for input voltage to Field devices / controllers, device failure is in customer scope.</p>
+              <p>7) For any environmental effects, damages of devices / controller failure customer is responsible.</p>
+              <p>8) 5 to 6 weeks after receiving the materials at site Installation &amp; Commissioning will be completed.</p>
             </div>
           </div>
 
-          <div className="space-y-1 border-t border-slate-200 pt-1.5">
-            <h4 className="font-bold text-slate-950 text-[10.5px]">Commercial &amp; Operating Clauses:</h4>
-            <div className="space-y-1 text-slate-700 text-[9px] leading-relaxed">
-              <p><strong>Price Basis:</strong> The price quoted is in accordance with the man basis as per working days approved by client. Any statutory changes in taxes/duties during contractual period will be charged extra. Valid for 30 days.</p>
-              <p><strong>Exclusion of Work:</strong> Any kind of Civil, Carpentry, and Plumbing &amp; Electrical works required to the mains of power supply system.</p>
-              <p><strong>Delay in Payment:</strong> Timely receipt of payment is the essence of this contract. Delay constitutes ground for schedule extension and 18% p.a. interest on delayed amounts.</p>
-              <p><strong>Order Cancellation:</strong> Customer liable to pay 5% of project price as penalty. If cancelled at advance stage, actual losses incurred shall be reimbursed.</p>
-              <p><strong>Storage at Site:</strong> The customer shall make available proper, weatherproof, locked storage space for materials during execution.</p>
-              <p><strong>Force Majeure:</strong> Neither party liable for delays caused by Act of God, fire, epidemic, riots, war, strikes, or lockout.</p>
-            </div>
-          </div>
-
-          <div className="space-y-1 border-t border-slate-200 pt-1.5">
-            <h4 className="font-bold text-slate-950 text-[10.5px]">Basis of Offer &amp; General Exclusions:</h4>
-            <div className="space-y-0.5 text-slate-700 text-[9px] leading-relaxed">
-              <p>• UPS Power point, LAN point, static IP, and electricity shall be provided by client.</p>
-              <p>• Ducting, false ceiling, civil, welding, and plumbing works are excluded.</p>
-              <p>• Ladders, scaffoldings, safety walls, cautions boards, and material lifts in customer scope.</p>
-              <p>• Site accommodation, removal of redundant equipment, and builder work are excluded.</p>
-            </div>
+          <div className="pt-3 border-t border-slate-200 space-y-1.5">
+            <h4 className="font-bold text-slate-950 text-xs underline underline-offset-4">
+              Limitation to Liability:
+            </h4>
+            <p className="text-slate-700 text-[10.5px] leading-relaxed">
+              The maximum liability of the Seller for any and all claims, losses, damages, costs and expenses arising from or in connection with this Agreement shall not exceed the amounts actually received by the Seller under this Agreement.
+            </p>
           </div>
         </div>
       </PageShell>
@@ -541,11 +780,11 @@ export function CpmProposalPages({
               Team Expertise &amp; Enterprise Clients (42 References):
             </h3>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 text-[8.5px]">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-5 gap-y-1.5 text-[9.5px] py-1">
               {allClients.map((client, idx) => (
-                <div key={idx} className="bg-slate-50 p-1 rounded border border-slate-200 flex items-center gap-1">
-                  <span className="text-[8px] font-bold text-emerald-700 w-4 shrink-0">{idx + 1}.</span>
-                  <span className="font-semibold text-slate-800 truncate" title={client}>{client}</span>
+                <div key={idx} className="flex items-center gap-2 text-slate-800">
+                  <span className="font-bold text-slate-900 w-5 shrink-0 text-right text-[10px]">{idx + 1}.</span>
+                  <span className="truncate font-medium text-slate-900" title={client}>{client}</span>
                 </div>
               ))}
             </div>

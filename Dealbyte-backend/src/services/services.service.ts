@@ -2,17 +2,27 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateServiceDto, UpdateServiceDto } from './dto';
 
 @Injectable()
-export class ServicesService {
+export class ServicesService implements OnModuleInit {
   constructor(private prisma: PrismaService) {}
+
+  async onModuleInit() {
+    try {
+      await this.prisma.service.updateMany({
+        where: { name: 'nitrogen Gas Leakage Audit' },
+        data: { name: 'Nitrogen Gas Leakage Audit' },
+      });
+    } catch {}
+  }
 
   async findAll(category?: string) {
     const where = category ? { category } : {};
-    return this.prisma.service.findMany({
+    const list = await this.prisma.service.findMany({
       where,
       orderBy: { name: 'asc' },
       include: {
@@ -21,6 +31,10 @@ export class ServicesService {
         },
       },
     });
+    return list.map((s) => ({
+      ...s,
+      name: s.name === 'nitrogen Gas Leakage Audit' ? 'Nitrogen Gas Leakage Audit' : s.name,
+    }));
   }
 
   async findOne(id: string) {

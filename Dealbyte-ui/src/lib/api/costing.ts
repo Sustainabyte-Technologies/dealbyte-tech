@@ -41,6 +41,8 @@ export interface SaveCostingTemplateInput {
   cpmInstallationRows?: any[];
   cpmInstallationManpowerRows?: any[];
   cpmCloudRows?: any[];
+  cpmOnPremiseRows?: any[];
+  cpmCloudChargeRows?: any[];
   roundingNearest?: number;
 }
 
@@ -86,6 +88,8 @@ export interface CostingSheetItem {
   cpmInstallationRows?: any[];
   cpmInstallationManpowerRows?: any[];
   cpmCloudRows?: any[];
+  cpmOnPremiseRows?: any[];
+  cpmCloudChargeRows?: any[];
   roundingNearest?: number;
   client?: any;
   service?: any;
@@ -134,6 +138,8 @@ export interface SaveCostingSheetInput {
   cpmInstallationRows?: any[];
   cpmInstallationManpowerRows?: any[];
   cpmCloudRows?: any[];
+  cpmOnPremiseRows?: any[];
+  cpmCloudChargeRows?: any[];
   roundingNearest?: number;
 }
 

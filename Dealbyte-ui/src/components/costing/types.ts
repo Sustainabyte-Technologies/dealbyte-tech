@@ -160,7 +160,12 @@ export interface IotControlsTravelRow {
 
 export interface IotControlsOpexRow {
   id: string;
+  slNo?: string | number;
   item: string;
+  quantity?: number;
+  unitCost?: number;
+  marginPct?: number;
+  unitPrice?: number;
   yearlyPrice: number;
   description: string;
 }
@@ -191,6 +196,25 @@ export interface CpmHardwareRow {
   marginPct: number;
 }
 
+export interface CpmOnPremiseRow {
+  id: string;
+  slNo?: number;
+  commercialLayer: string;
+  qty: number;
+  unitCost: number;
+  marginPct: number;
+}
+
+export interface CpmCloudChargeRow {
+  id: string;
+  slNo?: number;
+  basis: string;
+  calculation: string;
+  qty: number;
+  unitCost: number;
+  marginPct: number;
+}
+
 export interface CpmCloudRow {
   id: string;
   itemDescription: string;
@@ -200,5 +224,6 @@ export interface CpmCloudRow {
   unitCost: number;
   marginPct: number;
 }
+
 
 

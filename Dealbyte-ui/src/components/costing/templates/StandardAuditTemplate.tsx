@@ -621,7 +621,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                     >
                       {STANDARD_INSTRUMENT_CATALOG.map((inst) => (
                         <option key={inst.name} value={inst.name}>
-                          {inst.name} (₹{inst.rentalCost}/day)
+                          {inst.name}
                         </option>
                       ))}
                       {!STANDARD_INSTRUMENT_CATALOG.some((i) => i.name === row.name) && (
@@ -721,7 +721,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                     <option value="" disabled>+ Quick Add Mapped Instrument...</option>
                     {STANDARD_INSTRUMENT_CATALOG.map((inst) => (
                       <option key={inst.name} value={inst.name}>
-                        {inst.name} (₹{inst.rentalCost}/day)
+                        {inst.name}
                       </option>
                     ))}
                   </select>

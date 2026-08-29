@@ -61,6 +61,12 @@ export interface EmsCostingTemplateProps extends AirAuditManpowerEngineProps {
   resetEmsDefaults: () => void;
   roundingNearest?: number;
   setRoundingNearest?: (val: number) => void;
+  airAutoManpowerProps?: AirAuditManpowerEngineProps;
+  airAutoManpowerTotalCost?: number;
+  airAutoManpowerTotalPrice?: number;
+  airInstManpowerProps?: AirAuditManpowerEngineProps;
+  airInstManpowerTotalCost?: number;
+  airInstManpowerTotalPrice?: number;
 }
 
 export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => {
@@ -135,6 +141,16 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
     }));
   }, []);
 
+  const isCompressedAirAutomation =
+    (activeSubServiceName || '').toLowerCase().includes('compressed air automation') ||
+    (activeSubServiceName || '').toLowerCase().includes('air automation');
+
+  const isCompressedAirMonitoring =
+    !isCompressedAirAutomation && (
+      (activeSubServiceName || '').toLowerCase().includes('compressed air monitoring') ||
+      (activeSubServiceName || '').toLowerCase().includes('air monitoring')
+    );
+
   // 1. Gateway Hardware (1a)
   const item1a = emsGatewayHardwareRows[0];
   const item1Cost = item1a ? item1a.qty * item1a.unitCost : 0;
@@ -173,6 +189,17 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
   const item4Qty = 1;
   const item4Uom = 'Nodes';
 
+  // Compressed Air Automation specific Automation vs Installation Mandays
+  const autoCost = props.airAutoManpowerTotalCost !== undefined ? props.airAutoManpowerTotalCost : props.emsManpowerTotalCost;
+  const autoPrice = props.airAutoManpowerTotalPrice !== undefined ? props.airAutoManpowerTotalPrice : props.emsManpowerTotalPrice;
+  const autoContingency = Math.round(autoPrice / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const autoRounded = roundToNearest(autoContingency, roundingNearest);
+
+  const instCost = props.airInstManpowerTotalCost !== undefined ? props.airInstManpowerTotalCost : props.emsManpowerTotalCost;
+  const instPrice = props.airInstManpowerTotalPrice !== undefined ? props.airInstManpowerTotalPrice : props.emsManpowerTotalPrice;
+  const instContingency = Math.round(instPrice / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const instRounded = roundToNearest(instContingency, roundingNearest);
+
   // 5. Platform Setup Costing
   const item5Cost = emsPlatformTotalCost;
   const item5Price = emsPlatformTotalPrice;
@@ -194,75 +221,155 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
   const item6Qty = emsRecurringRows[1]?.qty || emsRecurringRows[0]?.qty || 1;
   const item6Uom = emsRecurringRows[1]?.uom || emsRecurringRows[0]?.uom || 'Nodes';
 
-  // Consolidated 6 Items for Step 5 Summary Table
-  const step5Items = [
-    {
-      sNo: 1,
-      description: item1a?.description || 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Pro',
-      qty: item1a?.qty || 0,
-      uom: item1a?.uom || 'Nos',
-      cost: item1Cost,
-      price: item1Price,
-      contingency: item1Contingency,
-      rounded: item1Rounded,
-      isRecurring: false,
-    },
-    {
-      sNo: 2,
-      description: item2Description,
-      qty: item2Qty,
-      uom: item2Uom,
-      cost: item2Cost,
-      price: item2Price,
-      contingency: item2Contingency,
-      rounded: item2Rounded,
-      isRecurring: false,
-    },
-    {
-      sNo: 3,
-      description: item3Description,
-      qty: item3Qty,
-      uom: item3Uom,
-      cost: item3Cost,
-      price: item3Price,
-      contingency: item3Contingency,
-      rounded: item3Rounded,
-      isRecurring: false,
-    },
-    {
-      sNo: 4,
-      description: item4Description,
-      qty: item4Qty,
-      uom: item4Uom,
-      cost: item4Cost,
-      price: item4Price,
-      contingency: item4Contingency,
-      rounded: item4Rounded,
-      isRecurring: false,
-    },
-    {
-      sNo: 5,
-      description: item5Description,
-      qty: item5Qty,
-      uom: item5Uom,
-      cost: item5Cost,
-      price: item5Price,
-      contingency: item5Contingency,
-      rounded: item5Rounded,
-      isRecurring: false,
-    },
-    {
-      sNo: 6,
-      description: item6Description,
-      qty: item6Qty,
-      uom: item6Uom,
-      cost: item6Cost,
-      price: item6Price,
-      contingency: item6Contingency,
-      rounded: item6Rounded,
-      isRecurring: true,
-    },
-  ];
+  // Consolidated Items for Step Summary Table
+  const step5Items = isCompressedAirAutomation
+    ? [
+        {
+          sNo: 1,
+          description: item1a?.description || 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Pro',
+          qty: item1a?.qty || 0,
+          uom: item1a?.uom || 'Nos',
+          cost: item1Cost,
+          price: item1Price,
+          contingency: item1Contingency,
+          rounded: item1Rounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 2,
+          description: item2Description,
+          qty: item2Qty,
+          uom: item2Uom,
+          cost: item2Cost,
+          price: item2Price,
+          contingency: item2Contingency,
+          rounded: item2Rounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 3,
+          description: item3Description,
+          qty: item3Qty,
+          uom: item3Uom,
+          cost: item3Cost,
+          price: item3Price,
+          contingency: item3Contingency,
+          rounded: item3Rounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 4,
+          description: 'Automation, Programming & Commissioning Scope: PLC/Controller logic programming, compressor sequencing, instrument loops & engineering commissioning',
+          qty: 1,
+          uom: 'Job',
+          cost: autoCost,
+          price: autoPrice,
+          contingency: autoContingency,
+          rounded: autoRounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 5,
+          description: 'Installation, Cabling & Electrical Mounting Scope: On-site IoT gateway deployment, CT/Meter termination, cable laying, conduit routing & electrical mounting',
+          qty: 1,
+          uom: 'Job',
+          cost: instCost,
+          price: instPrice,
+          contingency: instContingency,
+          rounded: instRounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 6,
+          description: item5Description,
+          qty: item5Qty,
+          uom: item5Uom,
+          cost: item5Cost,
+          price: item5Price,
+          contingency: item5Contingency,
+          rounded: item5Rounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 7,
+          description: item6Description,
+          qty: item6Qty,
+          uom: item6Uom,
+          cost: item6Cost,
+          price: item6Price,
+          contingency: item6Contingency,
+          rounded: item6Rounded,
+          isRecurring: true,
+        },
+      ]
+    : [
+        {
+          sNo: 1,
+          description: item1a?.description || 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Pro',
+          qty: item1a?.qty || 0,
+          uom: item1a?.uom || 'Nos',
+          cost: item1Cost,
+          price: item1Price,
+          contingency: item1Contingency,
+          rounded: item1Rounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 2,
+          description: item2Description,
+          qty: item2Qty,
+          uom: item2Uom,
+          cost: item2Cost,
+          price: item2Price,
+          contingency: item2Contingency,
+          rounded: item2Rounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 3,
+          description: item3Description,
+          qty: item3Qty,
+          uom: item3Uom,
+          cost: item3Cost,
+          price: item3Price,
+          contingency: item3Contingency,
+          rounded: item3Rounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 4,
+          description: item4Description,
+          qty: item4Qty,
+          uom: item4Uom,
+          cost: item4Cost,
+          price: item4Price,
+          contingency: item4Contingency,
+          rounded: item4Rounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 5,
+          description: item5Description,
+          qty: item5Qty,
+          uom: item5Uom,
+          cost: item5Cost,
+          price: item5Price,
+          contingency: item5Contingency,
+          rounded: item5Rounded,
+          isRecurring: false,
+        },
+        {
+          sNo: 6,
+          description: item6Description,
+          qty: item6Qty,
+          uom: item6Uom,
+          cost: item6Cost,
+          price: item6Price,
+          contingency: item6Contingency,
+          rounded: item6Rounded,
+          isRecurring: true,
+        },
+      ];
 
   const totalStep5Cost = step5Items.reduce((sum, item) => sum + item.cost, 0);
   const totalStep5Price = step5Items.reduce((sum, item) => sum + item.price, 0);
@@ -349,7 +456,11 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                 <td colSpan={9} className="p-2 px-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-[11px] uppercase tracking-wider font-extrabold text-purple-900">
-                      1. Sustainabyte Edge IoT Gateway Hardware
+                      {isCompressedAirAutomation
+                        ? '1. Compressed Air Automation'
+                        : isCompressedAirMonitoring
+                        ? '1. Compressed Air Monitoring'
+                        : '1. Sustainabyte Edge IoT Gateway Hardware'}
                     </span>
                     <div className="flex items-center gap-3 text-[11px]">
                       <span className="font-semibold text-slate-600">
@@ -466,7 +577,11 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
               {/* Section 1A Subtotal Row */}
               <tr className="bg-purple-50/75 font-bold border-t-2 border-purple-200 text-xs">
                 <td colSpan={5} className="p-2.5 px-4 text-right font-extrabold text-purple-950 uppercase tracking-wider text-[11px]">
-                  1. IoT Gateway Hardware Subtotal
+                  {isCompressedAirAutomation
+                    ? '1. Compressed Air Automation Subtotal'
+                    : isCompressedAirMonitoring
+                    ? '1. Compressed Air Monitoring Subtotal'
+                    : '1. IoT Gateway Hardware Subtotal'}
                 </td>
                 <td className="p-2.5 px-3 text-right font-black text-slate-900 bg-purple-100/60 border-r border-purple-200">
                   ₹{formatMoney(emsGatewayHardwareTotalCost)}
@@ -517,7 +632,9 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                 <td colSpan={9} className="p-2 px-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-[11px] uppercase tracking-wider font-extrabold text-indigo-900">
-                      2. Electrical Hardware &amp; Accessories
+                      {isCompressedAirAutomation
+                        ? '2. Compressed Air Monitoring'
+                        : '2. Electrical Hardware & Accessories'}
                     </span>
                     <div className="flex items-center gap-3 text-[11px]">
                       <span className="font-semibold text-slate-600">
@@ -634,7 +751,9 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
               {/* Section 1B Subtotal Row */}
               <tr className="bg-indigo-50/75 font-bold border-t-2 border-indigo-200 text-xs">
                 <td colSpan={5} className="p-2.5 px-4 text-right font-extrabold text-indigo-950 uppercase tracking-wider text-[11px]">
-                  2. Electrical Hardware Subtotal
+                  {isCompressedAirAutomation
+                    ? '2. Compressed Air Monitoring Subtotal'
+                    : '2. Electrical Hardware Subtotal'}
                 </td>
                 <td className="p-2.5 px-3 text-right font-black text-slate-900 bg-indigo-100/60 border-r border-indigo-200">
                   ₹{formatMoney(emsElectricalHardwareTotalCost)}
@@ -680,10 +799,52 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                 </td>
               </tr>
 
-              {/* Step 1 Subtotal Row */}
+              {/* TOTAL 1: Overall Base Hardware Supply Total (1 + 2) */}
+              {(emsGatewayHardwareTotalCost + emsElectricalHardwareTotalCost) > 0 && (
+                <tr className="bg-slate-100/90 text-slate-900 font-bold border-t-2 border-slate-300 text-xs">
+                  <td colSpan={5} className="p-2.5 px-4 text-right font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">
+                    1 + 2. Overall Hardware Supply Base Total
+                  </td>
+                  <td className="p-2.5 px-3 text-right font-black text-slate-900 bg-slate-200/80 border-r border-slate-300">
+                    ₹{formatMoney(emsGatewayHardwareTotalCost + emsElectricalHardwareTotalCost)}
+                  </td>
+                  <td className="p-2 px-3 border-r border-slate-300 text-center font-bold text-slate-400">
+                    -
+                  </td>
+                  <td className="p-2.5 px-4 text-right font-black text-slate-950 bg-slate-200/90">
+                    ₹{formatMoney(emsGatewayHardwareTotalPrice + emsElectricalHardwareTotalPrice)}
+                  </td>
+                  <td></td>
+                </tr>
+              )}
+
+              {/* TOTAL 2: 3% Packaging Charges Row */}
+              {(emsGatewayHardwareTotalPrice + emsElectricalHardwareTotalPrice) > 0 && (
+                <tr className="bg-amber-50/70 text-slate-800 font-bold border-t border-amber-200 text-xs">
+                  <td className="p-2.5 px-3 text-center text-amber-900 border-r border-slate-200">★</td>
+                  <td className="p-2.5 px-4 font-extrabold text-amber-950 border-r border-slate-200" colSpan={4}>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-amber-200 text-amber-950 text-[10px] font-black px-1.5 py-0.5 rounded">3% Capex</span>
+                      <span>Packaging Charges (Overall Hardware Selling Total × 3%)</span>
+                    </div>
+                  </td>
+                  <td className="p-2.5 px-3 text-right font-black text-amber-950 bg-amber-100/80 border-r border-slate-200">
+                    ₹{formatMoney(Math.round((emsGatewayHardwareTotalPrice + emsElectricalHardwareTotalPrice) * 0.03))}
+                  </td>
+                  <td className="p-2 px-3 border-r border-slate-200 text-center font-bold text-slate-500">
+                    0%
+                  </td>
+                  <td className="p-2.5 px-4 text-right font-black text-amber-950 bg-amber-200/80">
+                    ₹{formatMoney(Math.round((emsGatewayHardwareTotalPrice + emsElectricalHardwareTotalPrice) * 0.03))}
+                  </td>
+                  <td className="p-2 text-center text-amber-600 font-bold">✓</td>
+                </tr>
+              )}
+
+              {/* TOTAL 3: Step 1 Grand Total (Overall Total + 3% Packaging Charges) */}
               <tr className="bg-purple-900 text-white font-extrabold text-xs">
                 <td colSpan={5} className="p-3 px-6 text-right uppercase tracking-wider">
-                  Step 1 Total Hardware Cost &amp; Selling Price
+                  Step 1 Total Hardware Cost &amp; Selling Price (Overall Total + 3% Packaging Charges)
                 </td>
                 <td className="p-3 px-3 text-right font-black text-amber-400 bg-purple-950 text-sm border-r border-purple-800">
                   Cost: ₹{formatMoney(emsHardwareTotalCost)}
@@ -699,15 +860,30 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
         </div>
       </div>
 
-      {/* STEP 2: INSTALLATION & COMMISSIONING (AIR AUDIT MANPOWER ENGINE) */}
-      <AirAuditManpowerEngine
-        {...props}
-        stepNumber="Step 2"
-        stepTitle="Installation, Commissioning &amp; Site Engineering Scope"
-        stepSubtitle="On-site IoT gateway deployment, CT/Meter termination, cable laying &amp; cloud telemetry testing"
-      />
+      {isCompressedAirAutomation ? (
+        <>
+          <AirAuditManpowerEngine
+            {...(props.airAutoManpowerProps || props)}
+            stepNumber="Step 2"
+            stepTitle="Automation & Commissioning Engineering Scope"
+            stepSubtitle="PLC logic development, compressor automation sequencing, instrument loops & engineering commissioning"
+          />
+          <AirAuditManpowerEngine
+            {...(props.airInstManpowerProps || props)}
+            stepNumber="Step 3"
+            stepTitle="Installation, Commissioning & Site Engineering Scope"
+            stepSubtitle="On-site IoT gateway deployment, CT/Meter termination, cable laying, conduit routing & electrical mounting"
+          />
+        </>
+      ) : (
+        <AirAuditManpowerEngine
+          {...props}
+          stepNumber="Step 2"
+          stepTitle="Installation, Commissioning &amp; Site Engineering Scope"
+          stepSubtitle="On-site IoT gateway deployment, CT/Meter termination, cable laying &amp; cloud telemetry testing"
+        />
+      )}
 
-      {/* STEP 3: PLATFORM SETUP COSTING */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 px-6 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -715,7 +891,7 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
             <div>
               <div className="flex items-center gap-2">
                 <span className="bg-emerald-600 text-white text-[11px] font-black px-2 py-0.5 rounded-md">
-                  Step 3
+                  {isCompressedAirAutomation ? 'Step 4' : 'Step 3'}
                 </span>
                 <h3 className="font-extrabold text-slate-900 text-sm">
                   Platform Setup Costing (One-Time)
@@ -841,7 +1017,7 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
 
               <tr className="bg-emerald-900 text-white font-extrabold text-xs">
                 <td colSpan={4} className="p-3 px-6 text-right uppercase tracking-wider">
-                  Step 3 Total Platform Setup Cost &amp; Price
+                  {isCompressedAirAutomation ? 'Step 4' : 'Step 3'} Total Platform Setup Cost &amp; Price
                 </td>
                 <td className="p-3 px-3 text-right font-black text-amber-400 bg-emerald-950 text-sm border-r border-emerald-800">
                   Cost: ₹{formatMoney(emsPlatformTotalCost)}
@@ -857,7 +1033,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
         </div>
       </div>
 
-      {/* STEP 4: RECURRING CLOUD CHARGES */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 px-6 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -865,7 +1040,7 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
             <div>
               <div className="flex items-center gap-2">
                 <span className="bg-purple-600 text-white text-[11px] font-black px-2 py-0.5 rounded-md">
-                  Step 4
+                  {isCompressedAirAutomation ? 'Step 5' : 'Step 4'}
                 </span>
                 <h3 className="font-extrabold text-slate-900 text-sm">
                   Recurring Cloud Charges (Annualized Billing)
@@ -965,8 +1140,8 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                         className="w-12 text-center bg-purple-50 border border-purple-200 rounded px-1 py-1 font-bold text-purple-900 text-xs"
                       />
                     </td>
-                    <td className="p-2 px-3 border-r border-slate-200 text-right font-bold text-purple-900">
-                      ₹{formatMoney(pricePerMonth * row.qty)}
+                    <td className="p-2 px-3 border-r border-slate-200 text-right font-medium text-slate-900">
+                      ₹{formatMoney(pricePerMonth)}
                     </td>
                     <td className="p-2 px-3 border-r border-slate-200 text-right font-bold text-slate-900 bg-slate-50">
                       {formatMoney(yearlyCost)}
@@ -1001,7 +1176,7 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
 
               <tr className="bg-slate-900 text-white border-t-2 border-slate-950 font-extrabold text-xs">
                 <td colSpan={7} className="p-3.5 px-6 text-right uppercase tracking-wider">
-                  Step 4 Total Recurring Cost/Year &amp; Selling Price/Year (+{profitPct}% Margin)
+                  {isCompressedAirAutomation ? 'Step 5' : 'Step 4'} Total Recurring Cost/Year &amp; Selling Price/Year (+{profitPct}% Margin)
                 </td>
                 <td className="p-3.5 px-3 text-right font-black text-amber-400 bg-slate-950 text-sm border-r border-slate-800">
                   Cost/Yr: ₹{formatMoney(emsRecurringYearlyTotalCost)}
@@ -1016,18 +1191,14 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════ */}
-      {/* STEP 5: TOTAL PRICE SUMMARY (STEPS 1-4 ITEMIZED BREAKDOWN TABLE) */}
-      {/* ══════════════════════════════════════════════════════════════════ */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Header banner matching reference */}
         <div className="p-4 px-6 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="bg-emerald-500 text-slate-950 text-xs font-black px-2.5 py-1 rounded-md">
-              Step 5
+              {isCompressedAirAutomation ? 'Step 6' : 'Step 5'}
             </span>
             <h3 className="font-extrabold text-white text-sm md:text-base tracking-wide uppercase">
-              TOTAL PRICE SUMMARY (STEPS 1–4 ITEMIZED BREAKDOWN)
+              {isCompressedAirAutomation ? 'TOTAL PRICE SUMMARY (STEPS 1–5 ITEMIZED BREAKDOWN)' : 'TOTAL PRICE SUMMARY (STEPS 1–4 ITEMIZED BREAKDOWN)'}
             </h3>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
