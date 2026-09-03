@@ -81,6 +81,8 @@ import {
   DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP6_TEXT,
   DEFAULT_DEW_POINT_STEP5_TEXT,
   DEFAULT_DEW_POINT_STEP6_TEXT,
+  DEFAULT_TEMPERATURE_SENSOR_STEP5_TEXT,
+  DEFAULT_TEMPERATURE_SENSOR_STEP6_TEXT,
   DEFAULT_FLANGES_STEP5_TEXT,
   DEFAULT_FLANGES_STEP6_TEXT,
   DEFAULT_CPM_STEP5_TEXT,
@@ -108,7 +110,6 @@ import QuoteSummaryCard from '@/components/quotes/QuoteSummaryCard';
 import FullPageWatermark from '@/components/common/FullPageWatermark';
 
 const DEFAULT_CLIENTS = [
-  'KONE Elevator',
   'KONE Elevators India',
   'MRF Tyres',
   'Panasonic Life Solutions',
@@ -174,7 +175,6 @@ const DEFAULT_CLIENTS = [
   'KKP Spinning mill',
   'Knauf',
   'Komter Equipments',
-  'Kone elevators',
   'KPR Mill Ltd',
   'L&T Valves Ltd',
   'Lucas TVS Padi',
@@ -235,6 +235,7 @@ function NewQuoteContent() {
 
   // Form State
   const [proposalNumber, setProposalNumber] = useState('STPL-001');
+  const [isManualProposalNumber, setIsManualProposalNumber] = useState(false);
   const [proposalDate, setProposalDate] = useState(
     new Date().toISOString().split('T')[0]
   );
@@ -262,22 +263,6 @@ function NewQuoteContent() {
     queryKey: ['proposals'],
     queryFn: () => proposalsApi.getAll(),
   });
-
-  useEffect(() => {
-    if (!editQuoteId && allProposals.length > 0) {
-      // Find highest numerical index from existing proposals
-      let maxNum = allProposals.length;
-      allProposals.forEach((p: any) => {
-        const pNumStr = (p.proposalNumber || '').replace(/[^0-9]/g, '');
-        const pNum = parseInt(pNumStr, 10);
-        if (!isNaN(pNum) && pNum > maxNum) {
-          maxNum = pNum;
-        }
-      });
-      const nextFormatted = `STPL-${String(maxNum + 1).padStart(3, '0')}`;
-      setProposalNumber((prev) => (prev === 'STPL-001' ? nextFormatted : prev));
-    }
-  }, [editQuoteId, allProposals]);
 
   // Searchable Dropdown Combobox State
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
@@ -354,6 +339,70 @@ function NewQuoteContent() {
   const [selectedSubServiceOptions, setSelectedSubServiceOptions] = useState<string[]>(['Compressor air leakage audit']);
   const [isSubServicesDropdownOpen, setIsSubServicesDropdownOpen] = useState(false);
   const subServicesDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Populate Existing Quote into Form State when editing
+  useEffect(() => {
+    if (existingQuote) {
+      const qAny = existingQuote as any;
+      if (qAny.proposalNumber || qAny.proposal?.proposalNumber) {
+        setProposalNumber(qAny.proposalNumber || qAny.proposal?.proposalNumber);
+        setIsManualProposalNumber(true);
+      }
+      if (qAny.proposalDate) {
+        setProposalDate(new Date(qAny.proposalDate).toISOString().split('T')[0]);
+      }
+      if (qAny.deal?.clientName) {
+        setClientName(qAny.deal.clientName);
+      }
+      if (qAny.clientLogo || qAny.deal?.clientLogo) {
+        setClientLogo(qAny.clientLogo || qAny.deal?.clientLogo);
+      }
+      if (qAny.service?.category) {
+        setSelectedCategories([qAny.service.category]);
+      }
+      if (qAny.service?.name) {
+        setSelectedSubServiceOptions([qAny.service.name]);
+      }
+      if (qAny.marginPct !== undefined && qAny.marginPct !== null) {
+        setMarginPct(Number(qAny.marginPct));
+      }
+      if (qAny.bufferPct !== undefined && qAny.bufferPct !== null) {
+        setBufferPct(Number(qAny.bufferPct));
+      }
+      if (qAny.siteDays) {
+        setSiteDays(qAny.siteDays);
+      }
+      if (qAny.reportDays) {
+        setReportDays(qAny.reportDays);
+      }
+      if (qAny.travelKms !== undefined) {
+        setTravelKms(Number(qAny.travelKms));
+      }
+      if (qAny.foodTravelCost !== undefined) {
+        setFoodTravelCost(Number(qAny.foodTravelCost));
+      }
+    }
+  }, [existingQuote]);
+
+  // Dynamically calculate proposal number starting from STPL-001 client and service wise
+  useEffect(() => {
+    if (!isManualProposalNumber) {
+      if (!clientName) {
+        setProposalNumber((prev) => (prev === 'STPL-001' ? prev : 'STPL-001'));
+        return;
+      }
+      // Count matching proposals for this client and service
+      const matching = Array.isArray(allProposals)
+        ? allProposals.filter((p: any) => {
+            const pClient = p.deal?.clientName || p.clientName || p.quote?.deal?.clientName || '';
+            return pClient.toLowerCase().trim() === clientName.toLowerCase().trim();
+          })
+        : [];
+      const seqIndex = matching.length + (editQuoteId ? 0 : 1);
+      const nextFormatted = `STPL-${String(Math.max(1, seqIndex)).padStart(3, '0')}`;
+      setProposalNumber((prev) => (prev === nextFormatted ? prev : nextFormatted));
+    }
+  }, [clientName, allProposals, editQuoteId, isManualProposalNumber]);
 
   // Assets & Scope of Assessment State (31 Categories)
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
@@ -829,21 +878,32 @@ PAN Number – ABNCS4869A`;
   const clientOptions: Array<{ id?: string; name: string }> = React.useMemo(() => {
     const map = new Map<string, { id?: string; name: string }>();
 
+    const normalizeName = (name: string) => {
+      const lower = name.toLowerCase().trim();
+      if (lower === 'kone' || lower === 'kone elevator' || lower === 'kone elevators') {
+        return 'KONE Elevators India';
+      }
+      return name;
+    };
+
     DEFAULT_CLIENT_OPTIONS.forEach((name) => {
       if (name && name.trim()) {
-        map.set(name.toLowerCase().trim(), { name });
+        const canonical = normalizeName(name);
+        map.set(canonical.toLowerCase().trim(), { name: canonical });
       }
     });
 
     clientList.forEach((name) => {
       if (name && name.trim()) {
-        map.set(name.toLowerCase().trim(), { name });
+        const canonical = normalizeName(name);
+        map.set(canonical.toLowerCase().trim(), { name: canonical });
       }
     });
 
     dbClients.forEach((c) => {
       if (c && c.name) {
-        map.set(c.name.toLowerCase().trim(), { id: c.id, name: c.name });
+        const canonical = normalizeName(c.name);
+        map.set(canonical.toLowerCase().trim(), { id: c.id, name: canonical });
       }
     });
 
@@ -1464,8 +1524,50 @@ PAN Number – ABNCS4869A`;
     );
   }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
+  const isFlangesHardware = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return combined.some((s) => s.includes('flange'));
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isDewPointHardware = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return !isFlangesHardware && combined.some((s) => s.includes('dew point'));
+  }, [isFlangesHardware, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isTemperatureSensor = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return !isFlangesHardware && !isDewPointHardware && combined.some((s) => s.includes('temperature'));
+  }, [isFlangesHardware, isDewPointHardware, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isIaqSensor = React.useMemo(() => {
+    const combined = [
+      ...selectedCategories,
+      ...selectedSubServiceOptions,
+      activeCostingSheet?.serviceCategory || '',
+      activeCostingSheet?.subService || '',
+    ].map((s) => s.toLowerCase());
+    return !isFlangesHardware && !isDewPointHardware && !isTemperatureSensor && combined.some((s) => s.includes('iaq') || s.includes('indoor air'));
+  }, [isFlangesHardware, isDewPointHardware, isTemperatureSensor, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+
+  const isHardwareSensorScope = isTemperatureSensor || isDewPointHardware || isFlangesHardware;
+
   const isEms = React.useMemo(() => {
-    if (isWeldingIot) return false;
+    if (isWeldingIot || isHardwareSensorScope || isIaqSensor) return false;
     const combined = [
       ...selectedCategories,
       ...selectedSubServiceOptions,
@@ -1481,14 +1583,16 @@ PAN Number – ABNCS4869A`;
           s.includes('water automation') ||
           s.includes('compressed air automation') ||
           s.includes('compressed air monitoring') ||
-          s.includes('automation') ||
+          (s.includes('automation') && !s.includes('hardware')) ||
           s.includes('smart factory')
       ) ||
       Boolean((activeCostingSheet as any)?.isEms) ||
-      Boolean((activeCostingSheet as any)?.emsGatewayHardwareRows?.length > 0) ||
-      Boolean((activeCostingSheet as any)?.emsHardwareRows?.length > 0)
+      (!combined.some((s) => s.includes('hardware')) && (
+        Boolean((activeCostingSheet as any)?.emsGatewayHardwareRows?.length > 0) ||
+        Boolean((activeCostingSheet as any)?.emsHardwareRows?.length > 0)
+      ))
     );
-  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet, isWeldingIot]);
+  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet, isWeldingIot, isHardwareSensorScope, isIaqSensor]);
 
   const isIrBlaster = React.useMemo(() => {
     const combined = [
@@ -1553,16 +1657,6 @@ PAN Number – ABNCS4869A`;
     );
   }, [isWaterAutomation, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
-  const isIaqSensor = React.useMemo(() => {
-    const combined = [
-      ...selectedCategories,
-      ...selectedSubServiceOptions,
-      activeCostingSheet?.serviceCategory || '',
-      activeCostingSheet?.subService || '',
-    ].map((s) => s.toLowerCase());
-    return !isCompressedAirAutomation && combined.some((s) => s.includes('iaq') || s.includes('indoor air'));
-  }, [isCompressedAirAutomation, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
-
   const isIotOrControls = isWeldDataDigitalized || isWeldingIot || isIotControls || isEms || isIrBlaster || isIaqSensor || isCompressedAirAutomation;
 
   const isBms = React.useMemo(() => {
@@ -1595,26 +1689,6 @@ PAN Number – ABNCS4869A`;
     return combined.some((s) => s.includes('cpm') || s.includes('chiller plant management') || s.includes('chiller management'));
   }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
-  const isFlangesHardware = React.useMemo(() => {
-    const combined = [
-      ...selectedCategories,
-      ...selectedSubServiceOptions,
-      activeCostingSheet?.serviceCategory || '',
-      activeCostingSheet?.subService || '',
-    ].map((s) => s.toLowerCase());
-    return !isCpmChillerManagement && combined.some((s) => s.includes('flange'));
-  }, [isCpmChillerManagement, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
-
-  const isDewPointHardware = React.useMemo(() => {
-    const combined = [
-      ...selectedCategories,
-      ...selectedSubServiceOptions,
-      activeCostingSheet?.serviceCategory || '',
-      activeCostingSheet?.subService || '',
-    ].map((s) => s.toLowerCase());
-    return !isFlangesHardware && !isIaqSensor && combined.some((s) => s.includes('dew point'));
-  }, [isFlangesHardware, isIaqSensor, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
-
   const isNitrogenGasLeakageAudit = React.useMemo(() => {
     const combined = [
       ...selectedCategories,
@@ -1622,8 +1696,8 @@ PAN Number – ABNCS4869A`;
       activeCostingSheet?.serviceCategory || '',
       activeCostingSheet?.subService || '',
     ].map((s) => s.toLowerCase());
-    return !isFlangesHardware && !isDewPointHardware && combined.some((s) => s.includes('nitrogen'));
-  }, [isFlangesHardware, isDewPointHardware, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+    return !isFlangesHardware && !isDewPointHardware && !isTemperatureSensor && combined.some((s) => s.includes('nitrogen'));
+  }, [isFlangesHardware, isDewPointHardware, isTemperatureSensor, selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
   const isCompressorAirLeakageRectification = React.useMemo(() => {
     const combined = [
@@ -1744,24 +1818,29 @@ PAN Number – ABNCS4869A`;
     } else if (isBms) {
       setEmsStep5Text(DEFAULT_BMS_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_BMS_STEP6_TEXT);
-    } else if (isIotOrControls) {
-      setEmsStep5Text(DEFAULT_EMS_STEP5_TEXT);
-      setEmsStep6Text(DEFAULT_EMS_STEP6_TEXT);
-    } else if (isCpmChillerManagement) {
-      setEmsStep5Text(DEFAULT_CPM_STEP5_TEXT);
-      setEmsStep6Text(DEFAULT_CPM_STEP6_TEXT);
-      setStep7SubmittedBy(`Thanakarthik\nFounder & CEO\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
-      setStep7BankDetails(`Bank Account details:\nName: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED\nAccount number: 35860200000750\nIFSC: BARB0VELACH (fifth letter is ZERO)\nBank name: Bank of Baroda\nBranch: VELACHERY BRANCH`);
-    } else if (isFlangesHardware) {
-      setEmsStep5Text(DEFAULT_FLANGES_STEP5_TEXT);
-      setEmsStep6Text(DEFAULT_FLANGES_STEP6_TEXT);
-      setStep7SubmittedBy(`Satish Kumar N\nManager - Sales & Operations\n+91-7502244664\nsatishkumar@sustainabyte.ai`);
-      setStep7BankDetails(`Bank Account details:\nName: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED\nAccount number: 35860200000750\nIFSC: BARB0VELACH (fifth letter is ZERO)\nBank name: Bank of Baroda\nBranch: VELACHERY BRANCH`);
+    } else if (isTemperatureSensor) {
+      setEmsStep5Text(DEFAULT_TEMPERATURE_SENSOR_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_TEMPERATURE_SENSOR_STEP6_TEXT);
+      setStep7SubmittedBy(`Mr. Thanakarthik Kumar K\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
     } else if (isDewPointHardware) {
       setEmsStep5Text(DEFAULT_DEW_POINT_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_DEW_POINT_STEP6_TEXT);
       setStep7SubmittedBy(`Mr. Thanakarthik Kumar K\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
       setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
+    } else if (isFlangesHardware) {
+      setEmsStep5Text(DEFAULT_FLANGES_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_FLANGES_STEP6_TEXT);
+      setStep7SubmittedBy(`Satish Kumar N\nManager - Sales & Operations\n+91-7502244664\nsatishkumar@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nName: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED\nAccount number: 35860200000750\nIFSC: BARB0VELACH (fifth letter is ZERO)\nBank name: Bank of Baroda\nBranch: VELACHERY BRANCH`);
+    } else if (isCpmChillerManagement) {
+      setEmsStep5Text(DEFAULT_CPM_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_CPM_STEP6_TEXT);
+      setStep7SubmittedBy(`Thanakarthik\nFounder & CEO\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
+      setStep7BankDetails(`Bank Account details:\nName: SUSTAINABYTE TECHNOLOGIES PRIVATE LIMITED\nAccount number: 35860200000750\nIFSC: BARB0VELACH (fifth letter is ZERO)\nBank name: Bank of Baroda\nBranch: VELACHERY BRANCH`);
+    } else if (isIotOrControls) {
+      setEmsStep5Text(DEFAULT_EMS_STEP5_TEXT);
+      setEmsStep6Text(DEFAULT_EMS_STEP6_TEXT);
     } else if (isNitrogenGasLeakageAudit) {
       setEmsStep5Text(DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP6_TEXT);
@@ -2457,6 +2536,69 @@ PAN Number – ABNCS4869A`;
         if (extracted.length > 0) {
           setIotStep5Rows(extracted);
         }
+      } else if (isHardwareSensorScope) {
+        const extracted: Array<{
+          id: string;
+          section?: string;
+          stepNo: number | string;
+          description: string;
+          qty: number;
+          uom: string;
+          customerPrice: number;
+          isRecurring?: boolean;
+        }> = [];
+
+        const hwRows =
+          (sheetAny?.iotControlsHardwareRows && sheetAny.iotControlsHardwareRows.length > 0 ? sheetAny.iotControlsHardwareRows : null) ||
+          (sheetAny?.hardwareRows && sheetAny.hardwareRows.length > 0 ? sheetAny.hardwareRows : null) ||
+          (sheetAny?.emsGatewayHardwareRows && sheetAny.emsGatewayHardwareRows.length > 0 ? sheetAny.emsGatewayHardwareRows : null) ||
+          [];
+
+        const activeHw = hwRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0);
+        if (activeHw.length > 0) {
+          activeHw.forEach((r: any, idx: number) => {
+            const q = Number(r.quantity || r.qty || 1);
+            const price = Number(r.customerPrice || r.unitPrice || 0) * (r.customerPrice ? 1 : q) ||
+              resolvePrice(r, Math.round(Number(r.unitPrice || 5000) * q));
+            extracted.push({
+              id: `hw-${idx}`,
+              section: '1. Hardware Scope',
+              stepNo: r.slNo || `${idx + 1}`,
+              description: r.productDescription || r.description || r.itemDescription || 'Supply of Sensor Hardware',
+              qty: q,
+              uom: r.uom || 'Nos',
+              customerPrice: price,
+            });
+          });
+        } else {
+          extracted.push({
+            id: 'hw-1',
+            section: '1. Hardware Scope',
+            stepNo: '1',
+            description: isTemperatureSensor
+              ? 'Supply of Temperature & Humidity IoT Sensors & Gateway Modules'
+              : isDewPointHardware
+              ? 'Supply of Dew Point Sensor'
+              : 'Supply of Industrial Flanges & Accessories',
+            qty: 1,
+            uom: 'Lot',
+            customerPrice: Number(sheetAny?.finalQuote || 81600),
+          });
+        }
+
+        if (Number(sheetAny?.finalQuote) > 0 && extracted.length > 0) {
+          const sumExt = extracted.reduce((sum, item) => sum + item.customerPrice, 0);
+          if (sumExt !== Number(sheetAny.finalQuote) && sumExt > 0) {
+            const factor = Number(sheetAny.finalQuote) / sumExt;
+            extracted.forEach((item) => {
+              item.customerPrice = Math.round(item.customerPrice * factor);
+            });
+          }
+        }
+
+        if (extracted.length > 0) {
+          setIotStep5Rows(extracted);
+        }
       } else if (isIotControls) {
         const extracted: Array<{
           id: string;
@@ -2942,7 +3084,10 @@ PAN Number – ABNCS4869A`;
                     required
                     placeholder="e.g. STPL-001"
                     value={proposalNumber}
-                    onChange={(e) => setProposalNumber(e.target.value)}
+                    onChange={(e) => {
+                      setProposalNumber(e.target.value);
+                      setIsManualProposalNumber(true);
+                    }}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                   />
                 </div>
@@ -3923,8 +4068,8 @@ PAN Number – ABNCS4869A`;
               </div>
             )}
 
-            {/* Step 3: Solution Architecture (Visible for IoT & Controls Scope, except Weld Data Digitalized) */}
-            {isIotOrControls && !isWeldDataDigitalized && (
+            {/* Step 3: Solution Architecture (Visible for IoT & Controls Scope, except Weld Data Digitalized and Hardware Sensors) */}
+            {isIotOrControls && !isWeldDataDigitalized && !isHardwareSensorScope && (
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                   <div className="flex items-center gap-2">
@@ -4933,7 +5078,15 @@ PAN Number – ABNCS4869A`;
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">
-                    {isIaqSensor
+                    {isTemperatureSensor
+                      ? 'Step 5: Objectives, Scope of Work & Deliverables — Temperature Sensor Solution'
+                      : isDewPointHardware
+                      ? 'Step 5: Scope of Supply, Terms & Conditions — Dew Point Hardware'
+                      : isFlangesHardware
+                      ? 'Step 5: Scope of Supply, Terms & Conditions — Flanges Hardware'
+                      : isCpmChillerManagement
+                      ? 'Step 5: Scope of Work & Platform Overview — Chiller Plant Management (CPM)'
+                      : isIaqSensor
                       ? 'Step 5: Scope of Supply, Technical Specifications & Monitored Parameters — IAQ Sensor'
                       : isIrBlaster
                       ? 'Step 5: Scope of Work, Technical Capabilities & Energy Benefits — IR Blaster AC Energy Solutions'
@@ -4948,7 +5101,15 @@ PAN Number – ABNCS4869A`;
                       : 'Step 5: Scope of Work & Platform Benefits — Energy Management Solution'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {isIaqSensor
+                    {isTemperatureSensor
+                      ? 'Objectives, Site Survey, Sensor Deployment, Centralized Dashboard & Deliverables'
+                      : isDewPointHardware
+                      ? 'Dew Point Hardware Scope, Technical Requirements & Commercial Deliverables'
+                      : isFlangesHardware
+                      ? 'Flanges Supply Scope, Material Specifications & Commercial Deliverables'
+                      : isCpmChillerManagement
+                      ? 'CPM Plant Automation, Modbus Controller Logic, Sensor Interfacing & Deliverables'
+                      : isIaqSensor
                       ? 'Scope of Supply, About IAQ Sensor, Monitored Parameters (CO2, PM2.5, PM10, TVOC) & Cloud Analytics'
                       : isIrBlaster
                       ? 'Scope of Supply, About IR Blaster, Key Automation Features & Measurable Energy Savings'
@@ -4968,7 +5129,15 @@ PAN Number – ABNCS4869A`;
                     type="button"
                     onClick={() => {
                       setEmsStep5Text(
-                        isIaqSensor
+                        isTemperatureSensor
+                          ? DEFAULT_TEMPERATURE_SENSOR_STEP5_TEXT
+                          : isDewPointHardware
+                          ? DEFAULT_DEW_POINT_STEP5_TEXT
+                          : isFlangesHardware
+                          ? DEFAULT_FLANGES_STEP5_TEXT
+                          : isCpmChillerManagement
+                          ? DEFAULT_CPM_STEP5_TEXT
+                          : isIaqSensor
                           ? DEFAULT_IAQ_SENSOR_STEP5_TEXT
                           : isIrBlaster
                           ? DEFAULT_IR_BLASTER_STEP5_TEXT

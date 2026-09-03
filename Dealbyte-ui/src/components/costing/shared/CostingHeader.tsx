@@ -12,7 +12,7 @@ import {
   Check,
   Search,
 } from 'lucide-react';
-import { SERVICE_CATEGORY_OPTIONS, IR_BLASTER_SUB_SERVICES, HARDWARE_SUB_SERVICES, getClientPresetLogo } from '../constants';
+import { SERVICE_CATEGORY_OPTIONS, IR_BLASTER_SUB_SERVICES, HARDWARE_SUB_SERVICES, getClientPresetLogo, getCategoryForSubService } from '../constants';
 
 export interface CostingHeaderProps {
   clientName: string;
@@ -409,6 +409,10 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
                         type="button"
                         onClick={() => {
                           setSubServiceOption(s);
+                          const matchedCategory = getCategoryForSubService(s);
+                          if (matchedCategory && matchedCategory !== mainCategoryService) {
+                            setMainCategoryService(matchedCategory);
+                          }
                           setIsSubServiceOpen(false);
                           setSubServiceSearch('');
                         }}

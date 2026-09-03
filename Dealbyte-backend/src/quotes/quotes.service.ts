@@ -101,9 +101,7 @@ export class QuotesService {
 
     const totalProps = await this.prisma.proposal.count();
     const generatedSeq = `STPL-${String(totalProps + 1).padStart(3, '0')}`;
-    const effectiveProposalNumber = dto.proposalNumber && dto.proposalNumber !== 'STPL-001'
-      ? dto.proposalNumber
-      : generatedSeq;
+    const effectiveProposalNumber = dto.proposalNumber || generatedSeq;
 
     // Create quote + line items in a transaction
     const quote = await this.prisma.$transaction(async (tx) => {

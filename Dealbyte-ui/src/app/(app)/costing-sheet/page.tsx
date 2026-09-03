@@ -66,6 +66,7 @@ import {
   WELDING_IOT_SUB_SERVICES,
   IR_BLASTER_SUB_SERVICES,
   HARDWARE_SUB_SERVICES,
+  getCategoryForSubService,
   calcPriceFromCost,
   roundToHundred,
   ManpowerRow,
@@ -121,10 +122,20 @@ function CostingSheetContent() {
   });
 
   const clientOptions = Array.from(
-    new Set([
-      ...dbClients.map((c) => c.name),
-      ...DEFAULT_CLIENT_OPTIONS,
-    ])
+    new Set(
+      [
+        ...dbClients.map((c) => c.name),
+        ...DEFAULT_CLIENT_OPTIONS,
+      ]
+        .filter(Boolean)
+        .map((name) => {
+          const lower = name.toLowerCase().trim();
+          if (lower === 'kone' || lower === 'kone elevator' || lower === 'kone elevators') {
+            return 'KONE Elevators India';
+          }
+          return name.trim();
+        })
+    )
   );
 
   // Fetch Services & Projects
@@ -194,6 +205,14 @@ function CostingSheetContent() {
   const [customSubServiceText, setCustomSubServiceText] = useState<string>('');
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [customProjectText, setCustomProjectText] = useState<string>('');
+
+  // Auto-sync Our Services (Category) whenever subServiceOption belongs to a known category
+  useEffect(() => {
+    const matchedCategory = getCategoryForSubService(subServiceOption);
+    if (matchedCategory && matchedCategory !== mainCategoryService) {
+      setMainCategoryService(matchedCategory);
+    }
+  }, [subServiceOption, mainCategoryService]);
 
   const activeCategoryName =
     mainCategoryService === 'Custom' ? customCategoryText || 'Custom Service' : mainCategoryService;
@@ -432,6 +451,11 @@ function CostingSheetContent() {
       } else if (subLower.includes('compressed air monitoring') || subLower.includes('air monitoring')) {
         setEmsGatewayHardwareRows(INITIAL_COMPRESSED_AIR_AUTOMATION_GATEWAY_ROWS);
         setEmsElectricalHardwareRows(INITIAL_COMPRESSED_AIR_MONITORING_ELECTRICAL_ROWS);
+      } else if (subLower.includes('water automation') || subLower.includes('water management') || subLower.includes('water')) {
+        setEmsGatewayHardwareRows(getInitialEmsGatewayHardwareRows());
+        setEmsElectricalHardwareRows(getInitialEmsElectricalHardwareRows());
+        setCaaAutoManpowerRows(INITIAL_COMPRESSED_AIR_AUTOMATION_MANPOWER_ROWS);
+        setCaaInstManpowerRows(INITIAL_COMPRESSED_AIR_INSTALLATION_MANPOWER_ROWS);
       }
     }
   }, [activeSubServiceName, editId]);
@@ -445,6 +469,78 @@ function CostingSheetContent() {
   const [cpmOnPremiseRows, setCpmOnPremiseRows] = useState<CpmOnPremiseRow[]>(INITIAL_CPM_ON_PREMISE_ROWS);
   const [cpmCloudChargeRows, setCpmCloudChargeRows] = useState<CpmCloudChargeRow[]>(INITIAL_CPM_CLOUD_CHARGE_ROWS);
   const [cpmCloudRows, setCpmCloudRows] = useState<CpmCloudRow[]>(INITIAL_CPM_CLOUD_ROWS);
+
+  // CPM Step 3: Commissioning Specific Overrides, Travel, Accommodation & Expenses (Independent from Step 4)
+  const [cpmCommManualJuniorFoodOverride, setCpmCommManualJuniorFoodOverride] = useState<number | null>(null);
+  const [cpmCommManualSeniorFoodOverride, setCpmCommManualSeniorFoodOverride] = useState<number | null>(null);
+  const [cpmCommManualIotFoodOverride, setCpmCommManualIotFoodOverride] = useState<number | null>(null);
+  const [cpmCommManualTraineeFoodOverride, setCpmCommManualTraineeFoodOverride] = useState<number | null>(null);
+  const [cpmCommManualCustomFoodOverride, setCpmCommManualCustomFoodOverride] = useState<number | null>(null);
+  const [cpmCommInsideChennaiDistanceKms, setCpmCommInsideChennaiDistanceKms] = useState<number>(0);
+  const [cpmCommInsideChennaiRatePerKm, setCpmCommInsideChennaiRatePerKm] = useState<number>(5);
+  const [cpmCommManualInsideChennaiDays, setCpmCommManualInsideChennaiDays] = useState<number | null>(null);
+  const [cpmCommManualInsideChennaiOverride, setCpmCommManualInsideChennaiOverride] = useState<number | null>(null);
+  const [cpmCommOutsideChennaiBusCost, setCpmCommOutsideChennaiBusCost] = useState<number>(0);
+  const [cpmCommOutsideChennaiCabCost, setCpmCommOutsideChennaiCabCost] = useState<number>(0);
+  const [cpmCommOutsideChennaiTrainCost, setCpmCommOutsideChennaiTrainCost] = useState<number>(0);
+  const [cpmCommOutsideChennaiFlightCost, setCpmCommOutsideChennaiFlightCost] = useState<number>(0);
+  const [cpmCommOutstationStartLocation, setCpmCommOutstationStartLocation] = useState<string>('Chennai');
+  const [cpmCommOutstationEndLocation, setCpmCommOutstationEndLocation] = useState<string>('');
+  const [cpmCommOutstationDistanceKms, setCpmCommOutstationDistanceKms] = useState<number>(0);
+  const [cpmCommManualOutsideChennaiOverride, setCpmCommManualOutsideChennaiOverride] = useState<number | null>(null);
+  const [cpmCommSelectedAccommodationTier, setCpmCommSelectedAccommodationTier] = useState<number>(1500);
+  const [cpmCommIsCustomAccommodationRate, setCpmCommIsCustomAccommodationRate] = useState<boolean>(false);
+  const [cpmCommCustomAccommodationRate, setCpmCommCustomAccommodationRate] = useState<number>(1500);
+  const [cpmCommManualAccommodationDays, setCpmCommManualAccommodationDays] = useState<number | null>(null);
+  const [cpmCommManualAccommodationOverride, setCpmCommManualAccommodationOverride] = useState<number | null>(null);
+  const [cpmCommSelectedSites, setCpmCommSelectedSites] = useState<string[]>([]);
+  const [cpmCommShowSiteDropdown, setCpmCommShowSiteDropdown] = useState<boolean>(false);
+  const [cpmCommExtraExpenses, setCpmCommExtraExpenses] = useState<ExtraExpenseRow[]>([]);
+
+  // CPM Step 4: Installation Specific Overrides, Travel, Accommodation & Expenses (Independent from Step 3)
+  const [cpmInstManualJuniorFoodOverride, setCpmInstManualJuniorFoodOverride] = useState<number | null>(null);
+  const [cpmInstManualSeniorFoodOverride, setCpmInstManualSeniorFoodOverride] = useState<number | null>(null);
+  const [cpmInstManualIotFoodOverride, setCpmInstManualIotFoodOverride] = useState<number | null>(null);
+  const [cpmInstManualTraineeFoodOverride, setCpmInstManualTraineeFoodOverride] = useState<number | null>(null);
+  const [cpmInstManualCustomFoodOverride, setCpmInstManualCustomFoodOverride] = useState<number | null>(null);
+  const [cpmInstInsideChennaiDistanceKms, setCpmInstInsideChennaiDistanceKms] = useState<number>(0);
+  const [cpmInstInsideChennaiRatePerKm, setCpmInstInsideChennaiRatePerKm] = useState<number>(5);
+  const [cpmInstManualInsideChennaiDays, setCpmInstManualInsideChennaiDays] = useState<number | null>(null);
+  const [cpmInstManualInsideChennaiOverride, setCpmInstManualInsideChennaiOverride] = useState<number | null>(null);
+  const [cpmInstOutsideChennaiBusCost, setCpmInstOutsideChennaiBusCost] = useState<number>(0);
+  const [cpmInstOutsideChennaiCabCost, setCpmInstOutsideChennaiCabCost] = useState<number>(0);
+  const [cpmInstOutsideChennaiTrainCost, setCpmInstOutsideChennaiTrainCost] = useState<number>(0);
+  const [cpmInstOutsideChennaiFlightCost, setCpmInstOutsideChennaiFlightCost] = useState<number>(0);
+  const [cpmInstOutstationStartLocation, setCpmInstOutstationStartLocation] = useState<string>('Chennai');
+  const [cpmInstOutstationEndLocation, setCpmInstOutstationEndLocation] = useState<string>('');
+  const [cpmInstOutstationDistanceKms, setCpmInstOutstationDistanceKms] = useState<number>(0);
+  const [cpmInstManualOutsideChennaiOverride, setCpmInstManualOutsideChennaiOverride] = useState<number | null>(null);
+  const [cpmInstSelectedAccommodationTier, setCpmInstSelectedAccommodationTier] = useState<number>(1500);
+  const [cpmInstIsCustomAccommodationRate, setCpmInstIsCustomAccommodationRate] = useState<boolean>(false);
+  const [cpmInstCustomAccommodationRate, setCpmInstCustomAccommodationRate] = useState<number>(1500);
+  const [cpmInstManualAccommodationDays, setCpmInstManualAccommodationDays] = useState<number | null>(null);
+  const [cpmInstManualAccommodationOverride, setCpmInstManualAccommodationOverride] = useState<number | null>(null);
+  const [cpmInstSelectedSites, setCpmInstSelectedSites] = useState<string[]>([]);
+  const [cpmInstShowSiteDropdown, setCpmInstShowSiteDropdown] = useState<boolean>(false);
+  const [cpmInstExtraExpenses, setCpmInstExtraExpenses] = useState<ExtraExpenseRow[]>([]);
+
+  // Packaging Charges States (Fully Editable across CPM, EMS, and IoT Controls)
+  const [cpmPackagingPct, setCpmPackagingPct] = useState<number>(3);
+  const [cpmPackagingManualCost, setCpmPackagingManualCost] = useState<number | null>(null);
+  const [cpmPackagingManualPrice, setCpmPackagingManualPrice] = useState<number | null>(null);
+  const [cpmPackagingQty, setCpmPackagingQty] = useState<number>(1);
+  const [cpmPackagingUom, setCpmPackagingUom] = useState<string>('Job');
+  const [cpmPackagingMarginPct, setCpmPackagingMarginPct] = useState<number>(0);
+
+  const [emsPackagingPct, setEmsPackagingPct] = useState<number>(3);
+  const [emsPackagingManualCost, setEmsPackagingManualCost] = useState<number | null>(null);
+  const [emsPackagingManualPrice, setEmsPackagingManualPrice] = useState<number | null>(null);
+  const [emsPackagingMarginPct, setEmsPackagingMarginPct] = useState<number>(0);
+
+  const [iotPackagingPct, setIotPackagingPct] = useState<number>(3);
+  const [iotPackagingManualCost, setIotPackagingManualCost] = useState<number | null>(null);
+  const [iotPackagingManualPrice, setIotPackagingManualPrice] = useState<number | null>(null);
+  const [iotPackagingMarginPct, setIotPackagingMarginPct] = useState<number>(0);
 
   // Compressed Air Automation Specific Dual Manpower States
   const [caaAutoManpowerRows, setCaaAutoManpowerRows] = useState<ManpowerRow[]>(INITIAL_COMPRESSED_AIR_AUTOMATION_MANPOWER_ROWS);
@@ -1292,6 +1388,48 @@ function CostingSheetContent() {
     setCpmCloudRows((prev) => prev.filter((r) => r.id !== id));
   };
 
+  const addCpmCommExtraExpense = (category: ExtraExpenseRow['category'] = 'CUSTOM') => {
+    const newRow: ExtraExpenseRow = {
+      id: `cpm_comm_exp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      category,
+      description: category === 'FOOD' ? 'Extra Meal Allowance' : category === 'TRAVEL' ? 'Extra Conveyance / Cab' : category === 'ACCOMMODATION' ? 'Extra Night Stay' : 'Commissioning Consumables',
+      rate: category === 'FOOD' ? 500 : category === 'TRAVEL' ? 2000 : 1500,
+      qty: 0,
+      days: 0,
+    };
+    setCpmCommExtraExpenses((prev) => [...prev, newRow]);
+  };
+  const updateCpmCommExtraExpense = (id: string, field: keyof ExtraExpenseRow, val: any) => {
+    setCpmCommExtraExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: val } : e)));
+  };
+  const removeCpmCommExtraExpense = (id: string) => {
+    setCpmCommExtraExpenses((prev) => prev.filter((e) => e.id !== id));
+  };
+  const cpmCommCustomExpensesTotal = useMemo(() => {
+    return cpmCommExtraExpenses.reduce((sum, r) => sum + (Number(r.rate) || 0) * (Number(r.qty) || 0) * (Number(r.days) || 0), 0);
+  }, [cpmCommExtraExpenses]);
+
+  const addCpmInstExtraExpense = (category: ExtraExpenseRow['category'] = 'CUSTOM') => {
+    const newRow: ExtraExpenseRow = {
+      id: `cpm_inst_exp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      category,
+      description: category === 'FOOD' ? 'Extra Meal Allowance' : category === 'TRAVEL' ? 'Extra Conveyance / Cab' : category === 'ACCOMMODATION' ? 'Extra Night Stay' : 'Installation Consumables',
+      rate: category === 'FOOD' ? 500 : category === 'TRAVEL' ? 2000 : 1500,
+      qty: 0,
+      days: 0,
+    };
+    setCpmInstExtraExpenses((prev) => [...prev, newRow]);
+  };
+  const updateCpmInstExtraExpense = (id: string, field: keyof ExtraExpenseRow, val: any) => {
+    setCpmInstExtraExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: val } : e)));
+  };
+  const removeCpmInstExtraExpense = (id: string) => {
+    setCpmInstExtraExpenses((prev) => prev.filter((e) => e.id !== id));
+  };
+  const cpmInstCustomExpensesTotal = useMemo(() => {
+    return cpmInstExtraExpenses.reduce((sum, r) => sum + (Number(r.rate) || 0) * (Number(r.qty) || 0) * (Number(r.days) || 0), 0);
+  }, [cpmInstExtraExpenses]);
+
   const applyCpmGlobalMargin = (marginPct: number) => {
     setCpmHardwareRows((prev) => prev.map((r) => ({ ...r, marginPct })));
     setCpmElectricalRows((prev) => prev.map((r) => ({ ...r, marginPct })));
@@ -1439,10 +1577,14 @@ function CostingSheetContent() {
 
   const emsHardwareBaseCost = emsGatewayHardwareTotalCost + emsElectricalHardwareTotalCost;
   const emsHardwareBasePrice = emsGatewayHardwareTotalPrice + emsElectricalHardwareTotalPrice;
-  const emsHardware3PctPrice = Math.round(emsHardwareBasePrice * 0.03);
-  const emsHardware3PctCost = emsHardware3PctPrice;
-  const emsHardwareTotalCost = emsHardwareBaseCost + emsHardware3PctCost;
-  const emsHardwareTotalPrice = emsHardwareBasePrice + emsHardware3PctPrice;
+  const emsAutoPackagingPrice = Math.round(emsHardwareBasePrice * (emsPackagingPct / 100));
+  const emsAutoPackagingCost = emsAutoPackagingPrice;
+  const emsEffectivePackagingCost = emsPackagingManualCost !== null ? emsPackagingManualCost : emsAutoPackagingCost;
+  const emsEffectivePackagingPrice = emsPackagingManualPrice !== null
+    ? emsPackagingManualPrice
+    : (emsPackagingMarginPct > 0 ? Math.round(calcPriceFromCost(emsEffectivePackagingCost, emsPackagingMarginPct)) : emsEffectivePackagingCost);
+  const emsHardwareTotalCost = emsHardwareBaseCost + emsEffectivePackagingCost;
+  const emsHardwareTotalPrice = emsHardwareBasePrice + emsEffectivePackagingPrice;
 
   const emsManpowerBaseCost = useMemo(() => {
     return emsManpowerRows.reduce((sum, r) => sum + Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0) + Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0), 0);
@@ -1633,6 +1775,10 @@ function CostingSheetContent() {
   const emsItem3Price = emsElectricalHardwareTotalPrice;
   const emsItem3Cust = roundToNearest(emsItem3Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
 
+  // Packaging charges: DO NOT add contingency buffer
+  const emsPkgPrice = emsEffectivePackagingPrice;
+  const emsPkgCust = roundToNearest(emsPkgPrice, roundingNearest);
+
   const emsItem4Price = isCompressedAirAutomationActive ? caaAutoManpowerTotalPrice : emsManpowerTotalPrice;
   const emsItem4Cust = roundToNearest(emsItem4Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
 
@@ -1645,7 +1791,7 @@ function CostingSheetContent() {
   const emsItem6Price = emsRecurringYearlyTotalPrice;
   const emsItem6Cust = roundToNearest(emsItem6Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
 
-  const emsTotalStep5CustomerPrice = emsItem1Cust + emsItem2Cust + emsItem3Cust + emsItem4Cust + emsItem4bCust + emsItem5Cust + emsItem6Cust;
+  const emsTotalStep5CustomerPrice = emsItem1Cust + emsItem2Cust + emsItem3Cust + (emsPkgPrice > 0 ? emsPkgCust : 0) + emsItem4Cust + emsItem4bCust + emsItem5Cust + emsItem6Cust;
   const emsBufferAmount = emsTotalStep5CustomerPrice - emsSteps1To4TotalPrice;
   const emsPriceWithBuffer = emsTotalStep5CustomerPrice;
   const emsRoundedCustomerCost = emsTotalStep5CustomerPrice;
@@ -1727,10 +1873,8 @@ function CostingSheetContent() {
     );
   }, [cpmElectricalRows]);
 
-  const cpmHardware3PctPrice = Math.round((cpmHardwareBasePrice + cpmElectricalTotalPrice) * 0.03);
-  const cpmHardware3PctCost = cpmHardware3PctPrice;
-  const cpmHardwareTotalCost = cpmHardwareBaseCost + cpmHardware3PctCost;
-  const cpmHardwareTotalPrice = cpmHardwareBasePrice + cpmHardware3PctPrice;
+  const cpmHardwareTotalCost = cpmHardwareBaseCost;
+  const cpmHardwareTotalPrice = cpmHardwareBasePrice;
 
   const cpmInstallationTotalCost = useMemo(() => {
     return cpmInstallationRows.reduce((sum, r) => sum + Number(r.qty || 0) * Number(r.unitCost || 0), 0);
@@ -1807,11 +1951,11 @@ function CostingSheetContent() {
     return Math.max(...cpmCommissioningManpowerRows.map((r) => Number(r.siteWorkingDays || 0)), 0);
   }, [cpmCommissioningManpowerRows]);
 
-  const cpmCommJuniorFoodCost = manualJuniorFoodOverride !== null ? manualJuniorFoodOverride : cpmCommJuniorDaysComputed * juniorFoodRate;
-  const cpmCommSeniorFoodCost = manualSeniorFoodOverride !== null ? manualSeniorFoodOverride : cpmCommSeniorDaysComputed * seniorFoodRate;
-  const cpmCommIotFoodCost = manualIotFoodOverride !== null ? manualIotFoodOverride : cpmCommIotDaysComputed * iotFoodRate;
-  const cpmCommTraineeFoodCost = manualTraineeFoodOverride !== null ? manualTraineeFoodOverride : cpmCommTraineeDaysComputed * (traineeFoodRate || 400);
-  const cpmCommCustomFoodCost = manualCustomFoodOverride !== null ? manualCustomFoodOverride : cpmCommCustomDaysComputed * (customFoodRate || 500);
+  const cpmCommJuniorFoodCost = cpmCommManualJuniorFoodOverride !== null ? cpmCommManualJuniorFoodOverride : cpmCommJuniorDaysComputed * juniorFoodRate;
+  const cpmCommSeniorFoodCost = cpmCommManualSeniorFoodOverride !== null ? cpmCommManualSeniorFoodOverride : cpmCommSeniorDaysComputed * seniorFoodRate;
+  const cpmCommIotFoodCost = cpmCommManualIotFoodOverride !== null ? cpmCommManualIotFoodOverride : cpmCommIotDaysComputed * iotFoodRate;
+  const cpmCommTraineeFoodCost = cpmCommManualTraineeFoodOverride !== null ? cpmCommManualTraineeFoodOverride : cpmCommTraineeDaysComputed * (traineeFoodRate || 400);
+  const cpmCommCustomFoodCost = cpmCommManualCustomFoodOverride !== null ? cpmCommManualCustomFoodOverride : cpmCommCustomDaysComputed * (customFoodRate || 500);
   const cpmCommManpowerBaseCost = useMemo(() => {
     return cpmCommissioningManpowerRows.reduce((sum, r) => {
       const siteCost = Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0);
@@ -1821,19 +1965,19 @@ function CostingSheetContent() {
   }, [cpmCommissioningManpowerRows]);
 
   const cpmCommTotalFoodCost = cpmCommJuniorFoodCost + cpmCommSeniorFoodCost + cpmCommIotFoodCost + cpmCommTraineeFoodCost + cpmCommCustomFoodCost;
+  const cpmCommActiveAccommodationRate = cpmCommIsCustomAccommodationRate ? cpmCommCustomAccommodationRate : cpmCommSelectedAccommodationTier;
+  const cpmCommInsideChennaiTravelCalc = cpmCommInsideChennaiDistanceKms * cpmCommInsideChennaiRatePerKm * (cpmCommManualInsideChennaiDays !== null ? cpmCommManualInsideChennaiDays : (cpmCommMaxSiteDays || 1));
+  const cpmCommInsideChennaiTravel = !isLocalStationActive ? 0 : cpmCommManualInsideChennaiOverride !== null ? cpmCommManualInsideChennaiOverride : cpmCommInsideChennaiTravelCalc;
 
-  const cpmCommInsideChennaiTravelCalc = insideChennaiDistanceKms * insideChennaiRatePerKm * (manualInsideChennaiDays !== null ? manualInsideChennaiDays : (cpmCommMaxSiteDays || 1));
-  const cpmCommInsideChennaiTravel = !isLocalStationActive ? 0 : manualInsideChennaiOverride !== null ? manualInsideChennaiOverride : cpmCommInsideChennaiTravelCalc;
-
-  const cpmCommOutsideChennaiTravelCalc = (outsideChennaiBusCost + outsideChennaiCabCost + outsideChennaiTrainCost + outsideChennaiFlightCost) * 2;
-  const cpmCommOutsideChennaiTravel = !isOutstationActive ? 0 : manualOutsideChennaiOverride !== null ? manualOutsideChennaiOverride : cpmCommOutsideChennaiTravelCalc;
+  const cpmCommOutsideChennaiTravelCalc = (cpmCommOutsideChennaiBusCost + cpmCommOutsideChennaiCabCost + cpmCommOutsideChennaiTrainCost + cpmCommOutsideChennaiFlightCost) * 2;
+  const cpmCommOutsideChennaiTravel = !isOutstationActive ? 0 : cpmCommManualOutsideChennaiOverride !== null ? cpmCommManualOutsideChennaiOverride : cpmCommOutsideChennaiTravelCalc;
   const cpmCommTotalTravelCost = cpmCommInsideChennaiTravel + cpmCommOutsideChennaiTravel;
 
-  const cpmCommAccommodationDays = manualAccommodationDays !== null ? manualAccommodationDays : cpmCommMaxSiteDays;
-  const cpmCommAccommodationCostCalc = !isOutstationActive ? 0 : cpmCommAccommodationDays * activeAccommodationRate;
-  const cpmCommAccommodationCost = !isOutstationActive ? 0 : manualAccommodationOverride !== null ? manualAccommodationOverride : cpmCommAccommodationCostCalc;
+  const cpmCommAccommodationDays = cpmCommManualAccommodationDays !== null ? cpmCommManualAccommodationDays : cpmCommMaxSiteDays;
+  const cpmCommAccommodationCostCalc = !isOutstationActive ? 0 : cpmCommAccommodationDays * cpmCommActiveAccommodationRate;
+  const cpmCommAccommodationCost = !isOutstationActive ? 0 : cpmCommManualAccommodationOverride !== null ? cpmCommManualAccommodationOverride : cpmCommAccommodationCostCalc;
 
-  const cpmCommSiteExpensesTotalCost = cpmCommTotalFoodCost + cpmCommTotalTravelCost + cpmCommAccommodationCost + customExpensesTotal;
+  const cpmCommSiteExpensesTotalCost = cpmCommTotalFoodCost + cpmCommTotalTravelCost + cpmCommAccommodationCost + cpmCommCustomExpensesTotal;
   const cpmCommissioningTotalCost = cpmCommManpowerBaseCost + cpmCommSiteExpensesTotalCost;
   const cpmCommissioningTotalPrice = Math.round(calcPriceFromCost(cpmCommissioningTotalCost, profitPct || 40));
 
@@ -1850,25 +1994,26 @@ function CostingSheetContent() {
   }, [cpmInstallationManpowerRows]);
 
   // CPM Step 4: Installation Food, Travel & Accommodation Costs
-  const cpmInstJuniorFoodCost = manualJuniorFoodOverride !== null ? manualJuniorFoodOverride : cpmInstJuniorDaysComputed * juniorFoodRate;
-  const cpmInstSeniorFoodCost = manualSeniorFoodOverride !== null ? manualSeniorFoodOverride : cpmInstSeniorDaysComputed * seniorFoodRate;
-  const cpmInstIotFoodCost = manualIotFoodOverride !== null ? manualIotFoodOverride : cpmInstIotDaysComputed * iotFoodRate;
-  const cpmInstTraineeFoodCost = manualTraineeFoodOverride !== null ? manualTraineeFoodOverride : cpmInstTraineeDaysComputed * (traineeFoodRate || 400);
-  const cpmInstCustomFoodCost = manualCustomFoodOverride !== null ? manualCustomFoodOverride : cpmInstCustomDaysComputed * (customFoodRate || 500);
+  const cpmInstJuniorFoodCost = cpmInstManualJuniorFoodOverride !== null ? cpmInstManualJuniorFoodOverride : cpmInstJuniorDaysComputed * juniorFoodRate;
+  const cpmInstSeniorFoodCost = cpmInstManualSeniorFoodOverride !== null ? cpmInstManualSeniorFoodOverride : cpmInstSeniorDaysComputed * seniorFoodRate;
+  const cpmInstIotFoodCost = cpmInstManualIotFoodOverride !== null ? cpmInstManualIotFoodOverride : cpmInstIotDaysComputed * iotFoodRate;
+  const cpmInstTraineeFoodCost = cpmInstManualTraineeFoodOverride !== null ? cpmInstManualTraineeFoodOverride : cpmInstTraineeDaysComputed * (traineeFoodRate || 400);
+  const cpmInstCustomFoodCost = cpmInstManualCustomFoodOverride !== null ? cpmInstManualCustomFoodOverride : cpmInstCustomDaysComputed * (customFoodRate || 500);
   const cpmInstTotalFoodCost = cpmInstJuniorFoodCost + cpmInstSeniorFoodCost + cpmInstIotFoodCost + cpmInstTraineeFoodCost + cpmInstCustomFoodCost;
 
-  const cpmInstInsideChennaiTravelCalc = insideChennaiDistanceKms * insideChennaiRatePerKm * (manualInsideChennaiDays !== null ? manualInsideChennaiDays : (cpmInstMaxSiteDays || 1));
-  const cpmInstInsideChennaiTravel = !isLocalStationActive ? 0 : manualInsideChennaiOverride !== null ? manualInsideChennaiOverride : cpmInstInsideChennaiTravelCalc;
+  const cpmInstActiveAccommodationRate = cpmInstIsCustomAccommodationRate ? cpmInstCustomAccommodationRate : cpmInstSelectedAccommodationTier;
+  const cpmInstInsideChennaiTravelCalc = cpmInstInsideChennaiDistanceKms * cpmInstInsideChennaiRatePerKm * (cpmInstManualInsideChennaiDays !== null ? cpmInstManualInsideChennaiDays : (cpmInstMaxSiteDays || 1));
+  const cpmInstInsideChennaiTravel = !isLocalStationActive ? 0 : cpmInstManualInsideChennaiOverride !== null ? cpmInstManualInsideChennaiOverride : cpmInstInsideChennaiTravelCalc;
 
-  const cpmInstOutsideChennaiTravelCalc = (outsideChennaiBusCost + outsideChennaiCabCost + outsideChennaiTrainCost + outsideChennaiFlightCost) * 2;
-  const cpmInstOutsideChennaiTravel = !isOutstationActive ? 0 : manualOutsideChennaiOverride !== null ? manualOutsideChennaiOverride : cpmInstOutsideChennaiTravelCalc;
+  const cpmInstOutsideChennaiTravelCalc = (cpmInstOutsideChennaiBusCost + cpmInstOutsideChennaiCabCost + cpmInstOutsideChennaiTrainCost + cpmInstOutsideChennaiFlightCost) * 2;
+  const cpmInstOutsideChennaiTravel = !isOutstationActive ? 0 : cpmInstManualOutsideChennaiOverride !== null ? cpmInstManualOutsideChennaiOverride : cpmInstOutsideChennaiTravelCalc;
   const cpmInstTotalTravelCost = cpmInstInsideChennaiTravel + cpmInstOutsideChennaiTravel;
 
-  const cpmInstAccommodationDays = manualAccommodationDays !== null ? manualAccommodationDays : cpmInstMaxSiteDays;
-  const cpmInstAccommodationCostCalc = !isOutstationActive ? 0 : cpmInstAccommodationDays * activeAccommodationRate;
-  const cpmInstAccommodationCost = !isOutstationActive ? 0 : manualAccommodationOverride !== null ? manualAccommodationOverride : cpmInstAccommodationCostCalc;
+  const cpmInstAccommodationDays = cpmInstManualAccommodationDays !== null ? cpmInstManualAccommodationDays : cpmInstMaxSiteDays;
+  const cpmInstAccommodationCostCalc = !isOutstationActive ? 0 : cpmInstAccommodationDays * cpmInstActiveAccommodationRate;
+  const cpmInstAccommodationCost = !isOutstationActive ? 0 : cpmInstManualAccommodationOverride !== null ? cpmInstManualAccommodationOverride : cpmInstAccommodationCostCalc;
 
-  const cpmInstSiteExpensesTotalCost = cpmInstTotalFoodCost + cpmInstTotalTravelCost + cpmInstAccommodationCost + customExpensesTotal;
+  const cpmInstSiteExpensesTotalCost = cpmInstTotalFoodCost + cpmInstTotalTravelCost + cpmInstAccommodationCost + cpmInstCustomExpensesTotal;
   const cpmInstManpowerTotalCost = cpmInstManpowerBaseCost + cpmInstSiteExpensesTotalCost;
   const cpmInstManpowerTotalPrice = Math.round(calcPriceFromCost(cpmInstManpowerTotalCost, profitPct || 40));
 
@@ -1905,9 +2050,22 @@ function CostingSheetContent() {
     );
   }, [cpmCloudRows]);
 
-  const cpmSteps1To6TotalPrice = cpmHardwareTotalPrice + cpmElectricalTotalPrice + cpmCommissioningTotalPrice + cpmInstManpowerTotalPrice + cpmOnPremiseTotalPrice + cpmCloudChargeTotalPrice;
+  const cpmHardwareSupplyBaseTotal = cpmHardwareTotalPrice + cpmElectricalTotalPrice;
+  const cpmHardwareSupplyBaseCost = cpmHardwareTotalCost + cpmElectricalTotalCost;
+  const cpmAutoPackagingPrice = Math.round(cpmHardwareSupplyBaseTotal * (cpmPackagingPct / 100));
+  const cpmAutoPackagingCost = cpmAutoPackagingPrice;
+  const cpmEffectivePackagingCost = cpmPackagingManualCost !== null ? cpmPackagingManualCost : cpmAutoPackagingCost;
+  const cpmEffectivePackagingPrice = cpmPackagingManualPrice !== null
+    ? cpmPackagingManualPrice
+    : (cpmPackagingMarginPct > 0 ? Math.round(calcPriceFromCost(cpmEffectivePackagingCost, cpmPackagingMarginPct)) : cpmEffectivePackagingCost);
+  const cpmPackagingChargePrice = cpmEffectivePackagingPrice;
+  const cpmPackagingChargeCost = cpmEffectivePackagingCost;
+
+  const cpmSteps1To6TotalPrice = cpmHardwareTotalPrice + cpmElectricalTotalPrice + cpmPackagingChargePrice + cpmCommissioningTotalPrice + cpmInstManpowerTotalPrice + cpmOnPremiseTotalPrice + cpmCloudChargeTotalPrice;
   const cpmSteps1To5TotalPrice = cpmSteps1To6TotalPrice;
-  const cpmBufferAmount = Math.round(cpmSteps1To6TotalPrice * (Number(bufferPct !== undefined ? bufferPct : 10) / 100));
+  // NOTE: Negotiation buffer is applied to base scope excluding packaging charges
+  const cpmBaseScopeWithoutPkg = cpmHardwareTotalPrice + cpmElectricalTotalPrice + cpmCommissioningTotalPrice + cpmInstManpowerTotalPrice + cpmOnPremiseTotalPrice + cpmCloudChargeTotalPrice;
+  const cpmBufferAmount = Math.round(cpmBaseScopeWithoutPkg * (Number(bufferPct !== undefined ? bufferPct : 10) / 100));
   const cpmPriceWithBuffer = cpmSteps1To6TotalPrice + cpmBufferAmount;
   const cpmRoundedCustomerCost = roundToNearest(cpmPriceWithBuffer, roundingNearest);
 
@@ -1915,12 +2073,17 @@ function CostingSheetContent() {
   const iotHardwareBaseCost = useMemo(() => {
     return iotControlsHardwareRows.reduce((sum, r) => sum + Math.round(Number(r.quantity || 0) * Number(r.unitCost || 0)), 0);
   }, [iotControlsHardwareRows]);
-  const iotHardware3PctCost = Math.round(iotHardwareBaseCost * 0.03);
-  const iotHardware3PctPrice = iotHardware3PctCost;
+  const iotAutoPackagingCost = Math.round(iotHardwareBaseCost * (iotPackagingPct / 100));
+  const iotEffectivePackagingCost = iotPackagingManualCost !== null ? iotPackagingManualCost : iotAutoPackagingCost;
+
   const iotHardwareBasePrice = useMemo(() => {
     return iotControlsHardwareRows.reduce((sum, r) => sum + Math.round(Number(r.quantity || 0) * Number(r.unitPrice || 0)), 0);
   }, [iotControlsHardwareRows]);
-  const iotHardwareTotalPrice = iotHardwareBasePrice + iotHardware3PctPrice;
+  const iotAutoPackagingPrice = Math.round(iotHardwareBasePrice * (iotPackagingPct / 100));
+  const iotEffectivePackagingPrice = iotPackagingManualPrice !== null
+    ? iotPackagingManualPrice
+    : (iotPackagingMarginPct > 0 && iotPackagingManualCost !== null ? Math.round(calcPriceFromCost(iotPackagingManualCost, iotPackagingMarginPct)) : iotAutoPackagingPrice);
+  const iotHardwareTotalPrice = iotHardwareBasePrice + iotEffectivePackagingPrice;
 
   const iotOpexTotalYearly = useMemo(() => {
     return iotControlsOpexRows.reduce((sum, r) => {
@@ -2153,10 +2316,114 @@ function CostingSheetContent() {
     </div>
   );
 
+  const cpmCommSiteDropdownRef = useRef<HTMLDivElement | null>(null);
+  const cpmInstSiteDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const removeCpmCommSelectedSite = (site: string) => {
+    setCpmCommSelectedSites((prev) => {
+      const next = prev.filter((s) => s !== site);
+      setCpmCommInsideChennaiDistanceKms(calculateTotalSiteDistance(next));
+      setCpmCommManualInsideChennaiOverride(null);
+      return next;
+    });
+  };
+  const toggleCpmCommSiteSelection = (site: string) => {
+    setCpmCommSelectedSites((prev) => {
+      const next = prev.includes(site) ? prev.filter((s) => s !== site) : [...prev, site];
+      setCpmCommInsideChennaiDistanceKms(calculateTotalSiteDistance(next));
+      setCpmCommManualInsideChennaiOverride(null);
+      return next;
+    });
+  };
+  const renderCpmCommSiteDropdownContent = () => (
+    <div className="p-3 space-y-2 min-w-[290px]">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          Commissioning Site Locations
+        </span>
+        <span className="text-[10px] text-slate-400 font-semibold">Round Trip KM</span>
+      </div>
+      <div className="max-h-56 overflow-y-auto space-y-1 pr-0.5">
+        {allSiteLocations.map((siteObj) => {
+          const isSelected = cpmCommSelectedSites.includes(siteObj.name);
+          return (
+            <button
+              key={siteObj.name}
+              type="button"
+              onClick={() => toggleCpmCommSiteSelection(siteObj.name)}
+              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                isSelected ? 'bg-sky-50 text-sky-900 font-bold border border-sky-200' : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                {isSelected ? <span className="text-sky-600 font-bold text-xs">✓</span> : <span className="text-slate-300 text-xs">○</span>}
+                <span>{siteObj.name}</span>
+              </div>
+              <span className={`text-[11px] px-1.5 py-0.5 rounded font-mono font-bold ${isSelected ? 'bg-sky-200/70 text-sky-900' : 'bg-slate-100 text-slate-600'}`}>
+                {siteObj.distanceKm} km
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const removeCpmInstSelectedSite = (site: string) => {
+    setCpmInstSelectedSites((prev) => {
+      const next = prev.filter((s) => s !== site);
+      setCpmInstInsideChennaiDistanceKms(calculateTotalSiteDistance(next));
+      setCpmInstManualInsideChennaiOverride(null);
+      return next;
+    });
+  };
+  const toggleCpmInstSiteSelection = (site: string) => {
+    setCpmInstSelectedSites((prev) => {
+      const next = prev.includes(site) ? prev.filter((s) => s !== site) : [...prev, site];
+      setCpmInstInsideChennaiDistanceKms(calculateTotalSiteDistance(next));
+      setCpmInstManualInsideChennaiOverride(null);
+      return next;
+    });
+  };
+  const renderCpmInstSiteDropdownContent = () => (
+    <div className="p-3 space-y-2 min-w-[290px]">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+          Installation Site Locations
+        </span>
+        <span className="text-[10px] text-slate-400 font-semibold">Round Trip KM</span>
+      </div>
+      <div className="max-h-56 overflow-y-auto space-y-1 pr-0.5">
+        {allSiteLocations.map((siteObj) => {
+          const isSelected = cpmInstSelectedSites.includes(siteObj.name);
+          return (
+            <button
+              key={siteObj.name}
+              type="button"
+              onClick={() => toggleCpmInstSiteSelection(siteObj.name)}
+              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-colors ${
+                isSelected ? 'bg-sky-50 text-sky-900 font-bold border border-sky-200' : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                {isSelected ? <span className="text-sky-600 font-bold text-xs">✓</span> : <span className="text-slate-300 text-xs">○</span>}
+                <span>{siteObj.name}</span>
+              </div>
+              <span className={`text-[11px] px-1.5 py-0.5 rounded font-mono font-bold ${isSelected ? 'bg-sky-200/70 text-sky-900' : 'bg-slate-100 text-slate-600'}`}>
+                {siteObj.distanceKm} km
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   // Sync All Site Days Helper
   const syncAllSiteDays = (days: number) => {
     if (isCpmActive) {
-      setCpmCommissioningManpowerRows((prev) => prev.map((r) => ({ ...r, siteWorkingDays: days })));
+      toast.info('Installation and Commissioning site days are kept separate and not mapped globally.');
+      return;
     } else if (isEmsActive || isIotControlsActive) {
       setEmsManpowerRows((prev) => prev.map((r) => ({ ...r, siteWorkingDays: days })));
     } else {
@@ -2203,8 +2470,8 @@ function CostingSheetContent() {
       toast.success('Reset Water Management costing to model defaults!');
       return;
     }
-    setEmsGatewayHardwareRows(INITIAL_EMS_GATEWAY_HARDWARE_ROWS);
-    setEmsElectricalHardwareRows(INITIAL_EMS_ELECTRICAL_HARDWARE_ROWS);
+    setEmsGatewayHardwareRows(getInitialEmsGatewayHardwareRows());
+    setEmsElectricalHardwareRows(getInitialEmsElectricalHardwareRows());
     setEmsManpowerRows(INITIAL_EMS_MANPOWER_ROWS);
     setEmsPlatformRows(INITIAL_EMS_PLATFORM_ROWS);
     setEmsRecurringRows(INITIAL_EMS_RECURRING_ROWS);
@@ -3111,6 +3378,61 @@ function CostingSheetContent() {
     activeIotDays: cpmCommIotDaysComputed,
     activeTraineeDays: cpmCommTraineeDaysComputed,
     activeCustomDays: cpmCommCustomDaysComputed,
+    manualJuniorFoodOverride: cpmCommManualJuniorFoodOverride,
+    setManualJuniorFoodOverride: setCpmCommManualJuniorFoodOverride,
+    manualSeniorFoodOverride: cpmCommManualSeniorFoodOverride,
+    setManualSeniorFoodOverride: setCpmCommManualSeniorFoodOverride,
+    manualIotFoodOverride: cpmCommManualIotFoodOverride,
+    setManualIotFoodOverride: setCpmCommManualIotFoodOverride,
+    manualTraineeFoodOverride: cpmCommManualTraineeFoodOverride,
+    setManualTraineeFoodOverride: setCpmCommManualTraineeFoodOverride,
+    manualCustomFoodOverride: cpmCommManualCustomFoodOverride,
+    setManualCustomFoodOverride: setCpmCommManualCustomFoodOverride,
+    insideChennaiDistanceKms: cpmCommInsideChennaiDistanceKms,
+    setInsideChennaiDistanceKms: setCpmCommInsideChennaiDistanceKms,
+    insideChennaiRatePerKm: cpmCommInsideChennaiRatePerKm,
+    setInsideChennaiRatePerKm: setCpmCommInsideChennaiRatePerKm,
+    manualInsideChennaiDays: cpmCommManualInsideChennaiDays,
+    setManualInsideChennaiDays: setCpmCommManualInsideChennaiDays,
+    manualInsideChennaiOverride: cpmCommManualInsideChennaiOverride,
+    setManualInsideChennaiOverride: setCpmCommManualInsideChennaiOverride,
+    outsideChennaiBusCost: cpmCommOutsideChennaiBusCost,
+    setOutsideChennaiBusCost: setCpmCommOutsideChennaiBusCost,
+    outsideChennaiCabCost: cpmCommOutsideChennaiCabCost,
+    setOutsideChennaiCabCost: setCpmCommOutsideChennaiCabCost,
+    outsideChennaiTrainCost: cpmCommOutsideChennaiTrainCost,
+    setOutsideChennaiTrainCost: setCpmCommOutsideChennaiTrainCost,
+    outsideChennaiFlightCost: cpmCommOutsideChennaiFlightCost,
+    setOutsideChennaiFlightCost: setCpmCommOutsideChennaiFlightCost,
+    outstationStartLocation: cpmCommOutstationStartLocation,
+    setOutstationStartLocation: setCpmCommOutstationStartLocation,
+    outstationEndLocation: cpmCommOutstationEndLocation,
+    setOutstationEndLocation: setCpmCommOutstationEndLocation,
+    outstationDistanceKms: cpmCommOutstationDistanceKms,
+    setOutstationDistanceKms: setCpmCommOutstationDistanceKms,
+    manualOutsideChennaiOverride: cpmCommManualOutsideChennaiOverride,
+    setManualOutsideChennaiOverride: setCpmCommManualOutsideChennaiOverride,
+    selectedAccommodationTier: cpmCommSelectedAccommodationTier,
+    setSelectedAccommodationTier: setCpmCommSelectedAccommodationTier,
+    isCustomAccommodationRate: cpmCommIsCustomAccommodationRate,
+    setIsCustomAccommodationRate: setCpmCommIsCustomAccommodationRate,
+    customAccommodationRate: cpmCommCustomAccommodationRate,
+    setCustomAccommodationRate: setCpmCommCustomAccommodationRate,
+    manualAccommodationDays: cpmCommManualAccommodationDays,
+    setManualAccommodationDays: setCpmCommManualAccommodationDays,
+    manualAccommodationOverride: cpmCommManualAccommodationOverride,
+    setManualAccommodationOverride: setCpmCommManualAccommodationOverride,
+    selectedSites: cpmCommSelectedSites,
+    removeSelectedSite: removeCpmCommSelectedSite,
+    showSiteDropdown: cpmCommShowSiteDropdown,
+    setShowSiteDropdown: setCpmCommShowSiteDropdown,
+    siteDropdownRef: cpmCommSiteDropdownRef,
+    renderSiteDropdownContent: renderCpmCommSiteDropdownContent,
+    extraExpenses: cpmCommExtraExpenses,
+    addExtraExpense: addCpmCommExtraExpense,
+    updateExtraExpense: updateCpmCommExtraExpense,
+    removeExtraExpense: removeCpmCommExtraExpense,
+    customExpensesTotal: cpmCommCustomExpensesTotal,
     finalJuniorFoodCost: cpmCommJuniorFoodCost,
     finalSeniorFoodCost: cpmCommSeniorFoodCost,
     finalIotFoodCost: cpmCommIotFoodCost,
@@ -3147,6 +3469,61 @@ function CostingSheetContent() {
     activeIotDays: cpmInstIotDaysComputed,
     activeTraineeDays: cpmInstTraineeDaysComputed,
     activeCustomDays: cpmInstCustomDaysComputed,
+    manualJuniorFoodOverride: cpmInstManualJuniorFoodOverride,
+    setManualJuniorFoodOverride: setCpmInstManualJuniorFoodOverride,
+    manualSeniorFoodOverride: cpmInstManualSeniorFoodOverride,
+    setManualSeniorFoodOverride: setCpmInstManualSeniorFoodOverride,
+    manualIotFoodOverride: cpmInstManualIotFoodOverride,
+    setManualIotFoodOverride: setCpmInstManualIotFoodOverride,
+    manualTraineeFoodOverride: cpmInstManualTraineeFoodOverride,
+    setManualTraineeFoodOverride: setCpmInstManualTraineeFoodOverride,
+    manualCustomFoodOverride: cpmInstManualCustomFoodOverride,
+    setManualCustomFoodOverride: setCpmInstManualCustomFoodOverride,
+    insideChennaiDistanceKms: cpmInstInsideChennaiDistanceKms,
+    setInsideChennaiDistanceKms: setCpmInstInsideChennaiDistanceKms,
+    insideChennaiRatePerKm: cpmInstInsideChennaiRatePerKm,
+    setInsideChennaiRatePerKm: setCpmInstInsideChennaiRatePerKm,
+    manualInsideChennaiDays: cpmInstManualInsideChennaiDays,
+    setManualInsideChennaiDays: setCpmInstManualInsideChennaiDays,
+    manualInsideChennaiOverride: cpmInstManualInsideChennaiOverride,
+    setManualInsideChennaiOverride: setCpmInstManualInsideChennaiOverride,
+    outsideChennaiBusCost: cpmInstOutsideChennaiBusCost,
+    setOutsideChennaiBusCost: setCpmInstOutsideChennaiBusCost,
+    outsideChennaiCabCost: cpmInstOutsideChennaiCabCost,
+    setOutsideChennaiCabCost: setCpmInstOutsideChennaiCabCost,
+    outsideChennaiTrainCost: cpmInstOutsideChennaiTrainCost,
+    setOutsideChennaiTrainCost: setCpmInstOutsideChennaiTrainCost,
+    outsideChennaiFlightCost: cpmInstOutsideChennaiFlightCost,
+    setOutsideChennaiFlightCost: setCpmInstOutsideChennaiFlightCost,
+    outstationStartLocation: cpmInstOutstationStartLocation,
+    setOutstationStartLocation: setCpmInstOutstationStartLocation,
+    outstationEndLocation: cpmInstOutstationEndLocation,
+    setOutstationEndLocation: setCpmInstOutstationEndLocation,
+    outstationDistanceKms: cpmInstOutstationDistanceKms,
+    setOutstationDistanceKms: setCpmInstOutstationDistanceKms,
+    manualOutsideChennaiOverride: cpmInstManualOutsideChennaiOverride,
+    setManualOutsideChennaiOverride: setCpmInstManualOutsideChennaiOverride,
+    selectedAccommodationTier: cpmInstSelectedAccommodationTier,
+    setSelectedAccommodationTier: setCpmInstSelectedAccommodationTier,
+    isCustomAccommodationRate: cpmInstIsCustomAccommodationRate,
+    setIsCustomAccommodationRate: setCpmInstIsCustomAccommodationRate,
+    customAccommodationRate: cpmInstCustomAccommodationRate,
+    setCustomAccommodationRate: setCpmInstCustomAccommodationRate,
+    manualAccommodationDays: cpmInstManualAccommodationDays,
+    setManualAccommodationDays: setCpmInstManualAccommodationDays,
+    manualAccommodationOverride: cpmInstManualAccommodationOverride,
+    setManualAccommodationOverride: setCpmInstManualAccommodationOverride,
+    selectedSites: cpmInstSelectedSites,
+    removeSelectedSite: removeCpmInstSelectedSite,
+    showSiteDropdown: cpmInstShowSiteDropdown,
+    setShowSiteDropdown: setCpmInstShowSiteDropdown,
+    siteDropdownRef: cpmInstSiteDropdownRef,
+    renderSiteDropdownContent: renderCpmInstSiteDropdownContent,
+    extraExpenses: cpmInstExtraExpenses,
+    addExtraExpense: addCpmInstExtraExpense,
+    updateExtraExpense: updateCpmInstExtraExpense,
+    removeExtraExpense: removeCpmInstExtraExpense,
+    customExpensesTotal: cpmInstCustomExpensesTotal,
     finalJuniorFoodCost: cpmInstJuniorFoodCost,
     finalSeniorFoodCost: cpmInstSeniorFoodCost,
     finalIotFoodCost: cpmInstIotFoodCost,
@@ -3261,6 +3638,8 @@ function CostingSheetContent() {
             setEmsElectricalHardwareRows(INITIAL_COMPRESSED_AIR_MONITORING_ELECTRICAL_ROWS);
           } else if (subLower.includes('water automation')) {
             setMainCategoryService('Automation');
+            setEmsGatewayHardwareRows(getInitialEmsGatewayHardwareRows());
+            setEmsElectricalHardwareRows(getInitialEmsElectricalHardwareRows());
             setCaaAutoManpowerRows(INITIAL_COMPRESSED_AIR_AUTOMATION_MANPOWER_ROWS);
             setCaaInstManpowerRows(INITIAL_COMPRESSED_AIR_INSTALLATION_MANPOWER_ROWS);
           } else if (subLower.includes('digiweld')) {
@@ -3363,6 +3742,18 @@ function CostingSheetContent() {
           applyCpmGlobalMargin={applyCpmGlobalMargin}
           roundingNearest={roundingNearest}
           setRoundingNearest={setRoundingNearest}
+          cpmPackagingPct={cpmPackagingPct}
+          setCpmPackagingPct={setCpmPackagingPct}
+          cpmPackagingManualCost={cpmPackagingManualCost}
+          setCpmPackagingManualCost={setCpmPackagingManualCost}
+          cpmPackagingManualPrice={cpmPackagingManualPrice}
+          setCpmPackagingManualPrice={setCpmPackagingManualPrice}
+          cpmPackagingQty={cpmPackagingQty}
+          setCpmPackagingQty={setCpmPackagingQty}
+          cpmPackagingUom={cpmPackagingUom}
+          setCpmPackagingUom={setCpmPackagingUom}
+          cpmPackagingMarginPct={cpmPackagingMarginPct}
+          setCpmPackagingMarginPct={setCpmPackagingMarginPct}
         />
       ) : isIotControlsActive ? (
         <IotControlsTemplate
@@ -3436,6 +3827,14 @@ function CostingSheetContent() {
           profitPct={profitPct}
           setProfitPct={setProfitPct}
           resetIotControlsDefaults={resetIotControlsDefaults}
+          iotPackagingPct={iotPackagingPct}
+          setIotPackagingPct={setIotPackagingPct}
+          iotPackagingManualCost={iotPackagingManualCost}
+          setIotPackagingManualCost={setIotPackagingManualCost}
+          iotPackagingManualPrice={iotPackagingManualPrice}
+          setIotPackagingManualPrice={setIotPackagingManualPrice}
+          iotPackagingMarginPct={iotPackagingMarginPct}
+          setIotPackagingMarginPct={setIotPackagingMarginPct}
         />
       ) : isWeldingIotActive ? (
         <WeldingIotTemplate
@@ -3498,6 +3897,14 @@ function CostingSheetContent() {
           emsElectricalHardwareTotalPrice={emsElectricalHardwareTotalPrice}
           emsHardwareTotalCost={emsHardwareTotalCost}
           emsHardwareTotalPrice={emsHardwareTotalPrice}
+          emsPackagingPct={emsPackagingPct}
+          setEmsPackagingPct={setEmsPackagingPct}
+          emsPackagingManualCost={emsPackagingManualCost}
+          setEmsPackagingManualCost={setEmsPackagingManualCost}
+          emsPackagingManualPrice={emsPackagingManualPrice}
+          setEmsPackagingManualPrice={setEmsPackagingManualPrice}
+          emsPackagingMarginPct={emsPackagingMarginPct}
+          setEmsPackagingMarginPct={setEmsPackagingMarginPct}
           emsPlatformRows={emsPlatformRows}
           updateEmsPlatformRow={updateEmsPlatformRow}
           addEmsPlatformRow={addEmsPlatformRow}

@@ -30,6 +30,7 @@ import { IrBlasterPages } from './IrBlasterPages';
 import { IaqSensorPages } from './IaqSensorPages';
 import { CompressedAirAutomationPages } from './CompressedAirAutomationPages';
 import { WaterAutomationProposalPages } from './WaterAutomationProposalPages';
+import { TemperatureSensorPages } from './TemperatureSensorPages';
 
 interface ProposalPreviewProps {
   proposal: Proposal;
@@ -296,8 +297,20 @@ export default function ProposalPreview({
       Boolean((proposal as any)?.serviceName?.toLowerCase()?.includes('dew point')) ||
       Boolean((proposal as any)?.subService?.toLowerCase()?.includes('dew point')));
 
+  const isTemperatureSensor =
+    !isFlangesHardware &&
+    !isIaqSensor &&
+    !isDewPointHardware &&
+    (serviceTitle.includes('temperature') ||
+      subServiceTitle.includes('temperature') ||
+      Boolean((deal?.service as any)?.name?.toLowerCase()?.includes('temperature')) ||
+      Boolean((deal?.service as any)?.category?.toLowerCase()?.includes('temperature')) ||
+      Boolean((proposal as any)?.serviceName?.toLowerCase()?.includes('temperature')) ||
+      Boolean((proposal as any)?.subService?.toLowerCase()?.includes('temperature')));
+
   const isNitrogenGasLeakageAudit =
     !isDewPointHardware &&
+    !isTemperatureSensor &&
     (serviceTitle.includes('nitrogen') ||
       subServiceTitle.includes('nitrogen') ||
       Boolean((deal?.service as any)?.name?.toLowerCase()?.includes('nitrogen')) ||
@@ -765,6 +778,16 @@ export default function ProposalPreview({
           proposalDate={proposalDate}
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
+        />
+      ) : isTemperatureSensor ? (
+        <TemperatureSensorPages
+          deal={deal}
+          proposal={proposal}
+          proposalRef={proposalRef}
+          proposalDate={proposalDate}
+          finalPrice={finalPrice}
+          formatCurrency={formatCurrency}
+          costingSheet={(proposal as any)?.costingSheet || (proposal as any)?.costing_sheet || (proposal as any)?.costingData || (proposal as any)?.quote?.costingSheet || (deal as any)?.costingSheet || (deal as any)?.quote?.costingSheet}
         />
       ) : isNitrogenGasLeakageAudit ? (
         <NitrogenGasLeakageAuditPages

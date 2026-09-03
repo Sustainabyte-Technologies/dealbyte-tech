@@ -85,6 +85,20 @@ export interface CpmCostingTemplateProps {
   applyCpmGlobalMargin?: (marginPct: number) => void;
   roundingNearest?: number;
   setRoundingNearest?: (val: number) => void;
+
+  // Packaging Charges (Editable)
+  cpmPackagingPct?: number;
+  setCpmPackagingPct?: (pct: number) => void;
+  cpmPackagingManualCost?: number | null;
+  setCpmPackagingManualCost?: (val: number | null) => void;
+  cpmPackagingManualPrice?: number | null;
+  setCpmPackagingManualPrice?: (val: number | null) => void;
+  cpmPackagingQty?: number;
+  setCpmPackagingQty?: (val: number) => void;
+  cpmPackagingUom?: string;
+  setCpmPackagingUom?: (val: string) => void;
+  cpmPackagingMarginPct?: number;
+  setCpmPackagingMarginPct?: (val: number) => void;
 }
 
 export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => {
@@ -130,6 +144,18 @@ export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => 
     resetCpmDefaults,
     applyCpmGlobalMargin,
     profitPct,
+    cpmPackagingPct = 3,
+    setCpmPackagingPct,
+    cpmPackagingManualCost = null,
+    setCpmPackagingManualCost,
+    cpmPackagingManualPrice = null,
+    setCpmPackagingManualPrice,
+    cpmPackagingQty = 1,
+    setCpmPackagingQty,
+    cpmPackagingUom = 'Job',
+    setCpmPackagingUom,
+    cpmPackagingMarginPct = 0,
+    setCpmPackagingMarginPct,
   } = props;
 
   const [localRoundingNearest, setLocalRoundingNearest] = useState<number>(100);
@@ -137,6 +163,15 @@ export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => 
   const setRoundingNearest = props.setRoundingNearest || setLocalRoundingNearest;
 
   const [quickMargin, setQuickMargin] = useState<number>(profitPct || 40);
+
+  const cpmHardwareSupplyBaseTotal = cpmHardwareTotalPrice + cpmElectricalTotalPrice;
+  const cpmHardwareSupplyBaseCost = cpmHardwareTotalCost + cpmElectricalTotalCost;
+  const cpmAutoPackagingPrice = Math.round(cpmHardwareSupplyBaseTotal * (cpmPackagingPct / 100));
+  const cpmAutoPackagingCost = cpmAutoPackagingPrice;
+  const cpmEffectivePackagingCost = cpmPackagingManualCost !== null ? cpmPackagingManualCost : cpmAutoPackagingCost;
+  const cpmEffectivePackagingPrice = cpmPackagingManualPrice !== null
+    ? cpmPackagingManualPrice
+    : (cpmPackagingMarginPct > 0 ? Math.round(calcPriceFromCost(cpmEffectivePackagingCost, cpmPackagingMarginPct)) : cpmEffectivePackagingCost);
 
   // Hardware search catalog options
   const hardwareOptions: SearchableOption[] = useMemo(() => {
@@ -659,29 +694,94 @@ export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => 
                 </tr>
               )}
 
-              {/* TOTAL 2: 3% Packaging Charges Row */}
-              {(cpmHardwareRows.reduce((sum, r) => sum + Math.round(r.qty * calcPriceFromCost(r.unitCost, r.marginPct ?? 40)), 0) + cpmElectricalTotalPrice) > 0 && (
+              {/* TOTAL 2: Packaging Charges Row (Fully Editable) */}
+              {(cpmHardwareSupplyBaseTotal > 0 || cpmEffectivePackagingPrice > 0) && (
                 <tr className="bg-cyan-50/70 text-slate-800 font-bold border-b border-cyan-200/80 text-xs">
                   <td className="p-2.5 px-3 text-center text-cyan-900 border-r border-slate-200">★</td>
-                  <td className="p-2.5 px-3 border-r border-slate-200 text-cyan-950 font-extrabold" colSpan={3}>
-                    <div className="flex items-center gap-1.5">
-                      <span className="bg-cyan-200 text-cyan-900 text-[10px] font-black px-1.5 py-0.5 rounded">3% Capex</span>
-                      <span>Packaging Charges (Step 1 + Step 2 Overall Selling Total × 3%)</span>
+                  <td className="p-2 px-3 border-r border-slate-200 text-cyan-950 font-extrabold" colSpan={3}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 bg-cyan-200/90 text-cyan-950 rounded px-1.5 py-0.5 border border-cyan-300">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          value={cpmPackagingPct}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setCpmPackagingPct?.(val);
+                            setCpmPackagingManualCost?.(null);
+                            setCpmPackagingManualPrice?.(null);
+                          }}
+                          className="w-9 text-center bg-white font-black text-cyan-950 rounded text-xs py-0.5 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                        />
+                        <span className="font-black text-[10px] text-cyan-900">% Capex</span>
+                      </div>
+                      <span className="text-xs font-bold text-cyan-950">
+                        Packaging Charges (Step 1 + Step 2 Overall Selling Total × {cpmPackagingPct}%)
+                      </span>
                     </div>
                   </td>
-                  <td className="p-2.5 px-2 border-r border-slate-200 text-center text-slate-600 font-semibold">1</td>
-                  <td className="p-2.5 px-2 border-r border-slate-200 text-center text-slate-600 font-semibold">Job</td>
-                  <td className="p-2.5 px-3 border-r border-slate-200 text-right font-mono text-slate-700">
-                    ₹{formatMoney(Math.round((cpmHardwareRows.reduce((sum, r) => sum + Math.round(r.qty * calcPriceFromCost(r.unitCost, r.marginPct ?? 40)), 0) + cpmElectricalTotalPrice) * 0.03))}
+                  <td className="p-1 px-1 border-r border-slate-200 text-center">
+                    <input
+                      type="number"
+                      min={1}
+                      value={cpmPackagingQty}
+                      onChange={(e) => setCpmPackagingQty?.(Number(e.target.value) || 1)}
+                      className="w-12 text-center bg-white border border-slate-200 rounded px-1 py-1 text-xs font-bold text-slate-800 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+                    />
+                  </td>
+                  <td className="p-1 px-1 border-r border-slate-200 text-center">
+                    <input
+                      type="text"
+                      value={cpmPackagingUom}
+                      onChange={(e) => setCpmPackagingUom?.(e.target.value)}
+                      className="w-12 text-center bg-white border border-slate-200 rounded px-1 py-1 text-xs font-bold text-slate-800 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+                    />
+                  </td>
+                  <td className="p-1 px-1 border-r border-slate-200 text-right">
+                    <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded px-1 py-0.5">
+                      <span className="text-slate-400 text-[10px]">₹</span>
+                      <input
+                        type="number"
+                        value={cpmPackagingManualCost !== null ? cpmPackagingManualCost : cpmAutoPackagingCost}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? null : Number(e.target.value);
+                          setCpmPackagingManualCost?.(val);
+                        }}
+                        className="w-full text-right text-xs font-mono font-bold text-slate-800 focus:outline-none"
+                      />
+                    </div>
                   </td>
                   <td className="p-2.5 px-3 border-r border-slate-200 text-right font-mono font-bold text-slate-800">
-                    ₹{formatMoney(Math.round((cpmHardwareRows.reduce((sum, r) => sum + Math.round(r.qty * calcPriceFromCost(r.unitCost, r.marginPct ?? 40)), 0) + cpmElectricalTotalPrice) * 0.03))}
+                    ₹{formatMoney(cpmEffectivePackagingCost)}
                   </td>
-                  <td className="p-2.5 px-2 border-r border-slate-200 text-center text-slate-500 font-bold">
-                    0%
+                  <td className="p-1 px-1 border-r border-slate-200 text-center">
+                    <div className="flex items-center justify-center gap-0.5 bg-white border border-slate-200 rounded px-1 py-0.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={cpmPackagingMarginPct}
+                        onChange={(e) => setCpmPackagingMarginPct?.(Number(e.target.value) || 0)}
+                        className="w-7 text-center text-xs font-bold text-slate-700 focus:outline-none"
+                      />
+                      <span className="text-slate-400 text-[10px]">%</span>
+                    </div>
                   </td>
-                  <td className="p-2.5 px-3 border-r border-slate-200 text-right font-extrabold text-cyan-900 bg-cyan-50/50">
-                    ₹{formatMoney(Math.round((cpmHardwareRows.reduce((sum, r) => sum + Math.round(r.qty * calcPriceFromCost(r.unitCost, r.marginPct ?? 40)), 0) + cpmElectricalTotalPrice) * 0.03))}
+                  <td className="p-1 px-1 border-r border-slate-200 text-right bg-cyan-50/50">
+                    <div className="flex items-center gap-0.5 bg-white border border-cyan-300 rounded px-1 py-0.5 shadow-2xs">
+                      <span className="text-cyan-600 text-[10px]">₹</span>
+                      <input
+                        type="number"
+                        value={cpmPackagingManualPrice !== null ? cpmPackagingManualPrice : cpmEffectivePackagingPrice}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? null : Number(e.target.value);
+                          setCpmPackagingManualPrice?.(val);
+                        }}
+                        className="w-full text-right text-xs font-extrabold text-cyan-950 focus:outline-none"
+                      />
+                    </div>
                   </td>
                   <td className="p-2.5 px-2 text-center text-cyan-600 font-bold">✓</td>
                 </tr>
@@ -690,14 +790,14 @@ export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => 
               {/* TOTAL 3: Step 1 + Step 2 Grand Total Row */}
               <tr className="bg-slate-900 text-white font-extrabold text-xs">
                 <td colSpan={7} className="p-3 px-6 text-right uppercase tracking-wider">
-                  Step 1 + Step 2 Total Hardware &amp; Electrical Investment (Overall Total + 3% Packaging Charges)
+                  Step 1 + Step 2 Total Hardware &amp; Electrical Investment (Overall Total + {cpmPackagingPct}% Packaging Charges)
                 </td>
                 <td className="p-3 px-3 text-right font-black text-slate-300 border-r border-slate-700">
-                  ₹{formatMoney((cpmHardwareRows.reduce((sum, r) => sum + r.qty * r.unitCost, 0) + cpmElectricalTotalCost) + Math.round((cpmHardwareRows.reduce((sum, r) => sum + Math.round(r.qty * calcPriceFromCost(r.unitCost, r.marginPct ?? 40)), 0) + cpmElectricalTotalPrice) * 0.03))}
+                  ₹{formatMoney(cpmHardwareSupplyBaseCost + cpmEffectivePackagingCost)}
                 </td>
                 <td></td>
                 <td className="p-3 px-3 text-right font-black text-cyan-300 bg-slate-800 text-sm border-r border-slate-700">
-                  ₹{formatMoney((cpmHardwareRows.reduce((sum, r) => sum + Math.round(r.qty * calcPriceFromCost(r.unitCost, r.marginPct ?? 40)), 0) + cpmElectricalTotalPrice) + Math.round((cpmHardwareRows.reduce((sum, r) => sum + Math.round(r.qty * calcPriceFromCost(r.unitCost, r.marginPct ?? 40)), 0) + cpmElectricalTotalPrice) * 0.03))}
+                  ₹{formatMoney(cpmHardwareSupplyBaseTotal + cpmEffectivePackagingPrice)}
                 </td>
                 <td></td>
               </tr>
@@ -1086,13 +1186,13 @@ export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
           <div className="p-3.5 rounded-xl bg-cyan-50/60 border border-cyan-200">
             <div className="text-[10px] font-bold text-cyan-800 uppercase tracking-wide">
-              1. Hardware (Step 1)
+              1. Hardware &amp; Pkg (Step 1 + {cpmPackagingPct}%)
             </div>
             <div className="text-lg font-black text-cyan-950 mt-1">
-              ₹{formatMoney(cpmHardwareTotalPrice)}
+              ₹{formatMoney(cpmHardwareTotalPrice + cpmEffectivePackagingPrice)}
             </div>
             <div className="text-[10px] text-cyan-700 mt-0.5 font-semibold">
-              Cost: ₹{formatMoney(cpmHardwareTotalCost)}
+              Cost: ₹{formatMoney(cpmHardwareTotalCost + cpmEffectivePackagingCost)}
             </div>
           </div>
 
@@ -1187,7 +1287,7 @@ export const CpmCostingTemplate: React.FC<CpmCostingTemplateProps> = (props) => 
               Final Customer Investment Quotation (Chiller Plant Management)
             </div>
             <div className="text-xs text-cyan-200/80 font-medium mt-1 flex items-center gap-2 flex-wrap">
-              <span>Steps 1–6 Base Total: <strong className="text-white font-black">₹{formatMoney(cpmSteps1To6TotalPrice || (cpmHardwareTotalPrice + cpmElectricalTotalPrice + cpmCommissioningTotalPrice + cpmInstManpowerTotalPrice + cpmOnPremiseTotalPrice + cpmCloudChargeTotalPrice))}</strong></span>
+              <span>Steps 1–6 Base Total: <strong className="text-white font-black">₹{formatMoney(cpmSteps1To6TotalPrice || (cpmHardwareSupplyBaseTotal + cpmEffectivePackagingPrice + cpmCommissioningTotalPrice + cpmInstManpowerTotalPrice + cpmOnPremiseTotalPrice + cpmCloudChargeTotalPrice))}</strong></span>
               <span>•</span>
               <span>+ {bufferPct}% Negotiation Buffer: <strong className="text-amber-300 font-black">+ ₹{formatMoney(cpmBufferAmount)}</strong></span>
             </div>

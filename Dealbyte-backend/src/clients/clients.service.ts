@@ -37,7 +37,7 @@ export const DEFAULT_CLIENTS = [
   'KKP Spinning mill',
   'Knauf',
   'Komter Equipments',
-  'Kone elevators',
+  'KONE Elevators India',
   'KPR Mill Ltd',
   'L&T Valves Ltd',
   'Lucas TVS Padi',
@@ -95,6 +95,15 @@ export class ClientsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
+    // Delete duplicate variations of KONE from DB
+    await this.prisma.client
+      .deleteMany({
+        where: {
+          name: { in: ['KONE Elevator', 'Kone elevators', 'Kone elevator', 'KONE Elevators'] },
+        },
+      })
+      .catch(() => {});
+
     // Ensure all default clients are seeded into PostgreSQL DB
     await this.prisma.client.createMany({
       data: DEFAULT_CLIENTS.map((name) => ({ name: name.trim() })),

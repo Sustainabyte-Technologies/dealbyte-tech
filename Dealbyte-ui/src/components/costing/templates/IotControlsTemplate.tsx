@@ -82,6 +82,16 @@ export interface IotControlsTemplateProps extends AirAuditManpowerEngineProps {
   roundingNearest?: number;
   setRoundingNearest?: (val: number) => void;
   resetIotControlsDefaults: () => void;
+
+  // Packaging Charges (Editable)
+  iotPackagingPct?: number;
+  setIotPackagingPct?: (pct: number) => void;
+  iotPackagingManualCost?: number | null;
+  setIotPackagingManualCost?: (val: number | null) => void;
+  iotPackagingManualPrice?: number | null;
+  setIotPackagingManualPrice?: (val: number | null) => void;
+  iotPackagingMarginPct?: number;
+  setIotPackagingMarginPct?: (val: number) => void;
 }
 
 export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) => {
@@ -148,12 +158,32 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
     roiNetBenefitY3,
     roiNetBenefitY4,
     roiNetBenefitY5,
+    bufferPct = 10,
+    setBufferPct,
     resetIotControlsDefaults,
+    iotPackagingPct = 3,
+    setIotPackagingPct,
+    iotPackagingManualCost = null,
+    setIotPackagingManualCost,
+    iotPackagingManualPrice = null,
+    setIotPackagingManualPrice,
+    iotPackagingMarginPct = 0,
+    setIotPackagingMarginPct,
   } = props;
 
+  const calcPriceFromCost = (cost: number, margin: number) => cost / (1 - margin / 100);
+
+  const iotHardwareBasePrice = React.useMemo(() => {
+    return iotControlsHardwareRows.reduce((sum, r) => sum + Math.round(Number(r.quantity || 0) * Number(r.unitPrice || 0)), 0);
+  }, [iotControlsHardwareRows]);
+  const iotAutoPackagingPrice = Math.round(iotHardwareBasePrice * (iotPackagingPct / 100));
+  const iotEffectivePackagingPrice = iotPackagingManualPrice !== null
+    ? iotPackagingManualPrice
+    : (iotPackagingMarginPct > 0 && iotPackagingManualCost !== null ? Math.round(calcPriceFromCost(iotPackagingManualCost, iotPackagingMarginPct)) : iotAutoPackagingPrice);
+
   const isIrBlaster = (activeSubServiceName || '').toLowerCase().includes('ir blaster');
-  const bufferPct = props.bufferPct !== undefined ? props.bufferPct : 10;
-  const setBufferPct = props.setBufferPct || (() => {});
+  const bufferPctVal = props.bufferPct !== undefined ? props.bufferPct : 10;
+  const setBufferPctVal = props.setBufferPct || (() => {});
   const roundingNearest = props.roundingNearest !== undefined ? props.roundingNearest : 100;
   const setRoundingNearest = props.setRoundingNearest || (() => {});
 
@@ -163,18 +193,19 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
   };
 
   // Base Totals
-  const rawHardwareBase = iotHardwareTotalPrice;
+  const rawHardwareBase = iotHardwareBasePrice + iotEffectivePackagingPrice;
   const rawOpexBase = iotOpexTotalYearly;
   const rawTotalBase = rawHardwareBase + (isIrBlaster ? rawOpexBase : 0);
 
-  // Buffer / Contingency calculations
-  const hardwareContingency = bufferPct > 0 ? Math.round(rawHardwareBase / Math.max(0.01, (100 - bufferPct) / 100)) : rawHardwareBase;
-  const hardwareRounded = roundToNearest(hardwareContingency, roundingNearest);
+  // Buffer / Contingency calculations (Contingency is NOT applied to Packaging Charges)
+  const hardwareBaseWithoutPkg = iotHardwareBasePrice;
+  const hardwareContingency = bufferPct > 0 ? Math.round(hardwareBaseWithoutPkg / Math.max(0.01, (100 - bufferPct) / 100)) : hardwareBaseWithoutPkg;
+  const hardwareRounded = roundToNearest(hardwareContingency, roundingNearest) + iotEffectivePackagingPrice;
 
   const opexContingency = bufferPct > 0 ? Math.round(rawOpexBase / Math.max(0.01, (100 - bufferPct) / 100)) : rawOpexBase;
   const opexRounded = roundToNearest(opexContingency, roundingNearest);
 
-  const totalWithBuffer = hardwareContingency + (isIrBlaster ? opexContingency : 0);
+  const totalWithBuffer = hardwareContingency + iotEffectivePackagingPrice + (isIrBlaster ? opexContingency : 0);
   const finalCustomerTotal = hardwareRounded + (isIrBlaster ? opexRounded : 0);
   const totalBufferAmount = finalCustomerTotal - rawTotalBase;
 
@@ -363,19 +394,58 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
                 </tr>
               )}
 
-              {/* TOTAL 2: 3% Packaging Charges Row */}
-              {iotControlsHardwareRows.reduce((sum, r) => sum + Math.round(Number(r.quantity || 0) * Number(r.unitPrice || 0)), 0) > 0 && (
+              {/* TOTAL 2: Packaging Charges Row (Fully Editable) */}
+              {(iotHardwareBasePrice > 0 || iotEffectivePackagingPrice > 0) && (
                 <tr className="bg-emerald-50/60 font-bold border-t border-emerald-200 text-xs text-slate-800">
                   <td className="py-2.5 px-3 text-center text-emerald-800">★</td>
                   <td className="py-2.5 px-4 font-extrabold text-emerald-950" colSpan={4}>
-                    <div className="flex items-center gap-1.5">
-                      <span className="bg-emerald-200 text-emerald-900 text-[10px] font-black px-1.5 py-0.5 rounded">3% Capex</span>
-                      <span>Packaging Charges (Overall Hardware Selling Total × 3%)</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1 bg-emerald-200/90 text-emerald-950 rounded px-1.5 py-0.5 border border-emerald-300">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          value={iotPackagingPct}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setIotPackagingPct?.(val);
+                            setIotPackagingManualCost?.(null);
+                            setIotPackagingManualPrice?.(null);
+                          }}
+                          className="w-9 text-center bg-white font-black text-emerald-950 rounded text-xs py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <span className="font-black text-[10px] text-emerald-900">% Capex</span>
+                      </div>
+                      <span>Packaging Charges (Overall Hardware Selling Total × {iotPackagingPct}%)</span>
                     </div>
                   </td>
-                  <td className="py-2.5 px-3 text-center font-bold text-slate-500">0%</td>
-                  <td className="py-2.5 px-3 text-right font-extrabold text-emerald-800">
-                    + ₹{formatMoney(Math.round(iotControlsHardwareRows.reduce((sum, r) => sum + Math.round(Number(r.quantity || 0) * Number(r.unitPrice || 0)), 0) * 0.03))}
+                  <td className="py-2.5 px-3 text-center font-bold text-slate-500">
+                    <div className="flex items-center justify-center gap-0.5 bg-white border border-slate-200 rounded px-1 py-0.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={iotPackagingMarginPct}
+                        onChange={(e) => setIotPackagingMarginPct?.(Number(e.target.value) || 0)}
+                        className="w-7 text-center text-xs font-bold text-slate-700 focus:outline-none"
+                      />
+                      <span className="text-slate-400 text-[10px]">%</span>
+                    </div>
+                  </td>
+                  <td className="py-1 px-2 text-right font-extrabold text-emerald-800">
+                    <div className="flex items-center gap-0.5 bg-white border border-emerald-300 rounded px-1 py-0.5 shadow-2xs">
+                      <span className="text-emerald-700 text-[10px]">₹</span>
+                      <input
+                        type="number"
+                        value={iotPackagingManualPrice !== null ? iotPackagingManualPrice : iotEffectivePackagingPrice}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? null : Number(e.target.value);
+                          setIotPackagingManualPrice?.(val);
+                        }}
+                        className="w-full text-right text-xs font-black text-emerald-950 focus:outline-none"
+                      />
+                    </div>
                   </td>
                   <td className="py-2.5 px-2 text-center text-emerald-600 font-bold">✓</td>
                 </tr>
@@ -384,10 +454,10 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
             <tfoot className="bg-slate-100 font-extrabold text-slate-900 border-t-2 border-slate-300">
               <tr>
                 <td colSpan={6} className="py-3 px-4 text-right uppercase text-xs tracking-wider">
-                  Step 1 Total Hardware Capex (Overall Total + 3% Packaging Charges)
+                  Step 1 Total Hardware Capex (Overall Total + {iotPackagingPct}% Packaging Charges)
                 </td>
                 <td className="py-3 px-4 text-right text-emerald-800 text-sm font-black">
-                  ₹{formatMoney(iotHardwareTotalPrice)}
+                  ₹{formatMoney(iotHardwareBasePrice + iotEffectivePackagingPrice)}
                 </td>
                 <td></td>
               </tr>
@@ -609,7 +679,7 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
                 min={0}
                 max={100}
                 value={bufferPct}
-                onChange={(e) => setBufferPct(Math.max(0, Number(e.target.value)))}
+                onChange={(e) => setBufferPct?.(Math.max(0, Number(e.target.value)))}
                 className="w-12 text-center font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 py-0.5 text-xs focus:outline-none"
               />
               <span className="text-xs font-extrabold text-emerald-800">%</span>
@@ -618,7 +688,7 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
                   <button
                     key={b}
                     type="button"
-                    onClick={() => setBufferPct(b)}
+                    onClick={() => setBufferPct?.(b)}
                     className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition ${
                       bufferPct === b ? 'bg-emerald-600 text-white font-black' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
@@ -706,14 +776,29 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
                     </tr>
                   );
                 })}
+                {iotEffectivePackagingPrice > 0 && (
+                  <tr className="bg-emerald-50/40 font-bold">
+                    <td className="py-2 px-3 text-center font-bold text-emerald-800 border-r border-slate-200">★</td>
+                    <td className="py-2 px-4 font-bold text-emerald-950 border-r border-slate-200">
+                      Packaging &amp; Forwarding Charges ({iotPackagingPct}% of Overall Hardware Capex)
+                    </td>
+                    <td className="py-2 px-3 text-center font-bold text-slate-800 border-r border-slate-200">1</td>
+                    <td className="py-2 px-4 text-right font-semibold text-slate-800 border-r border-slate-200">
+                      ₹ {formatMoney(iotEffectivePackagingPrice)}
+                    </td>
+                    <td className="py-2 px-4 text-right font-black text-emerald-900">
+                      ₹ {formatMoney(iotEffectivePackagingPrice)}
+                    </td>
+                  </tr>
+                )}
               </tbody>
               <tfoot className="bg-[#4d9338] text-white font-black text-xs border-t border-[#3d7a2c]">
                 <tr>
                   <td colSpan={4} className="py-2.5 px-4 text-center uppercase tracking-wider font-extrabold text-white text-xs">
-                    Total Hardware Capex Base
+                    Step 1 Total Hardware Capex (Overall Total + {iotPackagingPct}% Packaging Charges)
                   </td>
                   <td className="py-2.5 px-4 text-right font-black text-sm text-white">
-                    ₹ {formatMoney(iotHardwareTotalPrice)}
+                    ₹ {formatMoney(rawHardwareBase)}
                   </td>
                 </tr>
               </tfoot>

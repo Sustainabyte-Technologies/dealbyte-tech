@@ -1,22 +1,6 @@
 'use client';
 
 import React from 'react';
-import {
-  Wind,
-  Activity,
-  CheckCircle2,
-  Gauge,
-  Zap,
-  ShieldCheck,
-  Building2,
-  Radio,
-  Cpu,
-  Wrench,
-  FileCheck,
-  AlertTriangle,
-  Clock,
-  Settings,
-} from 'lucide-react';
 
 interface CompressedAirAutomationPagesProps {
   deal: any;
@@ -37,7 +21,7 @@ export function CompressedAirAutomationPages({
   formatCurrency,
   costingSheet: propCostingSheet,
 }: CompressedAirAutomationPagesProps) {
-  const totalPages = 5;
+  const totalPages = 6;
 
   const clientName =
     deal?.clientName ||
@@ -81,7 +65,6 @@ export function CompressedAirAutomationPages({
     [];
   const activeRecurringRows = rawRecurringRows.filter((r) => Number(r.qty || 0) > 0);
 
-  // Helper calculations for dynamic commercial summary matching Costing Sheet Step 5
   const calcPrice = (cost: number, margin: number = 40) => {
     const m = Math.min(99.9, Math.max(0, margin));
     return m >= 100 ? cost : cost / ((100 - m) / 100);
@@ -96,155 +79,224 @@ export function CompressedAirAutomationPages({
 
   // 1. Gateway Hardware (1a)
   const item1a = activeGatewayRows[0] || rawGatewayRows[0];
-  const item1Price = item1a ? (item1a.qty || 3) * calcPrice(item1a.unitCost || 175000, item1a.marginPct ?? 40) : 750000;
-  const item1Contingency = Math.round(item1Price / Math.max(0.01, (100 - bufferPct) / 100));
-  const item1Rounded = roundToNearest(item1Contingency, roundingNearest);
+  const item1aQty = Number(item1a?.qty || 0);
+  const item1aPrice = item1a && item1aQty > 0 ? item1aQty * calcPrice(Number(item1a.unitCost || 0), item1a.marginPct ?? 40) : (activeGatewayRows.length === 0 ? 750000 : 0);
+  const item1aContingency = Math.round(item1aPrice / Math.max(0.01, (100 - bufferPct) / 100));
+  const final1a = roundToNearest(item1aContingency, roundingNearest);
 
-  // 2. Meters & Additional Hardware (1b, 1c...)
-  const item1bRows = activeGatewayRows.length > 1 ? activeGatewayRows.slice(1) : rawGatewayRows.slice(1);
-  const item2Price = item1bRows.length > 0
-    ? item1bRows.reduce((sum, r) => sum + (r.qty || 0) * calcPrice(r.unitCost || 0, r.marginPct ?? 40), 0)
-    : 737571.44;
-  const item2Contingency = Math.round(item2Price / Math.max(0.01, (100 - bufferPct) / 100));
-  const item2Rounded = roundToNearest(item2Contingency, roundingNearest);
-  const item2Description = item1bRows.length > 0
+  // 2. Additional Gateway / Instruments (1b, 1c...)
+  const item1bRows = activeGatewayRows.length > 1 ? activeGatewayRows.slice(1) : (activeGatewayRows.length === 0 ? rawGatewayRows.slice(1) : []);
+  const item1bQty = item1bRows.reduce((sum, r) => sum + Number(r.qty || 0), 0);
+  const item1bPrice = item1bRows.reduce((sum, r) => sum + Number(r.qty || 0) * calcPrice(Number(r.unitCost || 0), r.marginPct ?? 40), 0);
+  const item1bContingency = Math.round(item1bPrice / Math.max(0.01, (100 - bufferPct) / 100));
+  const final1b = roundToNearest(item1bContingency, roundingNearest);
+  const item1bDescription = item1bRows.length > 0
     ? item1bRows.map((r) => r.description).join('; ')
-    : 'Gateway with Panel Board, DDC Controller, I/O Module, Relay Module & services including AI-based insights, leakage identification using ultrasonic acoustic leak detector, re-verification support and IM&V support; Supply of Energy Meter with necessary accessories and wall mounting Panel; Vibration Sensor for Compressors; Temperature & Humidity Sensor; Pressure; DP; Communication Cable (RS 485) & Power Cables';
-  const item2Qty = item1bRows.length > 0 ? item1bRows.reduce((sum, r) => sum + Number(r.qty || 0), 0) : 11;
-  const item2Uom = item1bRows[0]?.uom || 'Nos';
+    : 'Gateway with Panel Board, DDC Controller, I/O Module, Relay Module & services including AI-based insights, leakage identification using ultrasonic acoustic leak detector, re-verification support and IM&V support';
 
-  // 3. Electrical Accessories Total (2a, 2b, 2c...)
-  const item3Rows = activeElecRows.length > 0 ? activeElecRows : rawElecRows;
-  const item3Price = item3Rows.length > 0
-    ? item3Rows.reduce((sum, r) => sum + (r.qty || 0) * calcPrice(r.unitCost || 0, r.marginPct ?? 40), 0)
-    : (costingSheet.emsElectricalHardwareTotalPrice || 1547000);
+  // 3. Electrical Consumables
+  const totalElecPrice = (activeElecRows.length > 0 ? activeElecRows : rawElecRows).reduce((sum, r) => {
+    const qty = Number(r.qty || 0);
+    const unitPrice = calcPrice(Number(r.unitCost || 0), r.marginPct ?? 40);
+    return sum + qty * unitPrice;
+  }, 0);
+  const item2Price = totalElecPrice > 0 ? totalElecPrice : (activeElecRows.length === 0 ? 1547000 : 0);
+  const item2Contingency = Math.round(item2Price / Math.max(0.01, (100 - bufferPct) / 100));
+  const final2 = roundToNearest(item2Contingency, roundingNearest);
+  const item2Qty = (activeElecRows.length > 0 ? activeElecRows : rawElecRows).reduce((sum, r) => sum + Number(r.qty || 0), 0) || 1;
+  const item2Description = (activeElecRows.length > 0 ? activeElecRows : rawElecRows).map((r) => r.description).join('; ') || 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories';
+
+  // 4. Packaging Charges (DO NOT add contingency buffer)
+  const packagingPct = costingSheet.emsPackagingPct !== undefined ? Number(costingSheet.emsPackagingPct) : (costingSheet.packagingPct !== undefined ? Number(costingSheet.packagingPct) : 3);
+  const hwBasePrice = item1aPrice + item1bPrice + item2Price;
+  const autoPackagingPrice = Math.round(hwBasePrice * (packagingPct / 100));
+  const effectivePackagingPrice = costingSheet.emsPackagingManualPrice !== undefined && costingSheet.emsPackagingManualPrice !== null
+    ? Number(costingSheet.emsPackagingManualPrice)
+    : (costingSheet.emsEffectivePackagingPrice !== undefined ? Number(costingSheet.emsEffectivePackagingPrice) : autoPackagingPrice);
+  const finalPkg = roundToNearest(effectivePackagingPrice, roundingNearest);
+
+  // 5. Automation, Programming & Commissioning Scope
+  const autoManpowerPrice = Number(
+    costingSheet.caaAutoManpowerTotalPrice ||
+    costingSheet.airAutoManpowerTotalPrice ||
+    costingSheet.autoPrice ||
+    costingSheet.automationTotalPrice ||
+    252000
+  );
+  const autoContingency = Math.round(autoManpowerPrice / Math.max(0.01, (100 - bufferPct) / 100));
+  const finalAuto = roundToNearest(autoContingency, roundingNearest);
+
+  // 6. Installation, Cabling & Electrical Mounting Scope
+  const instManpowerPrice = Number(
+    costingSheet.caaInstManpowerTotalPrice ||
+    costingSheet.airInstManpowerTotalPrice ||
+    costingSheet.instPrice ||
+    costingSheet.installationTotalPrice ||
+    92083
+  );
+  const instContingency = Math.round(instManpowerPrice / Math.max(0.01, (100 - bufferPct) / 100));
+  const finalInst = roundToNearest(instContingency, roundingNearest);
+
+  // 7. Platform Setup Scope
+  const totalPlatformPrice = (activePlatformRows.length > 0 ? activePlatformRows : rawPlatformRows).reduce((sum, r) => {
+    const qty = Number(r.qty || 0);
+    const unitPrice = calcPrice(Number(r.unitCost || 0), r.marginPct ?? 40);
+    return sum + qty * unitPrice;
+  }, 0);
+  const item3Price = totalPlatformPrice > 0 ? totalPlatformPrice : (activePlatformRows.length === 0 ? 28571 : 0);
   const item3Contingency = Math.round(item3Price / Math.max(0.01, (100 - bufferPct) / 100));
-  const item3Rounded = roundToNearest(item3Contingency, roundingNearest);
-  const item3Description = item3Rows.length > 0
-    ? item3Rows.map((r) => r.description).join('; ')
-    : 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories';
-  const item3Qty = item3Rows.length > 0 ? item3Rows.reduce((sum, r) => sum + Number(r.qty || 0), 0) : 7;
-  const item3Uom = item3Rows[0]?.uom || 'Job';
+  const final3 = roundToNearest(item3Contingency, roundingNearest);
+  const platformQty = activePlatformRows[0]?.qty || rawPlatformRows[0]?.qty || 20;
+  const platformUom = activePlatformRows[0]?.uom || rawPlatformRows[0]?.uom || 'Nodes';
 
-  // 4. Man Days / Automation Mandays
-  const autoPrice = costingSheet.airAutoManpowerTotalPrice !== undefined ? costingSheet.airAutoManpowerTotalPrice : (costingSheet.instrumentRows?.caaAutoCustomerPrice || 216000);
-  const autoContingency = Math.round(autoPrice / Math.max(0.01, (100 - bufferPct) / 100));
-  const autoRounded = roundToNearest(autoContingency, roundingNearest);
+  // 8. Recurring Cloud Charges
+  const totalRecurPrice = (activeRecurringRows.length > 0 ? activeRecurringRows : rawRecurringRows).reduce((sum, r) => {
+    const qty = Number(r.qty || 0);
+    const unitPrice = calcPrice(Number(r.unitCost || 0), r.marginPct ?? 40);
+    return sum + qty * unitPrice;
+  }, 0);
+  const item5Price = totalRecurPrice > 0 ? totalRecurPrice : (activeRecurringRows.length === 0 ? 33432 : 0);
+  const item5Contingency = Math.round(item5Price / Math.max(0.01, (100 - bufferPct) / 100));
+  const final5 = roundToNearest(item5Contingency, roundingNearest);
+  const recurQty = activeRecurringRows[1]?.qty || activeRecurringRows[0]?.qty || rawRecurringRows[1]?.qty || rawRecurringRows[0]?.qty || 20;
+  const recurUom = activeRecurringRows[1]?.uom || activeRecurringRows[0]?.uom || rawRecurringRows[1]?.uom || rawRecurringRows[0]?.uom || 'Nodes';
 
-  // 5. Man Days / Installation Mandays
-  const instPrice = costingSheet.airInstManpowerTotalPrice !== undefined ? costingSheet.airInstManpowerTotalPrice : (costingSheet.instrumentRows?.caaInstCustomerPrice || 78929);
-  const instContingency = Math.round(instPrice / Math.max(0.01, (100 - bufferPct) / 100));
-  const instRounded = roundToNearest(instContingency, roundingNearest);
+  const dbLineItems: any[] =
+    (proposal as any)?.quote?.lineItems ||
+    (proposal as any)?.lineItems ||
+    (deal as any)?.quote?.lineItems ||
+    (deal as any)?.lineItems ||
+    [];
 
-  // 6. Platform Setup
-  const platformPrice = costingSheet.emsPlatformTotalPrice || costingSheet.emsTotalStep4CustomerPrice || 28571;
-  const platformContingency = Math.round(platformPrice / Math.max(0.01, (100 - bufferPct) / 100));
-  const platformRounded = roundToNearest(platformContingency, roundingNearest);
-  const platformDescription = activePlatformRows.length > 0
-    ? activePlatformRows.map((r) => r.description).join('. ')
-    : 'IoT device configuration, protocol setup (Modbus, BACnet, MQTT), and integration with BMS/EMS platforms Network connectivity, dashboard mapping, alarm configuration, and cloud/server integration support System commissioning including startup, functional testing, calibration, and performance verification Troubleshooting, integration testing, client demonstration, and final handover support Electrical power/control cable laying, routing, termination, tagging, and insulation testing as per standard';
-  const platformQty = activePlatformRows[0]?.qty || 20;
-  const platformUom = activePlatformRows[0]?.uom || 'Nodes';
+  let commercialSummaryItems: any[] = [];
 
-  // 7. Recurring Cloud Charges
-  const recurringPrice = costingSheet.emsRecurringYearlyTotalPrice || costingSheet.emsTotalStep5CustomerPrice || 33432;
-  const recurringContingency = Math.round(recurringPrice / Math.max(0.01, (100 - bufferPct) / 100));
-  const recurringRounded = roundToNearest(recurringContingency, roundingNearest);
-  const recurringDescription = activeRecurringRows.length > 0
-    ? activeRecurringRows.map((r) => r.description).join('. ')
-    : 'OptiByte Dashboard, Intelligent reporting, Group and machine level reporting, Email on any threshold value breach, Alert on Mobile(via SMS), Auto detection of anomalies, water flow rate, water capacity. We will check with the pH and TDS meter, if we can integrate it with our dashboard';
-  const recurringQty = activeRecurringRows[1]?.qty || activeRecurringRows[0]?.qty || 20;
-  const recurringUom = activeRecurringRows[1]?.uom || activeRecurringRows[0]?.uom || 'Nodes';
+  const hasValidDbLinePrices = dbLineItems.length > 0 && dbLineItems.some((li) => Number(li.total || li.totalPrice || li.customerPrice || (Number(li.unitRate || li.unitPrice || 0) * Number(li.qty || li.quantity || 1))) > 0);
 
-  const commercialSummaryItems = [
-    {
-      sNo: 1,
-      description: item1a?.description || 'Flanged Type Vortex Precious Flow Meter High Pressure with digital communication feasibility (RS 485)',
-      qty: item1a?.qty || 3,
-      uom: item1a?.uom || 'Nos',
-      customerPrice: item1Rounded || 833400,
-      isRecurring: false,
-    },
-    {
-      sNo: 2,
-      description: item2Description,
-      qty: item2Qty,
-      uom: item2Uom,
-      customerPrice: item2Rounded || 819600,
-      isRecurring: false,
-    },
-    {
-      sNo: 3,
-      description: item3Description,
-      qty: item3Qty,
-      uom: item3Uom,
-      customerPrice: item3Rounded || 1718900,
-      isRecurring: false,
-    },
-    {
-      sNo: 4,
-      description: 'Automation, Programming & Commissioning Scope: PLC/Controller logic programming, compressor sequencing, instrument loops & engineering commissioning',
-      qty: 1,
-      uom: 'Job',
-      customerPrice: autoRounded || 240000,
-      isRecurring: false,
-    },
-    {
-      sNo: 5,
-      description: 'Installation, Cabling & Electrical Mounting Scope: On-site IoT gateway deployment, CT/Meter termination, cable laying, conduit routing & electrical mounting',
-      qty: 1,
-      uom: 'Job',
-      customerPrice: instRounded || 87700,
-      isRecurring: false,
-    },
-    {
-      sNo: 6,
-      description: platformDescription,
-      qty: platformQty,
-      uom: platformUom,
-      customerPrice: platformRounded || 31800,
-      isRecurring: false,
-    },
-    {
-      sNo: 7,
-      description: recurringDescription,
-      qty: recurringQty,
-      uom: recurringUom,
-      customerPrice: recurringRounded || 37200,
-      isRecurring: true,
-    },
-  ];
+  if (hasValidDbLinePrices) {
+    commercialSummaryItems = dbLineItems.map((li, idx) => {
+      const desc = li.description || li.itemDescription || li.name || '';
+      const isRecurring = Boolean(
+        li.isRecurring ||
+        desc.toLowerCase().includes('recurring') ||
+        desc.toLowerCase().includes('annual') ||
+        desc.toLowerCase().includes('dashboard') ||
+        desc.toLowerCase().includes('/yr')
+      );
+      const rawPrice = Number(
+        li.total !== undefined && li.total !== null
+          ? li.total
+          : (li.totalPrice !== undefined && li.totalPrice !== null
+            ? li.totalPrice
+            : (li.customerPrice !== undefined && li.customerPrice !== null
+              ? li.customerPrice
+              : (Number(li.unitRate ?? li.unitPrice ?? 0) * Number(li.qty ?? li.quantity ?? 1))))
+      ) || 0;
+
+      return {
+        sNo: li.sNo || `${idx + 1}`,
+        description: desc,
+        qty: Number(li.qty ?? li.quantity ?? 1),
+        uom: li.uom || (li.unit ? li.unit : (desc.toLowerCase().includes('gateway') || desc.toLowerCase().includes('meter') ? 'Nos' : (desc.toLowerCase().includes('node') ? 'Nodes' : 'Job'))),
+        customerPrice: rawPrice,
+        isRecurring,
+      };
+    });
+  } else {
+    let sNoCounter = 1;
+
+    if (final1a > 0) {
+      commercialSummaryItems.push({
+        sNo: sNoCounter++,
+        description: item1a?.description || 'Flanged Type Vortex Precious Flow Meter High Pressure with digital communication feasibility (RS 485)',
+        qty: item1aQty || 1,
+        uom: item1a?.uom || 'Nos',
+        customerPrice: final1a,
+      });
+    }
+
+    if (final1b > 0) {
+      commercialSummaryItems.push({
+        sNo: sNoCounter++,
+        description: item1bDescription,
+        qty: item1bQty || 1,
+        uom: item1bRows[0]?.uom || 'Nos',
+        customerPrice: final1b,
+      });
+    }
+
+    if (final2 > 0) {
+      commercialSummaryItems.push({
+        sNo: sNoCounter++,
+        description: item2Description,
+        qty: item2Qty,
+        uom: 'Job',
+        customerPrice: final2,
+      });
+    }
+
+    if (finalPkg > 0) {
+      commercialSummaryItems.push({
+        sNo: sNoCounter++,
+        description: `Packaging & Forwarding Charges (${packagingPct}% of Total Hardware & Electrical Supplies)`,
+        qty: 1,
+        uom: 'Job',
+        customerPrice: finalPkg,
+      });
+    }
+
+    if (finalAuto > 0) {
+      commercialSummaryItems.push({
+        sNo: sNoCounter++,
+        description: 'Automation, Programming & Commissioning Scope: PLC/Controller logic programming, compressor sequencing, instrument loops & engineering commissioning',
+        qty: 1,
+        uom: 'Job',
+        customerPrice: finalAuto,
+      });
+    }
+
+    if (finalInst > 0) {
+      commercialSummaryItems.push({
+        sNo: sNoCounter++,
+        description: 'Installation, Cabling & Electrical Mounting Scope: On-site IoT gateway deployment, CT/Meter termination, cable laying, conduit routing & electrical mounting',
+        qty: 1,
+        uom: 'Job',
+        customerPrice: finalInst,
+      });
+    }
+
+    if (final3 > 0) {
+      commercialSummaryItems.push({
+        sNo: sNoCounter++,
+        description: activePlatformRows.length > 0 ? activePlatformRows.map((r) => r.description).join('. ') : 'IoT device configuration, protocol setup (Modbus, BACnet, MQTT), and integration with RMS/EMS platforms Network connectivity, dashboard mapping, alarm configuration, and cloud/server integration support System commissioning including startup, functional testing, calibration, and performance verification Troubleshooting, integration testing, client demonstration, and final handover support Electrical power/control cable laying, routing, termination, tagging, and insulation testing as per standard',
+        qty: platformQty,
+        uom: platformUom,
+        customerPrice: final3,
+      });
+    }
+
+    if (final5 > 0) {
+      commercialSummaryItems.push({
+        sNo: sNoCounter++,
+        description: activeRecurringRows.length > 0 ? activeRecurringRows.map((r) => r.description).join('. ') : 'OptiByte Dashboard, Intelligent reporting, Group and machine level reporting, Email on any threshold value breach, Alert on Mobile(via SMS), Auto detection of anomalies, water flow rate, water capacity. We will check with the pH and TDS meter, if we can integrate it with our dashboard',
+        qty: recurQty,
+        uom: recurUom,
+        customerPrice: final5,
+        isRecurring: true,
+      });
+    }
+  }
 
   const computedTotalCustomerPrice = commercialSummaryItems.reduce((sum, r) => sum + Number(r.customerPrice || 0), 0);
-  const displayFinalPrice = finalPrice || computedTotalCustomerPrice || Number(costingSheet.finalQuote || 0);
+  const displayTotal = Number(proposal?.quote?.totalAmount) || finalPrice || computedTotalCustomerPrice;
 
-  const PageHeader = ({ subtitle = 'Technical Proposal & Implementation Scope' }: { subtitle?: string }) => (
-    <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-slate-200 pb-2.5 gap-4">
-      <div>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{subtitle}</p>
-        <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
-          {clientName} — Compressed Air Automation
-        </h2>
-        <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-          <span>Ref: <strong>{proposalRef}</strong></span>
-        </div>
-      </div>
-      <div className="flex items-center justify-end shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/Company-Logo-Light.png" alt="Sustainabyte Technologies Logo" className="h-12 sm:h-14 w-auto object-contain" />
-      </div>
+  const PageLogo = () => (
+    <div className="flex justify-end pb-2">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/Company-Logo-Light.png" alt="Sustainabyte Technologies Pvt Ltd" className="h-14 w-auto object-contain" />
     </div>
   );
 
-  const PageFooter = ({ pageNum }: { pageNum: number }) => (
-    <div className="relative z-10 border-t border-slate-200 pt-3 mt-4 flex items-center justify-between text-[10px] text-slate-400 font-medium">
-      <span>Ref: {proposalRef}</span>
-      <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
-      <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">Page {pageNum} of {totalPages}</span>
-    </div>
-  );
-
-  const PageShell = ({ pageNum, subtitle, children }: { pageNum: number; subtitle?: string; children: React.ReactNode }) => (
+  const PageShell = ({ pageNum, children }: { pageNum: number; children: React.ReactNode }) => (
     <div
       className="proposal-page relative z-10 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xl w-full max-w-[800px] mx-auto text-slate-800 h-[1130px] min-h-[1130px] max-h-[1130px] flex flex-col justify-between overflow-hidden"
       style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
@@ -255,504 +307,300 @@ export function CompressedAirAutomationPages({
           style={{ backgroundImage: "url('/watermark-transparent.png')", backgroundSize: 'contain' }}
           aria-hidden="true"
         />
-        <div className="relative z-10 flex flex-col flex-1 justify-between">
-          <PageHeader subtitle={subtitle} />
-          <div className="flex-1 my-3 overflow-hidden flex flex-col justify-start gap-2.5">
+        <div className="relative z-10 flex-1 flex flex-col justify-between">
+          <div className="space-y-4 flex-1">
             {children}
           </div>
-          <PageFooter pageNum={pageNum} />
+          <div className="text-center pt-3">
+            <span className="text-[12px] text-slate-500">{pageNum}</span>
+          </div>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="space-y-12">
-      {/* ========================================================================= */}
-      {/* PAGE 1: Executive Summary, Introduction & Plant Demand Monitoring */}
-      {/* ========================================================================= */}
-      <PageShell pageNum={1} subtitle="Executive Summary & Demand Profiling">
-        <div className="bg-gradient-to-r from-sky-900 via-indigo-950 to-slate-900 text-white rounded-xl p-3 shadow-sm border border-sky-800/40">
-          <div className="flex items-center gap-2 mb-1">
-            <Wind className="h-4 w-4 text-sky-400" />
-            <h3 className="text-xs font-black uppercase tracking-wider text-sky-300">
-              Introduction &amp; Digitalization Objective
-            </h3>
-          </div>
-          <p className="text-[10.5px] leading-relaxed text-slate-200">
-            This scope outlines the monitoring and automation of the industrial compressed air network at <strong>{clientName}</strong>.
-            The solution focuses on analyzing dynamic plant air demand, evaluating real-time compressor efficiency (SEC), optimizing multi-compressor
-            lead–lag sequencing, and executing ultrasonic leak management to eliminate waste and maximize energy savings.
-          </p>
-        </div>
-
-        {/* Row 1: Basic Representation of Flow Monitoring */}
-        <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-1.5">
-          <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-            <span className="text-[11px] font-black text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
-              <Activity className="h-3.5 w-3.5 text-indigo-600" /> Basic Flow Monitoring Architecture
-            </span>
-            <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-              OptiByte Flow Engine
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="h-36 bg-white rounded-lg border border-slate-200/90 overflow-hidden flex flex-col items-center justify-center p-1 shadow-inner">
+    <>
+      {/* ── PAGE 1: COVER PAGE ── */}
+      <PageShell pageNum={1}>
+        <PageLogo />
+        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8">
+          <h1 className="text-[22px] font-bold text-black underline underline-offset-4 decoration-1 leading-relaxed">
+            Techno Commercial Proposal for Compressed Air Automation &amp; Monitoring
+          </h1>
+          {(proposal as any)?.clientLogo && (
+            <div className="py-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/air sutomation1.png"
-                alt="Basic Flow Monitoring Architecture"
-                className="w-full h-full object-contain"
-              />
-              <span className="text-[8px] font-bold text-slate-500 mt-0.5">OptiByte Flow Header Layout</span>
+              <img src={(proposal as any).clientLogo} alt={`${clientName} Logo`} className="max-h-[120px] w-auto object-contain mx-auto" />
             </div>
-            <div className="h-36 bg-white rounded-lg border border-slate-200/90 overflow-hidden flex flex-col items-center justify-center p-1 shadow-inner">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/compressed 3.png"
-                alt="Compressed Air Demand & Flow Calibration"
-                className="w-full h-full object-contain"
-              />
-              <span className="text-[8px] font-bold text-slate-500 mt-0.5">Flow &amp; Power Telemetry Tap</span>
-            </div>
+          )}
+          <div className="text-left text-[12px] text-black space-y-1">
+            <p>Quotation No: {proposalRef}</p>
+            <p>Date: {proposalDate}</p>
           </div>
         </div>
-
-        {/* Row 2: 1. Plant Demand Monitoring */}
-        <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <Gauge className="h-3.5 w-3.5 text-sky-600" />
-              <h4 className="text-[11px] font-extrabold text-slate-900 uppercase">
-                1. Plant Demand Monitoring &amp; Right-Sizing
-              </h4>
-            </div>
-            <span className="text-[9px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-              High-Speed Dynamic Logging
-            </span>
+        <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-300 text-[10px] text-black leading-snug">
+          <div>
+            <p className="font-bold text-[11px] mb-1">COPYRIGHT</p>
+            <p>&copy; This Report is the copyright of <strong><u>Sustainabyte Technologies Pvt Ltd</u></strong>. Any unauthorised reproduction or usage by any person other than the addressee is strictly prohibited</p>
           </div>
-
-          <div className="grid grid-cols-2 gap-2 text-[10px] leading-tight text-slate-700">
-            <div className="bg-slate-50/80 p-2 rounded-lg border border-slate-200">
-              <p className="font-bold text-sky-950 uppercase text-[9.5px] mb-0.5">Objective &amp; Scope</p>
-              <ul className="list-disc pl-3 space-y-0.5 text-[9.5px]">
-                <li>Assess total plant compressed air demand under varying production loads through precision flow metering.</li>
-                <li>Identify peak, base, and off-shift demand periods for compression right-sizing and balance.</li>
-              </ul>
-            </div>
-            <div className="bg-slate-50/80 p-2 rounded-lg border border-slate-200">
-              <p className="font-bold text-emerald-950 uppercase text-[9.5px] mb-0.5">Deliverables &amp; Benefits</p>
-              <ul className="list-disc pl-3 space-y-0.5 text-[9.5px]">
-                <li>High-resolution demand profile reports with machine-level usage breakdowns.</li>
-                <li>Actionable right-sizing recommendations preventing artificial over-pressurization.</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Row-wise Flow Dashboard Preview */}
-          <div className="w-full h-40 bg-white rounded-lg border border-slate-200/90 overflow-hidden flex items-center justify-center p-1 shadow-inner">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/air automatio2.png"
-              alt="Sample Dashboard Flow Monitoring Representation"
-              className="w-full h-full object-contain"
-            />
-          </div>
-
-          {/* Key KPIs Row */}
-          <div className="grid grid-cols-3 gap-2 bg-sky-50/70 p-1.5 rounded-lg border border-sky-200/60 text-center">
-            <div>
-              <p className="text-[8.5px] font-bold text-sky-900 uppercase">System Pressure</p>
-              <p className="text-[9.5px] font-black text-slate-900">Header Min / Avg / Max (bar)</p>
-            </div>
-            <div>
-              <p className="text-[8.5px] font-bold text-sky-900 uppercase">Flow &amp; Demand Profile</p>
-              <p className="text-[9.5px] font-black text-slate-900">Current &amp; Peak (CFM / m³/hr)</p>
-            </div>
-            <div>
-              <p className="text-[8.5px] font-bold text-sky-900 uppercase">Leakage Index</p>
-              <p className="text-[9.5px] font-black text-slate-900">Off-Shift Flow (% Base Load)</p>
-            </div>
+          <div>
+            <p className="font-bold text-[11px] mb-1">CONFIDENTIAL</p>
+            <p>All reasonable precautionary methods in handling the document and the information contained herein should be taken to prevent any third party from obtaining access. No responsibility is taken by <u>Sustainabyte Technologies Pvt Ltd</u> for the use of this document by any third party.</p>
           </div>
         </div>
       </PageShell>
 
-      {/* ========================================================================= */}
-      {/* PAGE 2: Compressor Efficiency & Lead-Lag Sequencing Optimization */}
-      {/* ========================================================================= */}
-      <PageShell pageNum={2} subtitle="Efficiency Analytics & Lead–Lag Sequencing">
-        {/* Row 1: 2. Compressor Efficiency Monitoring */}
-        <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <Zap className="h-3.5 w-3.5 text-amber-600" />
-              <h4 className="text-[11px] font-extrabold text-slate-900 uppercase">
-                2. Compressor Efficiency Monitoring (SEC &amp; FAD)
-              </h4>
-            </div>
-            <span className="text-[9px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded">
-              ISO 1217 Standard
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-[10px] leading-tight text-slate-700">
-            <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-200/60">
-              <p className="font-bold text-amber-950 uppercase text-[9.5px] mb-0.5">Objective &amp; Scope</p>
-              <p className="text-[9.5px]">
-                Establish Specific Energy Consumption (SEC in kW/100 CFM or kWh/m³) by correlating measured mass air flow with true RMS electrical power. Enables true merit-order ranking of all compressors from highest to lowest efficiency.
-              </p>
-            </div>
-            <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-200/60">
-              <p className="font-bold text-amber-950 uppercase text-[9.5px] mb-0.5">Core Benefits</p>
-              <p className="text-[9.5px]">
-                Eliminates running degraded machines on base load. Compares actual performance against OEM test certificates and triggers condition-based maintenance before major breakdown occurs.
-              </p>
-            </div>
-          </div>
-
-          {/* Row-wise Compressor Efficiency Visual */}
-          <div className="w-full h-44 bg-white rounded-lg border border-slate-200/90 overflow-hidden flex items-center justify-center p-1 shadow-inner">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/airautomatio3.png"
-              alt="Compressor Efficiency Monitoring Representation"
-              className="w-full h-full object-contain"
-            />
-          </div>
-
-          <div className="grid grid-cols-4 gap-1.5 text-center text-[9px]">
-            <div className="p-1 bg-slate-100 rounded font-semibold text-slate-800">
-              <span className="text-[7.5px] block text-slate-500 uppercase">Specific Power</span>
-              kW/m³ or kW/100 CFM
-            </div>
-            <div className="p-1 bg-slate-100 rounded font-semibold text-slate-800">
-              <span className="text-[7.5px] block text-slate-500 uppercase">Free Air Delivery</span>
-              FAD @ Operating Bar
-            </div>
-            <div className="p-1 bg-slate-100 rounded font-semibold text-slate-800">
-              <span className="text-[7.5px] block text-slate-500 uppercase">Energy Metric</span>
-              kWh / Cost per m³
-            </div>
-            <div className="p-1 bg-slate-100 rounded font-semibold text-slate-800">
-              <span className="text-[7.5px] block text-slate-500 uppercase">Health Score</span>
-              Temp, Starts, Vibration
-            </div>
+      {/* ── PAGE 2: ABOUT SUSTAINABYTE ── */}
+      <PageShell pageNum={2}>
+        <PageLogo />
+        <div className="space-y-4 flex-1">
+          <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1">
+            About Sustainabyte:
+          </h2>
+          <div className="space-y-4 text-[12px] text-black leading-relaxed">
+            <p>
+              Sustainabyte is a private limited company, based out in Chennai, with client base spreading across 3 countries. It is a climate-tech start-up, predominantly focussing on energy conservation methodologies across Industries, Commercial building and residential complexes.
+            </p>
+            <p>
+              Sustainabyte.ai is dedicated to leveraging advanced technology for global sustainability. Our mission is to minimize environmental impact while enhancing operational efficiency through innovative solutions
+            </p>
+            <p>
+              Sustainabyte is a technology-driven sustainability company, providing cutting-edge solutions for enterprises, to identify, plan and operationalize their Net Zero Carbon ambitions.
+            </p>
+            <p>
+              Our mission is to deliver sustainable prosperity for companies, by balancing people, planet and profit. We demonstrate this by leveraging proprietary machine-learning algorithms, which provide measurable outcomes.
+            </p>
+            <p>
+              Our goal is to collaborate with companies and help them to work smarter, make critical decisions more quickly and consume less. In addition, by doing this at scale, we will make a significant impact on the carbon footprint of commercial and industrial assets, globally.
+            </p>
+            <p>
+              At Sustainabyte, we understand how important it is to be productive and sustainable. As a first step, we provide expert advisory to create a blueprint for sustainability roadmap and Net Zero Carbon Goals.
+            </p>
+            <p>
+              We implement our flagship IoT solution — OptiByte — our technology platform, as an overlay on the client&apos;s existing systems, connecting data points to provide a bird&apos;s eye view, which, really is making the invisible, visible. Our reporting module then presents the ESG scores, operational efficiency KPI has and compares it against the milestones. This drives a program of continuous improvement by identifying improvement opportunities and recommended changes to deliver empirical and tangible sustainability goals. We pride in delivering results as early as in 30-60 days.
+            </p>
+            <p>
+              Climate change is the biggest humanitarian crisis staring in our face today, and we must act now to decarbonize and protect our planet for future generations. Our mission is to create a balance between people, planet, and profit, which balances the 3 key pillars of any business- Sustainability, Operational Excellence and Workplace.
+            </p>
           </div>
         </div>
+      </PageShell>
 
-        {/* Row 2: 3. Sequencing for Compressor Energy Optimization */}
-        <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-2">
-          <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <Settings className="h-3.5 w-3.5 text-indigo-600" />
-              <h4 className="text-[11px] font-extrabold text-slate-900 uppercase">
-                3. Intelligent Sequencing &amp; Automated Lead–Lag Control
-              </h4>
+      {/* ── PAGE 3: DEMAND PROFILING & FLOW ARCHITECTURE ── */}
+      <PageShell pageNum={3}>
+        <PageLogo />
+        <div className="space-y-4 flex-1">
+          <div>
+            <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1 mb-2">
+              Introduction &amp; Digitalization Objective:
+            </h2>
+            <p className="text-[12px] text-black leading-relaxed">
+              This scope outlines the monitoring and automation of the industrial compressed air network at <strong>{clientName}</strong>.
+              The solution focuses on analyzing dynamic plant air demand, evaluating real-time compressor efficiency (SEC), optimizing multi-compressor
+              lead–lag sequencing, and executing ultrasonic leak management to eliminate waste and maximize energy savings.
+            </p>
+          </div>
+
+          <div>
+            <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1 mb-2">
+              Basic Flow Monitoring Architecture:
+            </h2>
+            <div className="grid grid-cols-2 gap-4 my-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/air sutomation1.png" alt="OptiByte Flow Header Layout" className="w-full h-auto max-h-[140px] object-contain border border-slate-300" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/compressed 3.png" alt="Flow & Power Telemetry Tap" className="w-full h-auto max-h-[140px] object-contain border border-slate-300" />
             </div>
-            <span className="text-[9px] font-black bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded">
-              PLC / SCADA Integration
-            </span>
           </div>
 
-          {/* Row-wise Compressor Sequencing Graph */}
-          <div className="w-full h-44 bg-white rounded-lg border border-slate-200/90 overflow-hidden flex items-center justify-center p-1 shadow-inner">
+          <div>
+            <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1 mb-2">
+              1. Plant Demand Monitoring &amp; Right-Sizing:
+            </h2>
+            <ul className="space-y-1 text-[12px] text-black list-disc pl-6 leading-relaxed">
+              <li><strong>Objective &amp; Scope:</strong> Assess total plant compressed air demand under varying production loads through precision flow metering; identify peak, base, and off-shift demand periods for compression right-sizing.</li>
+              <li><strong>Deliverables &amp; Benefits:</strong> High-resolution demand profile reports with machine-level usage breakdowns and actionable right-sizing recommendations preventing artificial over-pressurization.</li>
+            </ul>
+          </div>
+
+          <div className="flex justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/airautomation.png"
-              alt="Sample Compressor Performance Representation"
-              className="w-full h-full object-contain"
-            />
+            <img src="/air automatio2.png" alt="Sample Dashboard Flow Monitoring" className="w-full h-auto max-h-[140px] object-contain border border-slate-300" />
+          </div>
+        </div>
+      </PageShell>
+
+      {/* ── PAGE 4: COMPRESSOR EFFICIENCY & SEQUENCING ── */}
+      <PageShell pageNum={4}>
+        <PageLogo />
+        <div className="space-y-4 flex-1">
+          <div>
+            <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1 mb-2">
+              2. Compressor Efficiency Monitoring (SEC &amp; FAD):
+            </h2>
+            <ul className="space-y-1 text-[12px] text-black list-disc pl-6 leading-relaxed">
+              <li><strong>Objective &amp; Scope:</strong> Establish Specific Energy Consumption (SEC in kW/100 CFM or kWh/m³) by correlating measured mass air flow with true RMS electrical power for merit-order compressor ranking.</li>
+              <li><strong>Core Benefits:</strong> Eliminates running degraded machines on base load. Compares actual performance against OEM test certificates and triggers condition-based maintenance.</li>
+            </ul>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-[9.5px] leading-tight text-slate-700 bg-slate-50/80 p-2 rounded-lg border border-slate-200">
-            <ul className="list-disc pl-3 space-y-0.5">
+          <div className="flex justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/airautomatio3.png" alt="Compressor Efficiency Monitoring" className="w-full h-auto max-h-[140px] object-contain border border-slate-300" />
+          </div>
+
+          <div>
+            <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1 mb-2">
+              3. Intelligent Sequencing &amp; Automated Lead–Lag Control:
+            </h2>
+            <ul className="space-y-1 text-[12px] text-black list-disc pl-6 leading-relaxed">
               <li><strong>Dynamic Priority Control:</strong> Automatically engages the most efficient compressor to meet fluctuating base and peak demands.</li>
               <li><strong>Unload Elimination:</strong> Eliminates blow-off losses and wasteful unloaded run hours, reducing power consumption by 15% to 30%.</li>
-            </ul>
-            <ul className="list-disc pl-3 space-y-0.5">
-              <li><strong>Balanced Running Hours:</strong> Equalizes wear and tear across machines, extending equipment lifespan and overhaul intervals.</li>
-              <li><strong>Narrow Pressure Band:</strong> Stabilizes plant header pressure within ±0.1 bar, saving ~7% power per 1 bar reduction.</li>
+              <li><strong>Balanced Running Hours:</strong> Equalizes wear and tear across machines, extending equipment lifespan.</li>
+              <li><strong>Narrow Pressure Band:</strong> Stabilizes plant header pressure within &plusmn;0.1 bar, saving ~7% power per 1 bar reduction.</li>
             </ul>
           </div>
-        </div>
-      </PageShell>
 
-      {/* ========================================================================= */}
-      {/* PAGE 3: IoT Compressor Monitoring & Ultrasonic Leakage Management */}
-      {/* ========================================================================= */}
-      <PageShell pageNum={3} subtitle="IoT Architecture & Ultrasonic Leak Management">
-        {/* Row 1: IoT Monitoring in Compressors */}
-        <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-1.5">
-          <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <Cpu className="h-3.5 w-3.5 text-purple-600" />
-              <h4 className="text-[11px] font-extrabold text-slate-900 uppercase">
-                IoT Monitoring Architecture in HP Compressors
-              </h4>
-            </div>
-            <span className="text-[9px] font-black bg-purple-100 text-purple-900 px-2 py-0.5 rounded">
-              Edge Pro IIoT
-            </span>
-          </div>
-
-          {/* Row-wise HP Compressor Monitoring Preview */}
-          <div className="w-full h-36 bg-white rounded-lg border border-slate-200/90 overflow-hidden flex items-center justify-center p-1 shadow-inner">
+          <div className="flex justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/airautomation5.png"
-              alt="IoT Monitoring in HP Compressors Representation"
-              className="w-full h-full object-contain"
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 text-[9.5px]">
-            <div className="p-1.5 bg-slate-50 rounded border border-slate-200">
-              <p className="font-bold text-slate-900 mb-0.5 flex items-center gap-1">
-                <Radio className="h-3 w-3 text-sky-600" /> Telemetry Points
-              </p>
-              <p className="text-slate-600 text-[9px] leading-tight">
-                Pressure transducers, PT100 temperature sensors, power analyzers &amp; vibration transmitters.
-              </p>
-            </div>
-            <div className="p-1.5 bg-slate-50 rounded border border-slate-200">
-              <p className="font-bold text-slate-900 mb-0.5 flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3 text-amber-600" /> Smart Alerting
-              </p>
-              <p className="text-slate-600 text-[9px] leading-tight">
-                Instant SMS/WhatsApp alerts for thermal spikes, abnormal cycling, filter drop, or pressure loss.
-              </p>
-            </div>
-            <div className="p-1.5 bg-slate-50 rounded border border-slate-200">
-              <p className="font-bold text-slate-900 mb-0.5 flex items-center gap-1">
-                <ShieldCheck className="h-3 w-3 text-emerald-600" /> Predictive Health
-              </p>
-              <p className="text-slate-600 text-[9px] leading-tight">
-                Early fault detection on stage compression, oil temperature, and valve degradation.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Row 2: Ultrasonic Leakage Identification & Tagging (Complete Lifecycle Gallery) */}
-        <div className="bg-white border border-slate-200 rounded-xl p-2.5 shadow-2xs space-y-1.5">
-          <div className="flex items-center justify-between pb-1 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <Wrench className="h-3.5 w-3.5 text-rose-600" />
-              <h4 className="text-[11px] font-extrabold text-slate-900 uppercase">
-                Ultrasonic Leakage Identification, Tagging &amp; Validation
-              </h4>
-            </div>
-            <span className="text-[9px] font-black bg-rose-100 text-rose-900 px-2 py-0.5 rounded">
-              Acoustic Loss Prevention
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-[9px] text-slate-700 leading-tight bg-slate-50/80 p-1.5 rounded-lg border border-slate-200">
-            <p>
-              <strong>Acoustic Imaging:</strong> Pinpoints high-frequency acoustic waves (20–100 kHz) down to 0.05 mm @ 7 bar during full production.
-            </p>
-            <p>
-              <strong>Serialized Metallic Tagging:</strong> Barcode tagged with location, dB level, CFM loss, and annualized financial loss.
-            </p>
-          </div>
-
-          {/* 3-Image Leakage Lifecycle Row */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="h-32 bg-white rounded-lg border border-slate-200 overflow-hidden flex flex-col items-center justify-center p-1 shadow-inner">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/airautomation6.png"
-                alt="Ultrasonic Leak Detector Device"
-                className="w-full h-full object-contain"
-              />
-              <span className="text-[8px] font-bold text-slate-500 mt-0.5">Acoustic Detector Unit</span>
-            </div>
-            <div className="h-32 bg-white rounded-lg border border-slate-200 overflow-hidden flex flex-col items-center justify-center p-1 shadow-inner">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/compress ai1.png"
-                alt="Ultrasonic Acoustic Camera Display"
-                className="w-full h-full object-contain"
-              />
-              <span className="text-[8px] font-bold text-slate-500 mt-0.5">Live Loss &amp; dB Screen</span>
-            </div>
-            <div className="h-32 bg-white rounded-lg border border-slate-200 overflow-hidden flex flex-col items-center justify-center p-1 shadow-inner">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/compressrd air 2.png"
-                alt="Serialized Metallic Barcode Tag on Pipe"
-                className="w-full h-full object-contain"
-              />
-              <span className="text-[8px] font-bold text-slate-500 mt-0.5">Physical Field Tag</span>
-            </div>
-          </div>
-
-          {/* Implementation Validation Card */}
-          <div className="bg-emerald-50/80 border border-emerald-200 p-1.5 rounded-lg">
-            <p className="text-[9.5px] font-black text-emerald-950 uppercase flex items-center gap-1.5 mb-0.5">
-              <FileCheck className="h-3 w-3 text-emerald-700" /> Implementation Validation &amp; Savings Verification
-            </p>
-            <p className="text-[8.5px] text-emerald-900 leading-tight">
-              Post-rectification audit to re-measure baseline flow, specific power, and artificial demand reduction. Documented report provides transparent proof of kilowatt and cost savings achieved.
-            </p>
+            <img src="/airautomation.png" alt="Compressor Sequencing Graph" className="w-full h-auto max-h-[140px] object-contain border border-slate-300" />
           </div>
         </div>
       </PageShell>
 
-      {/* ========================================================================= */}
-      {/* PAGE 4: Client Scope, Implementation Deliverables & Exclusions */}
-      {/* ========================================================================= */}
-      <PageShell pageNum={4} subtitle="Responsibility Matrix & Execution Terms">
-        <div className="space-y-3">
-          {/* Client Support Scope */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs">
-            <div className="flex items-center gap-2 pb-1.5 mb-2 border-b border-slate-100">
-              <Building2 className="h-4 w-4 text-sky-700" />
-              <h4 className="text-xs font-black text-slate-900 uppercase">
-                Support Required from Client ({clientName})
-              </h4>
+      {/* ── PAGE 5: IOT ARCHITECTURE & ULTRASONIC LEAKAGE ── */}
+      <PageShell pageNum={5}>
+        <PageLogo />
+        <div className="space-y-4 flex-1">
+          <div>
+            <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1 mb-2">
+              IoT Monitoring Architecture in HP Compressors:
+            </h2>
+            <div className="flex justify-center my-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/airautomation5.png" alt="IoT Monitoring in HP Compressors" className="w-full h-auto max-h-[140px] object-contain border border-slate-300" />
             </div>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[10px] text-slate-700 leading-tight">
-              <li className="flex items-start gap-1.5 bg-slate-50 p-2 rounded border border-slate-200">
-                <CheckCircle2 className="h-3 w-3 text-sky-600 shrink-0 mt-0.5" />
-                <span><strong>HP Compressor Oil Tank Provisions:</strong> Sensor ports for HP oil tank are in Danfoss scope with OEM support. Sensor supply is under Sustainabyte scope.</span>
-              </li>
-              <li className="flex items-start gap-1.5 bg-slate-50 p-2 rounded border border-slate-200">
-                <CheckCircle2 className="h-3 w-3 text-sky-600 shrink-0 mt-0.5" />
-                <span><strong>Dedicated SPOC:</strong> A Single Point of Contact from plant engineering for coordination, access permits, and execution phases.</span>
-              </li>
-              <li className="flex items-start gap-1.5 bg-slate-50 p-2 rounded border border-slate-200">
-                <CheckCircle2 className="h-3 w-3 text-sky-600 shrink-0 mt-0.5" />
-                <span><strong>Pipeline Specialist:</strong> 1 knowledgeable technician from client to assist during flow meter mounting and line tapping.</span>
-              </li>
-              <li className="flex items-start gap-1.5 bg-slate-50 p-2 rounded border border-slate-200">
-                <CheckCircle2 className="h-3 w-3 text-sky-600 shrink-0 mt-0.5" />
-                <span><strong>Tapping Points &amp; Flanges:</strong> 1/2&quot; Ball valve tapping points for pressure sensors; necessary counter-flanges &amp; gaskets for flow meters.</span>
-              </li>
-              <li className="flex items-start gap-1.5 bg-slate-50 p-2 rounded border border-slate-200">
-                <CheckCircle2 className="h-3 w-3 text-sky-600 shrink-0 mt-0.5" />
-                <span><strong>Power &amp; Storage:</strong> 230V AC UPS power supply point for gateways/controllers and safe on-site storage for instruments.</span>
-              </li>
-              <li className="flex items-start gap-1.5 bg-slate-50 p-2 rounded border border-slate-200">
-                <CheckCircle2 className="h-3 w-3 text-sky-600 shrink-0 mt-0.5" />
-                <span><strong>Ladders &amp; Scaffoldings:</strong> Site ladders, scaffoldings, safety caution boards, and scissor lifts as required for high overhead pipelines.</span>
-              </li>
+            <ul className="space-y-1 text-[12px] text-black list-disc pl-6 leading-relaxed">
+              <li><strong>Telemetry Points:</strong> Pressure transducers, PT100 temperature sensors, power analyzers &amp; vibration transmitters.</li>
+              <li><strong>Smart Alerting:</strong> Instant SMS/WhatsApp alerts for thermal spikes, abnormal cycling, filter drop, or pressure loss.</li>
+              <li><strong>Predictive Health:</strong> Early fault detection on stage compression, oil temperature, and valve degradation.</li>
             </ul>
           </div>
 
-          {/* General Exclusions */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs">
-            <div className="flex items-center gap-2 pb-1.5 mb-2 border-b border-slate-100">
-              <ShieldCheck className="h-4 w-4 text-amber-700" />
-              <h4 className="text-xs font-black text-slate-900 uppercase">
-                General Project Exclusions
-              </h4>
-            </div>
-            <p className="text-[10px] text-slate-600 leading-tight mb-2">
-              This technical offer covers only the equipment, engineering services, and IoT deliverables explicitly stated. Items excluded:
-            </p>
-            <div className="grid grid-cols-2 gap-1.5 text-[9.5px] text-slate-700">
-              <span className="p-1.5 bg-amber-50/60 rounded border border-amber-200/50">• Site accommodation and personal boarding.</span>
-              <span className="p-1.5 bg-amber-50/60 rounded border border-amber-200/50">• Civil/builder works, panel plinths, and structural wall cutting.</span>
-              <span className="p-1.5 bg-amber-50/60 rounded border border-amber-200/50">• Disposal of redundant pipes or decommissioned equipment.</span>
-              <span className="p-1.5 bg-amber-50/60 rounded border border-amber-200/50">• Provision and cost of fuel/power for commissioning trials.</span>
-            </div>
+          <div>
+            <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1 mb-2">
+              Ultrasonic Leakage Identification, Tagging &amp; Validation:
+            </h2>
+            <ul className="space-y-1 text-[12px] text-black list-disc pl-6 leading-relaxed">
+              <li><strong>Acoustic Imaging:</strong> Pinpoints high-frequency acoustic waves (20–100 kHz) down to 0.05 mm @ 7 bar during full production.</li>
+              <li><strong>Serialized Metallic Tagging:</strong> Barcode tagged with location, dB level, CFM loss, and annualized financial loss.</li>
+            </ul>
           </div>
 
-          {/* Project Execution Timeline */}
-          <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-3 shadow-2xs flex items-center justify-between">
-            <div className="space-y-0.5">
-              <p className="text-[9px] font-bold text-sky-400 uppercase">Delivery &amp; Commissioning Lead Time</p>
-              <p className="text-xs font-black text-white">Hardware Delivery: 10–12 Weeks | Site Installation &amp; Commissioning: 6–8 Weeks</p>
-              <p className="text-[9px] text-slate-300">Execution schedules align with plant maintenance shutdown windows agreed upon at kickoff.</p>
-            </div>
-            <Clock className="h-7 w-7 text-sky-400 shrink-0" />
+          <div className="grid grid-cols-3 gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/airautomation6.png" alt="Acoustic Detector Unit" className="w-full h-auto max-h-[110px] object-contain border border-slate-300" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/compress ai1.png" alt="Live Loss & dB Screen" className="w-full h-auto max-h-[110px] object-contain border border-slate-300" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/compressrd air 2.png" alt="Physical Field Tag" className="w-full h-auto max-h-[110px] object-contain border border-slate-300" />
           </div>
         </div>
       </PageShell>
 
-      {/* ========================================================================= */}
-      {/* PAGE 5: Commercial Breakdown, Terms & Conditions & Sign-off */}
-      {/* ========================================================================= */}
-      <PageShell pageNum={5} subtitle="Commercial Proposal & Terms and Conditions">
-        {/* Commercials Table */}
-        <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs">
-          <div className="flex items-center justify-between pb-1 mb-2 border-b border-slate-100">
-            <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide">
-              Commercial Price Summary
-            </h4>
-            <span className="text-[9px] font-black bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded">
-              All Prices in INR (₹)
-            </span>
-          </div>
-
-          <table className="w-full text-left text-[9.5px] border-collapse mb-2">
-            <thead>
-              <tr className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-300">
-                <th className="p-1 px-1.5 text-center w-8">S.No</th>
-                <th className="p-1 px-2">Item Description</th>
-                <th className="p-1 px-1.5 text-center w-12">Qty</th>
-                <th className="p-1 px-1.5 text-center w-12">UoM</th>
-                <th className="p-1 px-2 text-right w-28">Customer Price (₹)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
-              {commercialSummaryItems.map((item) => (
-                <tr key={`ca_comm_${item.sNo}`} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-1 px-1.5 text-center font-bold text-slate-500">{item.sNo}</td>
-                  <td className="p-1 px-2 font-semibold text-slate-900 leading-tight text-[9px]">{item.description}</td>
-                  <td className="p-1 px-1.5 text-center font-bold text-slate-700">{item.qty}</td>
-                  <td className="p-1 px-1.5 text-center text-slate-600">{item.uom}</td>
-                  <td className="p-1 px-2 text-right font-bold text-slate-900">
-                    ₹{formatCurrency(item.customerPrice).replace('₹', '')}{item.isRecurring ? ' /yr' : ''}
+      {/* ── PAGE 6: COMMERCIALS, TERMS, SUBMITTED BY & BANK DETAILS ── */}
+      <PageShell pageNum={6}>
+        <PageLogo />
+        <div className="space-y-4 flex-1">
+          <div>
+            <div className="flex items-end justify-between mb-2">
+              <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1">
+                Commercials:
+              </h2>
+              <div className="text-[11px] font-semibold text-slate-800">
+                Customer: <span className="font-bold text-black">{clientName}</span>
+              </div>
+            </div>
+            <table className="w-full border-collapse border border-black text-[11px] text-black">
+              <thead>
+                <tr className="bg-[#C6EFCE]">
+                  <th className="border border-black py-1.5 px-2 text-center font-bold w-10">S.No</th>
+                  <th className="border border-black py-1.5 px-2 text-left font-bold">Scope Description</th>
+                  <th className="border border-black py-1.5 px-2 text-center font-bold w-12">Qty</th>
+                  <th className="border border-black py-1.5 px-2 text-center font-bold w-12">UoM</th>
+                  <th className="border border-black py-1.5 px-2 text-right font-bold w-28">Customer Price (INR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commercialSummaryItems.map((item) => (
+                  <tr key={`ca_comm_${item.sNo}`}>
+                    <td className="border border-black py-1.5 px-2 text-center">{item.sNo}</td>
+                    <td className="border border-black py-1.5 px-2">{item.description}</td>
+                    <td className="border border-black py-1.5 px-2 text-center">{item.qty}</td>
+                    <td className="border border-black py-1.5 px-2 text-center">{item.uom}</td>
+                    <td className="border border-black py-1.5 px-2 text-right font-bold">
+                      {formatCurrency(item.customerPrice)}{item.isRecurring ? ' /yr' : ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="font-bold">
+                  <td colSpan={4} className="border border-black py-2 px-2 text-center font-bold text-[12px]">Total</td>
+                  <td className="border border-black py-2 px-2 text-right font-bold text-[12px]">
+                    {formatCurrency(displayTotal)}
                   </td>
                 </tr>
-              ))}
-              <tr className="bg-emerald-50/80 font-black text-emerald-950 border-t-2 border-emerald-300">
-                <td colSpan={4} className="p-1.5 px-2 text-right uppercase tracking-wider text-[10px]">
-                  TOTAL COMMERCIAL INVESTMENT (EXCLUSIVE OF GST):
-                </td>
-                <td className="p-1.5 px-2 text-right text-xs font-black text-emerald-800">
-                  ₹{formatCurrency(computedTotalCustomerPrice || displayFinalPrice || 3768600).replace('₹', '')}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Terms and Conditions */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-2xs">
-          <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide mb-1.5 pb-1 border-b border-slate-200">
-            Terms &amp; Conditions
-          </h4>
-          <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-[9.5px] text-slate-700 leading-snug">
-            <li>• <strong>Offer Validity:</strong> 1 Month from quotation date.</li>
-            <li>• <strong>Taxes:</strong> GST @ 18% extra as applicable.</li>
-            <li>• <strong>Payment Schedule:</strong> 50% advance against Pro-Forma Invoice; 40% against material supply within 15 days; 10% after successful project commissioning.</li>
-            <li>• <strong>Freight &amp; Handling:</strong> Material Packing &amp; Forwarding / Transport Inclusive.</li>
-            <li>• <strong>Delivery Period:</strong> 10 to 12 Weeks from approved date of PO.</li>
-            <li>• <strong>Warranty:</strong> 12 Months from the date of material delivery at site.</li>
-            <li>• <strong>Installation Schedule:</strong> Completed within 6–8 weeks upon material arrival and shutdown clearance.</li>
-            <li>• <strong>Power Quality:</strong> Protection from plant input power surges/voltage spikes to field controllers is under client care.</li>
-          </ul>
-        </div>
-
-        {/* Authorization Sign-off */}
-        <div className="mt-2 pt-2 border-t border-slate-200 flex justify-between items-end text-[10px]">
-          <div>
-            <p className="font-bold text-slate-500 uppercase text-[9px]">Proposal Prepared &amp; Submitted By:</p>
-            <p className="font-black text-slate-900 text-xs mt-0.5">Sustainabyte Technologies Pvt Ltd</p>
-            <p className="text-slate-600 text-[9px]">Industrial Energy Optimization &amp; IoT Automation Division</p>
-            <p className="text-slate-500 font-mono text-[9px]">Date: {proposalDate}</p>
+              </tfoot>
+            </table>
           </div>
-          <div className="text-right">
-            <p className="font-bold text-slate-500 uppercase text-[9px]">Accepted &amp; Confirmed By:</p>
-            <p className="font-black text-slate-900 text-xs mt-0.5">{clientName}</p>
-            <div className="w-36 border-b border-slate-400 mt-4 mb-1"></div>
-            <p className="text-slate-400 text-[8px]">Authorized Signatory &amp; Company Seal</p>
+
+          <div>
+            <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1 mb-1.5">
+              Terms and Conditions:
+            </h2>
+            <ul className="space-y-1 text-[11px] text-black list-disc pl-6 leading-snug">
+              <li>Offer Validity: 1 Month from quotation date.</li>
+              <li>Taxes: GST @ 18% extra as applicable.</li>
+              <li>Payment Schedule: 50% advance against Pro-Forma Invoice; 40% against material supply within 15 days; 10% after successful project commissioning.</li>
+              <li>Delivery Period: 10 to 12 Weeks from approved date of PO.</li>
+              <li>Warranty: 12 Months from the date of material delivery at site.</li>
+            </ul>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pt-1 border-t border-slate-200">
+            <div className="space-y-1">
+              <p className="text-[11px] font-bold text-black">Submitted By,</p>
+              <div className="flex items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/Company-Logo-Light.png" alt="Sustainabyte Technologies Pvt Ltd" className="h-8 w-auto object-contain" />
+              </div>
+              <div className="text-[11px] text-black space-y-0.5">
+                <p className="font-bold">Mr. Thanakarthik Kumar K</p>
+                <p>Founder &amp; Managing Director</p>
+                <p className="font-bold">Contact:</p>
+                <p>Call: 8377007638</p>
+                <p>Mail: thanakarthik@sustainabyte.ai</p>
+              </div>
+            </div>
+
+            <div className="space-y-0.5 text-[11px] text-black">
+              <p className="font-bold">Bank Account details:</p>
+              <p>Bank – Bank of Baroda</p>
+              <p>Account Number – 35860200000750</p>
+              <p>IFSC – BARB0VELACH (fifth letter is ZERO)</p>
+              <p>Branch – VELACHERY BRANCH</p>
+              <p>GSTIN NO – 33ABNCS4869A1Z7</p>
+              <p>PAN Number – ABNCS4869A</p>
+            </div>
+          </div>
+
+          <div className="text-center pt-2">
+            <p className="text-[16px] font-black uppercase tracking-widest text-black">THANK YOU</p>
           </div>
         </div>
       </PageShell>
-    </div>
+    </>
   );
 }

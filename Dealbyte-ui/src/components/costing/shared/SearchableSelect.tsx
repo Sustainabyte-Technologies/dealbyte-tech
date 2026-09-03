@@ -236,13 +236,13 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           {/* Options Scrollable List */}
           <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 p-1">
             {filteredOptions.length > 0 ? (
-              filteredOptions.map((opt) => {
+              filteredOptions.map((opt, idx) => {
                 const isSelected =
                   opt.value === value || opt.label === value || opt.subtitle === value;
 
                 return (
                   <button
-                    key={opt.value}
+                    key={`${opt.value || opt.label}-${idx}`}
                     type="button"
                     onClick={() => handleSelect(opt)}
                     className={`w-full text-left p-2 rounded-lg text-xs flex items-start justify-between gap-2 transition-colors cursor-pointer ${

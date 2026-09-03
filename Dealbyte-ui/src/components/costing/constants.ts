@@ -19,7 +19,6 @@ import {
 } from './types';
 
 export const DEFAULT_CLIENT_OPTIONS = [
-  'KONE Elevator',
   'KONE Elevators India',
   'MRF Tyres',
   'Panasonic Life Solutions',
@@ -60,7 +59,7 @@ export const DEFAULT_CLIENT_OPTIONS = [
   'Arun Plasto',
   'Ashveera Elgi Dealer',
   'Bharat Forge',
-  'Blue Star Climatech',
+
   'Bull Machines India',
   'Century Panels',
   'Cholayil Private Ltd',
@@ -342,6 +341,118 @@ export interface EmsHardwareCatalogItem {
 
 export const STANDARD_EMS_GATEWAY_HARDWARE_CATALOG: EmsHardwareCatalogItem[] = [
   {
+    name: '7" HMI Screen',
+    description: '7" HMI Screen',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 15000,
+  },
+  {
+    name: '2" CI Body SS Disc Electrical Motorised Actuator ON/OFF Type',
+    description: '2" CI Body SS Disc Electrical Motorised Actuator ON/OFF Type',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 11756,
+  },
+  {
+    name: 'Submersible Level Transmitter',
+    description: 'Submersible Level Transmitter, Range: 0–5000mm, Output: 4–20mA, Power Supply: 24VDC, Enclosure: Nil',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 9400,
+  },
+  {
+    name: 'Apex 200B Powerful Edge Controller',
+    description: 'Apex 200B Powerful Edge Controller powered by BACSYS Platform with standard licensed points and protocol adapters, with 3 built-in ports of RS-485, 2 LAN Port and USB debug ports powered using 24V AC/DC; 10" HMI Screen; Modbus RTU to Modbus TCP; Mixed IO DDC Controller; Digital IO DDC Controller; Supports Modbus RTU & BACNET',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 34500,
+  },
+  {
+    name: 'Modbus RTU to Modbus TCP Converter',
+    description: 'Modbus RTU to Modbus TCP Converter',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 7600,
+  },
+  {
+    name: 'Mixed IO DDC Controller with 14 IO',
+    description: 'Mixed IO DDC Controller with 14 IO (4-UI, 2-AO, 4-DI & 4-DO); Supports Modbus RTU & BACNET',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 11700,
+  },
+  {
+    name: 'Digital IO DDC Controller with 16 IO',
+    description: 'Digital IO DDC Controller with 16 IO (12-DI & 8-DO); Supports Modbus RTU & BACNET',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 8800,
+  },
+  {
+    name: 'Mixed IO DDC Controller with 26 IO',
+    description: 'Mixed IO DDC Controller with 26 IO (8-UI, 4-AO, 8-DI & 8-DO); Supports Modbus RTU & BACNET',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 14700,
+  },
+  {
+    name: 'Temperature, RH, CO2, PM1.0, PM2.5, TVOC IAQ Sensor',
+    description: 'Temperature, Relative Humidity, Carbon Dioxide, Particulate Matter (PM1.0, PM2.5), Total Volatile Organic Compounds',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 40000,
+  },
+  {
+    name: 'RS485-WiFi Converter',
+    description: 'RS485-WiFi Converter',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 7750,
+  },
+  {
+    name: '24V-5A SMPS',
+    description: '24V-5A SMPS',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 2000,
+  },
+  {
+    name: "1 Inch water flow meter",
+    description: "1' Inch water flow meter",
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 24500,
+  },
+  {
+    name: 'Nitrogen flow meter quarter inch',
+    description: 'Nitrogen flow meter quarter inch',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 80000,
+  },
+  {
+    name: 'Diesel level sensor & Energy meter',
+    description: 'Diesel level sensor & Energy meter',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 18000,
+  },
+  {
+    name: 'STP flow meter manual reading',
+    description: 'STP flow meter manual reading',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 24500,
+  },
+  {
+    name: "1 Inch Air flow meter",
+    description: "1' Inch Air flow meter",
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    uom: 'Nos',
+    unitCost: 60000,
+  },
+  {
     name: '4G IoT Gateway - Edge Pro',
     description: 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Pro',
     category: 'Sustainabyte Edge IoT Gateway Hardware',
@@ -363,7 +474,7 @@ export const STANDARD_EMS_GATEWAY_HARDWARE_CATALOG: EmsHardwareCatalogItem[] = [
     unitCost: 6000,
   },
   {
-    name: '2" Water Flow Meter with Accessories',
+    name: '2 Water Flow Meter with Accessories',
     description: "2' Inch water flow meter including accessories",
     category: 'Sustainabyte Edge IoT Gateway Hardware',
     uom: 'Nos',
@@ -703,22 +814,36 @@ export const STANDARD_EMS_GATEWAY_HARDWARE_CATALOG: EmsHardwareCatalogItem[] = [
 
 export const STANDARD_EMS_ELECTRICAL_HARDWARE_CATALOG: EmsHardwareCatalogItem[] = [
   {
-    name: 'Supply of 2 core RS 485 Shielded cable for IoT Gateway communication',
-    description: 'Supply of 2 core RS 485 Shielded cable for IoT Gateway communication',
+    name: 'Supply of 2 Core RS 485 Shielded Cable for IoT Gateway Communication',
+    description: 'Supply of 2 Core RS 485 Shielded Cable for IoT Gateway Communication',
     category: 'Electrical Hardware',
     uom: 'Coil',
     unitCost: 4000,
   },
   {
-    name: 'Supply of 1" conduit pipes',
-    description: 'Supply of 1" conduit pipes',
+    name: 'Supply of 1.5 Sqmm 3 Core Cable for Power Supply',
+    description: 'Supply of 1.5 Sqmm 3 Core Cable for Power Supply',
     category: 'Electrical Hardware',
-    uom: 'Nos',
-    unitCost: 70,
+    uom: 'Coil',
+    unitCost: 7000,
   },
   {
-    name: 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories',
-    description: 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories',
+    name: 'Panel Boxes',
+    description: 'Panel Boxes',
+    category: 'Electrical Hardware',
+    uom: 'Nos',
+    unitCost: 1000,
+  },
+  {
+    name: 'Supply of 1" Conduit Pipes',
+    description: 'Supply of 1" Conduit Pipes',
+    category: 'Electrical Hardware',
+    uom: 'Nos',
+    unitCost: 100,
+  },
+  {
+    name: 'Supply of Electrical Consumables such as Flexible Hose, Cable Ties and All Other Accessories',
+    description: 'Supply of Electrical Consumables such as Flexible Hose, Cable Ties and All Other Accessories',
     category: 'Electrical Hardware',
     uom: 'Job',
     unitCost: 3000,
@@ -896,6 +1021,7 @@ export const getActiveGatewayHardwareCatalog = (): EmsHardwareCatalogItem[] => {
     return item;
   });
 
+  let allItems = baseCatalog;
   if (typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem('dealbyte_custom_hardware_items');
@@ -910,11 +1036,19 @@ export const getActiveGatewayHardwareCatalog = (): EmsHardwareCatalogItem[] => {
             uom: c.uom || 'Nos',
             unitCost: Number(c.unitCost) || 0,
           }));
-        return [...baseCatalog, ...gatewayCustom];
+        allItems = [...baseCatalog, ...gatewayCustom];
       }
     } catch (e) {}
   }
-  return baseCatalog;
+
+  // Deduplicate by description
+  const seen = new Set<string>();
+  return allItems.filter((item) => {
+    const key = (item.description || item.name).trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 export const getActiveElectricalHardwareCatalog = (): EmsHardwareCatalogItem[] => {
@@ -936,6 +1070,7 @@ export const getActiveElectricalHardwareCatalog = (): EmsHardwareCatalogItem[] =
     return item;
   });
 
+  let allItems = baseCatalog;
   if (typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem('dealbyte_custom_hardware_items');
@@ -950,11 +1085,19 @@ export const getActiveElectricalHardwareCatalog = (): EmsHardwareCatalogItem[] =
             uom: c.uom || 'Nos',
             unitCost: Number(c.unitCost) || 0,
           }));
-        return [...baseCatalog, ...elCustom];
+        allItems = [...baseCatalog, ...elCustom];
       }
     } catch (e) {}
   }
-  return baseCatalog;
+
+  // Deduplicate by description
+  const seen = new Set<string>();
+  return allItems.filter((item) => {
+    const key = (item.description || item.name).trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 export const getInitialEmsGatewayHardwareRows = (): EmsHardwareRow[] => {
@@ -977,21 +1120,161 @@ export const INITIAL_EMS_GATEWAY_HARDWARE_ROWS: EmsHardwareRow[] = [
   {
     id: 'ems_h1_1',
     code: '1a',
-    category: 'Sustainabyte Edge IoT Gateway Hardware',
-    description: 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Pro',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: '7" HMI Screen',
     qty: 0,
     uom: 'Nos',
-    unitCost: 11000,
+    unitCost: 15000,
     marginPct: 40,
   },
   {
     id: 'ems_h1_2',
     code: '1b',
-    category: 'Sustainabyte Edge IoT Gateway Hardware',
-    description: 'Supply of Energy Meter with RS485 Communication, CT & wiring accessories',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: '2" CI Body SS Disc Electrical Motorised Actuator ON/OFF Type',
     qty: 0,
     uom: 'Nos',
-    unitCost: 11000,
+    unitCost: 11756,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_3',
+    code: '1c',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Submersible Level Transmitter, Range: 0–5000mm, Output: 4–20mA, Power Supply: 24VDC, Enclosure: Nil',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 9400,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_4',
+    code: '1d',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Apex 200B Powerful Edge Controller powered by BACSYS Platform with standard licensed points and protocol adapters, with 3 built-in ports of RS-485, 2 LAN Port and USB debug ports powered using 24V AC/DC; 10" HMI Screen; Modbus RTU to Modbus TCP; Mixed IO DDC Controller; Digital IO DDC Controller; Supports Modbus RTU & BACNET',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 34500,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_5',
+    code: '1e',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Modbus RTU to Modbus TCP Converter',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 7600,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_6',
+    code: '1f',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Mixed IO DDC Controller with 14 IO (4-UI, 2-AO, 4-DI & 4-DO); Supports Modbus RTU & BACNET',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 11700,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_7',
+    code: '1g',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Digital IO DDC Controller with 16 IO (12-DI & 8-DO); Supports Modbus RTU & BACNET',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 8800,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_8',
+    code: '1h',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Mixed IO DDC Controller with 26 IO (8-UI, 4-AO, 8-DI & 8-DO); Supports Modbus RTU & BACNET',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 14700,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_9',
+    code: '1i',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Temperature, Relative Humidity, Carbon Dioxide, Particulate Matter (PM1.0, PM2.5), Total Volatile Organic Compounds',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 40000,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_10',
+    code: '1j',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'RS485-WiFi Converter',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 7750,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_11',
+    code: '1k',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: '24V-5A SMPS',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 2000,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_12',
+    code: '1l',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: "1' Inch water flow meter",
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 24500,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_13',
+    code: '1m',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Nitrogen flow meter quarter inch',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 80000,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_14',
+    code: '1n',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Diesel level sensor & Energy meter',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 18000,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_15',
+    code: '1o',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'STP flow meter manual reading',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 24500,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h1_16',
+    code: '1p',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: "1' Inch Air flow meter",
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 60000,
     marginPct: 40,
   },
 ];
@@ -1084,7 +1367,7 @@ export const INITIAL_EMS_ELECTRICAL_HARDWARE_ROWS: EmsHardwareRow[] = [
     id: 'ems_h2_1',
     code: '2a',
     category: 'Electrical Hardware',
-    description: 'Supply of 2 core RS 485 Shielded cable for IoT Gateway communication',
+    description: 'Supply of 2 Core RS 485 Shielded Cable for IoT Gateway Communication',
     qty: 0,
     uom: 'Coil',
     unitCost: 4000,
@@ -1094,17 +1377,37 @@ export const INITIAL_EMS_ELECTRICAL_HARDWARE_ROWS: EmsHardwareRow[] = [
     id: 'ems_h2_2',
     code: '2b',
     category: 'Electrical Hardware',
-    description: 'Supply of 1" conduit pipes',
+    description: 'Supply of 1.5 Sqmm 3 Core Cable for Power Supply',
     qty: 0,
-    uom: 'Nos',
-    unitCost: 70,
+    uom: 'Coil',
+    unitCost: 7000,
     marginPct: 40,
   },
   {
     id: 'ems_h2_3',
     code: '2c',
     category: 'Electrical Hardware',
-    description: 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories',
+    description: 'Panel Boxes',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 1000,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h2_4',
+    code: '2d',
+    category: 'Electrical Hardware',
+    description: 'Supply of 1" Conduit Pipes',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 100,
+    marginPct: 40,
+  },
+  {
+    id: 'ems_h2_5',
+    code: '2e',
+    category: 'Electrical Hardware',
+    description: 'Supply of Electrical Consumables such as Flexible Hose, Cable Ties and All Other Accessories',
     qty: 0,
     uom: 'Job',
     unitCost: 3000,
@@ -2024,66 +2327,216 @@ Payment schedule
 
 export const INITIAL_WATER_MANAGEMENT_GATEWAY_HARDWARE_ROWS: EmsHardwareRow[] = [
   {
-    id: 'wms_h1a',
+    id: 'wms_h1_1',
     code: '1a',
-    category: 'Water Management IoT Gateway Hardware',
-    description: 'Supply of 4G IoT Gateway for Water Monitoring with SIM card, SMPS & High-gain Antenna - Edge Pro',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: '7" HMI Screen',
     qty: 0,
     uom: 'Nos',
-    unitCost: 0,
+    unitCost: 15000,
     marginPct: 40,
   },
   {
-    id: 'wms_h1b',
+    id: 'wms_h1_2',
     code: '1b',
-    category: 'Water Flow & Level Instrumentation',
-    description: 'Supply of Electromagnetic / Ultrasonic Water Flow Meter with RS485 Modbus Communication',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: '2" CI Body SS Disc Electrical Motorised Actuator ON/OFF Type',
     qty: 0,
     uom: 'Nos',
-    unitCost: 0,
+    unitCost: 11756,
     marginPct: 40,
   },
   {
-    id: 'wms_h1c',
+    id: 'wms_h1_3',
     code: '1c',
-    category: 'Water Flow & Level Instrumentation',
-    description: 'Supply of Hydrostatic / Ultrasonic Water Level Transmitter for Storage Tanks',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Submersible Level Transmitter, Range: 0–5000mm, Output: 4–20mA, Power Supply: 24VDC, Enclosure: Nil',
     qty: 0,
     uom: 'Nos',
-    unitCost: 0,
+    unitCost: 9400,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_4',
+    code: '1d',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Apex 200B Powerful Edge Controller powered by BACSYS Platform with standard licensed points and protocol adapters, with 3 built-in ports of RS-485, 2 LAN Port and USB debug ports powered using 24V AC/DC; 10" HMI Screen; Modbus RTU to Modbus TCP; Mixed IO DDC Controller; Digital IO DDC Controller; Supports Modbus RTU & BACNET',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 34500,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_5',
+    code: '1e',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Modbus RTU to Modbus TCP Converter',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 7600,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_6',
+    code: '1f',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Mixed IO DDC Controller with 14 IO (4-UI, 2-AO, 4-DI & 4-DO); Supports Modbus RTU & BACNET',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 11700,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_7',
+    code: '1g',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Digital IO DDC Controller with 16 IO (12-DI & 8-DO); Supports Modbus RTU & BACNET',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 8800,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_8',
+    code: '1h',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Mixed IO DDC Controller with 26 IO (8-UI, 4-AO, 8-DI & 8-DO); Supports Modbus RTU & BACNET',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 14700,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_9',
+    code: '1i',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Temperature, Relative Humidity, Carbon Dioxide, Particulate Matter (PM1.0, PM2.5), Total Volatile Organic Compounds',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 40000,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_10',
+    code: '1j',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'RS485-WiFi Converter',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 7750,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_11',
+    code: '1k',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: '24V-5A SMPS',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 2000,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_12',
+    code: '1l',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: "1' Inch water flow meter",
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 24500,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_13',
+    code: '1m',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Nitrogen flow meter quarter inch',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 80000,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_14',
+    code: '1n',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'Diesel level sensor & Energy meter',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 18000,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_15',
+    code: '1o',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: 'STP flow meter manual reading',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 24500,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h1_16',
+    code: '1p',
+    category: '1. Sustainabyte Edge IoT Gateway Hardware',
+    description: "1' Inch Air flow meter",
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 60000,
     marginPct: 40,
   },
 ];
 
 export const INITIAL_WATER_MANAGEMENT_ELECTRICAL_HARDWARE_ROWS: EmsHardwareRow[] = [
   {
-    id: 'wms_h2a',
+    id: 'wms_h2_1',
     code: '2a',
-    category: 'Electrical & Communication Cabling',
-    description: 'Supply of 2 core RS 485 Shielded & Armoured Communication Cable for Water Meters & Gateway',
+    category: 'Electrical Hardware',
+    description: 'Supply of 2 core RS 485 Shielded cable for IoT Gateway communication',
     qty: 0,
     uom: 'Coil',
-    unitCost: 0,
+    unitCost: 4000,
     marginPct: 40,
   },
   {
-    id: 'wms_h2b',
+    id: 'wms_h2_2',
     code: '2b',
-    category: 'Piping & Protection Conduit',
-    description: 'Supply of 1" Heavy Duty Conduit Pipes and UV Protected Sleeves',
+    category: 'Electrical Hardware',
+    description: 'Supply of 1.5 Sqmm 3 core cable for Power supply',
+    qty: 0,
+    uom: 'Coil',
+    unitCost: 7000,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h2_3',
+    code: '2c',
+    category: 'Electrical Hardware',
+    description: 'Panel Boxes',
     qty: 0,
     uom: 'Nos',
-    unitCost: 0,
+    unitCost: 1000,
     marginPct: 40,
   },
   {
-    id: 'wms_h2c',
-    code: '2c',
-    category: 'Installation Consumables',
-    description: 'Supply of IP67 Weatherproof Junction Boxes, Glands, Flange Gaskets, Fasteners & Mounting Accessories',
+    id: 'wms_h2_4',
+    code: '2d',
+    category: 'Electrical Hardware',
+    description: 'Supply of 1" conduit pipes',
+    qty: 0,
+    uom: 'Nos',
+    unitCost: 100,
+    marginPct: 40,
+  },
+  {
+    id: 'wms_h2_5',
+    code: '2e',
+    category: 'Electrical Hardware',
+    description: 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories',
     qty: 0,
     uom: 'Job',
-    unitCost: 0,
+    unitCost: 3000,
     marginPct: 40,
   },
 ];
@@ -2184,6 +2637,54 @@ export const WELDING_IOT_SUB_SERVICES = [
   'Welding IoT & Kit',
   'Digiweld',
 ];
+
+export const getCategoryForSubService = (subService: string): string | null => {
+  if (!subService) return null;
+  const lower = subService.toLowerCase().trim();
+  if (lower.includes('welding') || lower.includes('digiweld')) {
+    return 'Welding';
+  }
+  if (lower.includes('cpm') || lower.includes('chiller')) {
+    return 'Chiller Management';
+  }
+  if (lower === 'compressed air automation' || lower === 'water automation' || lower.includes('automation')) {
+    return 'Automation';
+  }
+  if (lower.includes('ir blaster') || lower.includes('irblaster')) {
+    return 'IR Blaster';
+  }
+  if (lower === 'bms' || lower.includes('building management')) {
+    return 'BMS';
+  }
+  if (
+    lower.includes('dew point') ||
+    lower.includes('flange') ||
+    lower.includes('temperature') ||
+    lower.includes('iaq') ||
+    lower.includes('hardware')
+  ) {
+    return 'Hardware';
+  }
+  if (
+    lower.includes('energy management') ||
+    lower.includes('compressed air monitoring') ||
+    lower.includes('iot platform') ||
+    lower.includes('water management')
+  ) {
+    return 'IoT & Controls';
+  }
+  if (
+    lower.includes('leakage') ||
+    lower.includes('audit') ||
+    lower.includes('ashrae') ||
+    lower.includes('ec fan') ||
+    lower.includes('hvac design') ||
+    lower.includes('iso 50001')
+  ) {
+    return 'Energy Audit Services';
+  }
+  return null;
+};
 
 export const INITIAL_CPM_HARDWARE_ROWS: CpmHardwareRow[] = [
   {
@@ -2682,6 +3183,121 @@ export const HARDWARE_SUB_SERVICES = [
   'Temperature Sensor',
 ];
 
+export const DEFAULT_TEMPERATURE_SENSOR_STEP5_TEXT = `2. Objective
+The primary objectives of this project are:
+• Product Safety & Quality: Ensure freshness and compliance with food safety standards.
+• Real-Time Monitoring: Continuous tracking of temperature and humidity via IoT sensors.
+• Alerts & Notifications: Immediate alerts through SMS/email/app in case of deviations.
+• Data Analytics & Reports: Historical data analysis for audits, compliance, and trend insights.
+• Operational Efficiency: Reduced manual checks and labor dependency.
+• Energy Savings: Optimizing cold storage operation and preventing overuse of compressors.
+• Reduced Wastage: Minimizes product spoilage and financial loss.
+
+3. Scope of Work
+3.1 Site Survey & Assessment
+• Conduct an initial survey of cold storage facilities.
+• Identify critical monitoring points (storage chambers, loading/unloading areas, sensitive product zones).
+• Assess existing infrastructure, connectivity options (GSM) and power availability.
+
+3.2 Sensor Deployment
+• Supply and install IoT-enabled temperature and humidity sensors in designated cold storage units.
+• Ensure calibration and testing for accuracy and reliability.
+• Position sensors strategically for optimal coverage.
+
+3.3 Connectivity & Data Transmission
+• Establish reliable connectivity (Wi-Fi/GSM/LoRa) for real-time data transfer.
+• Deploy IoT gateways (if required) for multi-sensor integration.
+• Ensure secure and encrypted data transmission to Sustainabyte Cloud Platform.
+
+3.4 Centralized Dashboard & Analytics
+Provide a cloud-based dashboard accessible via web and mobile. Features include:
+• Real-time monitoring of temperature and humidity.
+• Threshold-based alerts (SMS, Email, Mobile App).
+• Data storage and retrieval for historical analysis.
+• Graphs, trend analysis, and audit-ready reports.
+
+3.5 Alerts & Notifications
+• Configure alert thresholds for each storage unit.
+• Provide instant notifications to designated personnel in case of deviation.
+• Enable escalation matrix (if first alert not acknowledged).
+
+3.6 Reporting & Compliance
+• Automated daily, weekly, and monthly reports.
+• Exportable data for audits and regulatory compliance.
+• Custom report generation as per client requirements.
+
+3.7 Maintenance & Support
+• Provide ongoing technical support and troubleshooting.
+• Remote monitoring and health check of devices.
+• Annual calibration and servicing of sensors.
+• Replacement of faulty devices (under SLA).
+
+4. Approach
+1. Implementation:
+• Install and calibrate flow meters / sensors.
+• Connect and integrate sensors with the IoT gateway.
+2. Monitoring & Validation:
+• Capture real-time operational data.
+• Compare trends against manual records for accuracy.
+3. Review & Sign-off:
+• Present results and reports via the Optibyte AI platform.
+• Obtain client approval for full-scale rollout.
+
+5. Deliverables
+One-time services:
+• Commissioning IoT sensors across cold storage units.
+• Fully functional cloud-based dashboard.
+• User access credentials for client staff.
+• Alert and notification system configured as per operations team.
+• Documentation including system architecture, user manual, and troubleshooting guide.
+
+Full-Scale Deployment of Optibyte:
+• Implement a complete AI and IoT-based platform for cold storage monitoring solution.
+• Optibyte will deliver advanced, in-depth, AI/ML-enabled insights and analytics to drive continuous energy optimization.
+
+6. Advantage
+• Prevents product spoilage by real-time detection of anomalies.
+• Reduces manual monitoring workload.
+• Provides compliance-ready data.
+• Enhances brand reputation through food safety assurance.
+
+7. Conclusion
+The proposed approach ensures a systematic and scalable implementation of Cold storage monitoring. This will validate technical feasibility and establish a strong foundation for a full-scale digitalization initiative using AI & IoT Platform, Optibyte.`;
+
+export const DEFAULT_TEMPERATURE_SENSOR_STEP6_TEXT = `Commercials:
+Support required from the client:
+• SPOC (Single point of Contact) for support and coordination during the installation and Commissioning phase.
+• Installation from the client side.
+• SPOC to review alerts and Reports as per requirements.
+• Accessibility to each area.
+• 1 person required from the client side with knowledge of electrical routing, and provide manual support to lay the cable.
+
+Terms and Conditions:
+• Payment schedule:
+  - Supply of hardware – 100% upfront
+  - Software Charges – 70% advance against the PO, and the remaining 30% after Dashboard confirmation by the client.
+• Applicable taxes and duties will be extra.
+• The timelines for execution will be mutually discussed and agreed upon during the project kick-off discussion.
+• All kinds of authority approvals, work permission, and site passes if required.
+• The client should coordinate with any third-party contractors' coordination at the site.
+• Secure onsite storage area and all soft integration support.
+• Post installation and commission, any site visit for maintenance and troubleshooting will be charged as actual (i.e., after the first year).
+• Any material beyond the current scope will be charged as actuals.
+
+Submitted by,
+Mr. Thanakarthik Kumar K
+Founder & Managing Director
++91-8377007638
+thanakarthik@sustainabyte.ai
+
+Bank Account details:
+Bank – Bank of Baroda
+Account Number – 35860200000750
+IFSC – BARB0VELACH (fifth letter is ZERO)
+Branch – VELACHERY BRANCH
+GSTIN NO – 33ABNCS4869A1Z7
+PAN Number – ABNCS4869A`;
+
 export const DEFAULT_DEW_POINT_STEP5_TEXT = `Scope of Work:
 In this Current proposal, the scope of work is for the supply of an dew point sensor excluding installation and commissioning focuses solely on delivering the hardware to the specified site. This includes product specifications, delivery requirements, documentation, and quality standards, ensuring the meter is ready for later installation by others.
 
@@ -2865,6 +3481,14 @@ export const INITIAL_IOT_CONTROLS_HARDWARE_ROWS: IotControlsHardwareRow[] = [
   { id: 'ich_10', slNo: '10', productDescription: 'Lighting Controller', quantity: 0, unitCost: 7500, marginPct: 40, unitPrice: 12500 },
   { id: 'ich_11', slNo: '11', productDescription: 'Control Panel Box(contactor,selecter switch,wiring, I/O Module)', quantity: 0, unitCost: 9000, marginPct: 40, unitPrice: 15000 },
   { id: 'ich_12', slNo: '12', productDescription: 'Installation and commisioing(Controll logic,cable laying,wiring)', quantity: 0, unitCost: 2000, marginPct: 40, unitPrice: 3333.33 },
+  { id: 'ich_13', slNo: '13', productDescription: 'Temperature, Relative Humidity, Carbon Dioxide, Particulate Matter (PM1.0, PM2.5), Total Volatile Organic Compounds', quantity: 0, unitCost: 40000, marginPct: 40, unitPrice: 66666.67 },
+  { id: 'ich_14', slNo: '14', productDescription: 'RS485-WiFi Converter', quantity: 0, unitCost: 7750, marginPct: 40, unitPrice: 12916.67 },
+  { id: 'ich_15', slNo: '15', productDescription: '24V-5A SMPS', quantity: 0, unitCost: 2000, marginPct: 40, unitPrice: 3333.33 },
+  { id: 'ich_16', slNo: '16', productDescription: "1' Inch water flow meter", quantity: 0, unitCost: 24500, marginPct: 40, unitPrice: 40833.33 },
+  { id: 'ich_17', slNo: '17', productDescription: 'Nitrogen flow meter quarter inch', quantity: 0, unitCost: 80000, marginPct: 40, unitPrice: 133333.33 },
+  { id: 'ich_18', slNo: '18', productDescription: 'Diesel level sensor & Energy meter', quantity: 0, unitCost: 18000, marginPct: 40, unitPrice: 30000 },
+  { id: 'ich_19', slNo: '19', productDescription: 'STP flow meter manual reading', quantity: 0, unitCost: 24500, marginPct: 40, unitPrice: 40833.33 },
+  { id: 'ich_20', slNo: '20', productDescription: "1' Inch Air flow meter", quantity: 0, unitCost: 60000, marginPct: 40, unitPrice: 100000 },
 ];
 
 export const INITIAL_NEW_IR_BLASTER_HARDWARE_ROWS: IotControlsHardwareRow[] = [

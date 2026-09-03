@@ -67,6 +67,16 @@ export interface EmsCostingTemplateProps extends AirAuditManpowerEngineProps {
   airInstManpowerProps?: AirAuditManpowerEngineProps;
   airInstManpowerTotalCost?: number;
   airInstManpowerTotalPrice?: number;
+
+  // Packaging Charges (Editable)
+  emsPackagingPct?: number;
+  setEmsPackagingPct?: (pct: number) => void;
+  emsPackagingManualCost?: number | null;
+  setEmsPackagingManualCost?: (val: number | null) => void;
+  emsPackagingManualPrice?: number | null;
+  setEmsPackagingManualPrice?: (val: number | null) => void;
+  emsPackagingMarginPct?: number;
+  setEmsPackagingMarginPct?: (val: number) => void;
 }
 
 export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => {
@@ -108,7 +118,24 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
     setBufferPct,
     resetEmsDefaults,
     profitPct,
+    emsPackagingPct = 3,
+    setEmsPackagingPct,
+    emsPackagingManualCost = null,
+    setEmsPackagingManualCost,
+    emsPackagingManualPrice = null,
+    setEmsPackagingManualPrice,
+    emsPackagingMarginPct = 0,
+    setEmsPackagingMarginPct,
   } = props;
+
+  const emsHardwareBasePrice = emsGatewayHardwareTotalPrice + emsElectricalHardwareTotalPrice;
+  const emsHardwareBaseCost = emsGatewayHardwareTotalCost + emsElectricalHardwareTotalCost;
+  const emsAutoPackagingPrice = Math.round(emsHardwareBasePrice * (emsPackagingPct / 100));
+  const emsAutoPackagingCost = emsAutoPackagingPrice;
+  const emsEffectivePackagingCost = emsPackagingManualCost !== null ? emsPackagingManualCost : emsAutoPackagingCost;
+  const emsEffectivePackagingPrice = emsPackagingManualPrice !== null
+    ? emsPackagingManualPrice
+    : (emsPackagingMarginPct > 0 ? Math.round(calcPriceFromCost(emsEffectivePackagingCost, emsPackagingMarginPct)) : emsEffectivePackagingCost);
 
   const [localRoundingNearest, setLocalRoundingNearest] = React.useState<number>(100);
   const roundingNearest = props.roundingNearest !== undefined ? props.roundingNearest : localRoundingNearest;
@@ -221,11 +248,20 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
   const item6Qty = emsRecurringRows[1]?.qty || emsRecurringRows[0]?.qty || 1;
   const item6Uom = emsRecurringRows[1]?.uom || emsRecurringRows[0]?.uom || 'Nodes';
 
+  // 3b. Packaging & Forwarding Charges (Overall Hardware & Electrical × X%)
+  // NOTE: Contingency buffer is NOT added to packaging charges
+  const pkgCost = emsEffectivePackagingCost;
+  const pkgPrice = emsEffectivePackagingPrice;
+  const pkgContingency = pkgPrice;
+  const pkgRounded = roundToNearest(pkgPrice, roundingNearest);
+  const pkgDescription = `Packaging & Forwarding Charges (${emsPackagingPct}% of Total Hardware & Electrical Supplies)`;
+  const pkgQty = 1;
+  const pkgUom = 'Job';
+
   // Consolidated Items for Step Summary Table
-  const step5Items = isCompressedAirAutomation
+  const rawStep5Items = isCompressedAirAutomation
     ? [
         {
-          sNo: 1,
           description: item1a?.description || 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Pro',
           qty: item1a?.qty || 0,
           uom: item1a?.uom || 'Nos',
@@ -236,7 +272,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: false,
         },
         {
-          sNo: 2,
           description: item2Description,
           qty: item2Qty,
           uom: item2Uom,
@@ -247,7 +282,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: false,
         },
         {
-          sNo: 3,
           description: item3Description,
           qty: item3Qty,
           uom: item3Uom,
@@ -257,8 +291,21 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           rounded: item3Rounded,
           isRecurring: false,
         },
+        ...(pkgPrice > 0
+          ? [
+              {
+                description: pkgDescription,
+                qty: pkgQty,
+                uom: pkgUom,
+                cost: pkgCost,
+                price: pkgPrice,
+                contingency: pkgContingency,
+                rounded: pkgRounded,
+                isRecurring: false,
+              },
+            ]
+          : []),
         {
-          sNo: 4,
           description: 'Automation, Programming & Commissioning Scope: PLC/Controller logic programming, compressor sequencing, instrument loops & engineering commissioning',
           qty: 1,
           uom: 'Job',
@@ -269,7 +316,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: false,
         },
         {
-          sNo: 5,
           description: 'Installation, Cabling & Electrical Mounting Scope: On-site IoT gateway deployment, CT/Meter termination, cable laying, conduit routing & electrical mounting',
           qty: 1,
           uom: 'Job',
@@ -280,7 +326,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: false,
         },
         {
-          sNo: 6,
           description: item5Description,
           qty: item5Qty,
           uom: item5Uom,
@@ -291,7 +336,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: false,
         },
         {
-          sNo: 7,
           description: item6Description,
           qty: item6Qty,
           uom: item6Uom,
@@ -304,7 +348,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
       ]
     : [
         {
-          sNo: 1,
           description: item1a?.description || 'Supply of 4G IoT Gateway for Communication with SIM card, SMPS & Antenna - Edge Pro',
           qty: item1a?.qty || 0,
           uom: item1a?.uom || 'Nos',
@@ -315,7 +358,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: false,
         },
         {
-          sNo: 2,
           description: item2Description,
           qty: item2Qty,
           uom: item2Uom,
@@ -326,7 +368,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: false,
         },
         {
-          sNo: 3,
           description: item3Description,
           qty: item3Qty,
           uom: item3Uom,
@@ -336,8 +377,21 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           rounded: item3Rounded,
           isRecurring: false,
         },
+        ...(pkgPrice > 0
+          ? [
+              {
+                description: pkgDescription,
+                qty: pkgQty,
+                uom: pkgUom,
+                cost: pkgCost,
+                price: pkgPrice,
+                contingency: pkgContingency,
+                rounded: pkgRounded,
+                isRecurring: false,
+              },
+            ]
+          : []),
         {
-          sNo: 4,
           description: item4Description,
           qty: item4Qty,
           uom: item4Uom,
@@ -348,7 +402,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: false,
         },
         {
-          sNo: 5,
           description: item5Description,
           qty: item5Qty,
           uom: item5Uom,
@@ -359,7 +412,6 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: false,
         },
         {
-          sNo: 6,
           description: item6Description,
           qty: item6Qty,
           uom: item6Uom,
@@ -370,6 +422,11 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
           isRecurring: true,
         },
       ];
+
+  const step5Items = rawStep5Items.map((item, idx) => ({
+    ...item,
+    sNo: idx + 1,
+  }));
 
   const totalStep5Cost = step5Items.reduce((sum, item) => sum + item.cost, 0);
   const totalStep5Price = step5Items.reduce((sum, item) => sum + item.price, 0);
@@ -818,40 +875,88 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
                 </tr>
               )}
 
-              {/* TOTAL 2: 3% Packaging Charges Row */}
-              {(emsGatewayHardwareTotalPrice + emsElectricalHardwareTotalPrice) > 0 && (
+              {/* TOTAL 2: Packaging Charges Row (Fully Editable) */}
+              {(emsHardwareBasePrice > 0 || emsEffectivePackagingPrice > 0) && (
                 <tr className="bg-amber-50/70 text-slate-800 font-bold border-t border-amber-200 text-xs">
                   <td className="p-2.5 px-3 text-center text-amber-900 border-r border-slate-200">★</td>
                   <td className="p-2.5 px-4 font-extrabold text-amber-950 border-r border-slate-200" colSpan={4}>
-                    <div className="flex items-center gap-2">
-                      <span className="bg-amber-200 text-amber-950 text-[10px] font-black px-1.5 py-0.5 rounded">3% Capex</span>
-                      <span>Packaging Charges (Overall Hardware Selling Total × 3%)</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 bg-amber-200/90 text-amber-950 rounded px-1.5 py-0.5 border border-amber-300">
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          value={emsPackagingPct}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setEmsPackagingPct?.(val);
+                            setEmsPackagingManualCost?.(null);
+                            setEmsPackagingManualPrice?.(null);
+                          }}
+                          className="w-9 text-center bg-white font-black text-amber-950 rounded text-xs py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                        <span className="font-black text-[10px] text-amber-900">% Capex</span>
+                      </div>
+                      <span>Packaging Charges (Overall Hardware Selling Total × {emsPackagingPct}%)</span>
                     </div>
                   </td>
-                  <td className="p-2.5 px-3 text-right font-black text-amber-950 bg-amber-100/80 border-r border-slate-200">
-                    ₹{formatMoney(Math.round((emsGatewayHardwareTotalPrice + emsElectricalHardwareTotalPrice) * 0.03))}
+                  <td className="p-1 px-1 text-right bg-amber-100/80 border-r border-slate-200">
+                    <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded px-1 py-0.5">
+                      <span className="text-slate-400 text-[10px]">₹</span>
+                      <input
+                        type="number"
+                        value={emsPackagingManualCost !== null ? emsPackagingManualCost : emsAutoPackagingCost}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? null : Number(e.target.value);
+                          setEmsPackagingManualCost?.(val);
+                        }}
+                        className="w-full text-right text-xs font-mono font-bold text-slate-800 focus:outline-none"
+                      />
+                    </div>
                   </td>
-                  <td className="p-2 px-3 border-r border-slate-200 text-center font-bold text-slate-500">
-                    0%
+                  <td className="p-1 px-1 border-r border-slate-200 text-center">
+                    <div className="flex items-center justify-center gap-0.5 bg-white border border-slate-200 rounded px-1 py-0.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={emsPackagingMarginPct}
+                        onChange={(e) => setEmsPackagingMarginPct?.(Number(e.target.value) || 0)}
+                        className="w-7 text-center text-xs font-bold text-slate-700 focus:outline-none"
+                      />
+                      <span className="text-slate-400 text-[10px]">%</span>
+                    </div>
                   </td>
-                  <td className="p-2.5 px-4 text-right font-black text-amber-950 bg-amber-200/80">
-                    ₹{formatMoney(Math.round((emsGatewayHardwareTotalPrice + emsElectricalHardwareTotalPrice) * 0.03))}
+                  <td className="p-1 px-1 text-right bg-amber-200/80">
+                    <div className="flex items-center gap-0.5 bg-white border border-amber-400 rounded px-1 py-0.5 shadow-2xs">
+                      <span className="text-amber-800 text-[10px]">₹</span>
+                      <input
+                        type="number"
+                        value={emsPackagingManualPrice !== null ? emsPackagingManualPrice : emsEffectivePackagingPrice}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? null : Number(e.target.value);
+                          setEmsPackagingManualPrice?.(val);
+                        }}
+                        className="w-full text-right text-xs font-black text-amber-950 focus:outline-none"
+                      />
+                    </div>
                   </td>
                   <td className="p-2 text-center text-amber-600 font-bold">✓</td>
                 </tr>
               )}
 
-              {/* TOTAL 3: Step 1 Grand Total (Overall Total + 3% Packaging Charges) */}
+              {/* TOTAL 3: Step 1 Grand Total (Overall Total + Packaging Charges) */}
               <tr className="bg-purple-900 text-white font-extrabold text-xs">
                 <td colSpan={5} className="p-3 px-6 text-right uppercase tracking-wider">
-                  Step 1 Total Hardware Cost &amp; Selling Price (Overall Total + 3% Packaging Charges)
+                  Step 1 Total Hardware Cost &amp; Selling Price (Overall Total + {emsPackagingPct}% Packaging Charges)
                 </td>
                 <td className="p-3 px-3 text-right font-black text-amber-400 bg-purple-950 text-sm border-r border-purple-800">
-                  Cost: ₹{formatMoney(emsHardwareTotalCost)}
+                  Cost: ₹{formatMoney(emsHardwareBaseCost + emsEffectivePackagingCost)}
                 </td>
                 <td></td>
                 <td className="p-3 px-4 text-right font-black text-emerald-400 bg-slate-950 text-sm">
-                  Price: ₹{formatMoney(emsHardwareTotalPrice)}
+                  Price: ₹{formatMoney(emsHardwareBasePrice + emsEffectivePackagingPrice)}
                 </td>
                 <td></td>
               </tr>
