@@ -11,6 +11,8 @@ export interface Proposal {
   clientLogo?: string | null;
   templateId?: string | null;
   status: ProposalStatus;
+  customContent?: any;
+  scopeDetails?: string | null;
   fileUrl?: string | null;
   generatedAt: string;
   sentAt?: string | null;
@@ -18,6 +20,8 @@ export interface Proposal {
     id: string;
     finalQuote: number;
     status: string;
+    customContent?: any;
+    scopeDetails?: string | null;
     lineItems?: Array<{ description: string; qty: number; unitRate: number; total: number }>;
   };
   deal?: {
@@ -53,9 +57,11 @@ export const proposalsApi = {
       clientName?: string;
       proposalDate?: string;
       clientLogo?: string;
+      customContent?: any;
+      scopeDetails?: string;
     },
   ): Promise<Proposal> => {
-    const res = await apiClient.patch<Proposal>(`/proposals/${id}`, data);
+    const res = await apiClient.put<Proposal>(`/proposals/${id}`, data);
     return res.data;
   },
 };

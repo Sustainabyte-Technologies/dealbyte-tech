@@ -77,12 +77,21 @@ export default function ProposalsPage() {
   const filteredProposals = proposals.filter((p) => {
     const matchesStatus = selectedStatus === 'ALL' || p.status === selectedStatus;
     const client = p.deal?.clientName?.toLowerCase() || '';
-    const service = p.deal?.service?.name?.toLowerCase() || '';
+    const sName = p.deal?.service?.name?.toLowerCase() || '';
+    const isDigiweld =
+      sName.includes('digiweld') ||
+      sName.includes('weld data') ||
+      p.quote?.lineItems?.some((li: any) =>
+        li.description?.toLowerCase().includes('weld') ||
+        li.description?.toLowerCase().includes('digiweld')
+      );
+    const service = isDigiweld ? 'digiweld' : sName;
     const owner = p.deal?.owner?.name?.toLowerCase() || '';
+    const ref = (p.proposalNumber || `stpl-${p.id.substring(0, 4)}`).toLowerCase();
     const query = searchTerm.toLowerCase();
 
     const matchesSearch =
-      client.includes(query) || service.includes(query) || owner.includes(query);
+      client.includes(query) || service.includes(query) || owner.includes(query) || ref.includes(query);
 
     return matchesStatus && matchesSearch;
   });
@@ -211,20 +220,34 @@ export default function ProposalsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredProposals.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4 px-6 font-mono font-bold text-indigo-600 text-xs">
-                      {p.proposalNumber || `STPL-${p.id.substring(0, 4).toUpperCase()}`}
-                    </td>
-                    <td className="py-4 px-6 font-semibold text-slate-900">
-                      <div>{p.deal?.clientName || 'Client'}</div>
-                      <div className="text-xs text-slate-500 font-normal">
-                        {p.deal?.service?.name || 'Standard Service'}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-slate-700">
-                      {p.deal?.owner?.name || 'Sales Executive'}
-                    </td>
+                {filteredProposals.map((p) => {
+                  const sName = p.deal?.service?.name || '';
+                  const isDigiweld =
+                    sName.toLowerCase().includes('digiweld') ||
+                    sName.toLowerCase().includes('weld data') ||
+                    p.quote?.lineItems?.some((li: any) =>
+                      li.description?.toLowerCase().includes('weld') ||
+                      li.description?.toLowerCase().includes('digiweld') ||
+                      li.description?.toLowerCase().includes('backend api for web') ||
+                      li.description?.toLowerCase().includes('ui/ux web design') ||
+                      li.description?.toLowerCase().includes('dashboard report generation')
+                    );
+                  const displayServiceName = isDigiweld ? 'Digiweld' : (sName || 'Standard Service');
+
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 px-6 font-mono font-bold text-indigo-600 text-xs">
+                        {p.proposalNumber || `STPL-${p.id.substring(0, 4).toUpperCase()}`}
+                      </td>
+                      <td className="py-4 px-6 font-semibold text-slate-900">
+                        <div>{p.deal?.clientName || 'Client'}</div>
+                        <div className="text-xs text-slate-500 font-normal">
+                          {displayServiceName}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-slate-700">
+                        {p.deal?.owner?.name || 'Sales Executive'}
+                      </td>
                     <td className="py-4 px-6 font-bold text-slate-900">
                       {formatCurrency(p.quote?.finalQuote)}
                     </td>
@@ -264,8 +287,9 @@ export default function ProposalsPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
+                );
+              })}
+            </tbody>
             </table>
           </div>
         )}

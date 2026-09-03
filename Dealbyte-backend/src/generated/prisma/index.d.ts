@@ -11470,6 +11470,7 @@ export namespace Prisma {
     finalQuote: Decimal | null
     negotiationMarginPct: Decimal | null
     status: $Enums.QuoteStatus | null
+    scopeDetails: string | null
     createdById: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -11498,6 +11499,7 @@ export namespace Prisma {
     finalQuote: Decimal | null
     negotiationMarginPct: Decimal | null
     status: $Enums.QuoteStatus | null
+    scopeDetails: string | null
     createdById: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -11526,6 +11528,8 @@ export namespace Prisma {
     finalQuote: number
     negotiationMarginPct: number
     status: number
+    customContent: number
+    scopeDetails: number
     createdById: number
     createdAt: number
     updatedAt: number
@@ -11592,6 +11596,7 @@ export namespace Prisma {
     finalQuote?: true
     negotiationMarginPct?: true
     status?: true
+    scopeDetails?: true
     createdById?: true
     createdAt?: true
     updatedAt?: true
@@ -11620,6 +11625,7 @@ export namespace Prisma {
     finalQuote?: true
     negotiationMarginPct?: true
     status?: true
+    scopeDetails?: true
     createdById?: true
     createdAt?: true
     updatedAt?: true
@@ -11648,6 +11654,8 @@ export namespace Prisma {
     finalQuote?: true
     negotiationMarginPct?: true
     status?: true
+    customContent?: true
+    scopeDetails?: true
     createdById?: true
     createdAt?: true
     updatedAt?: true
@@ -11763,6 +11771,8 @@ export namespace Prisma {
     finalQuote: Decimal
     negotiationMarginPct: Decimal | null
     status: $Enums.QuoteStatus
+    customContent: JsonValue | null
+    scopeDetails: string | null
     createdById: string
     createdAt: Date
     updatedAt: Date
@@ -11810,6 +11820,8 @@ export namespace Prisma {
     finalQuote?: boolean
     negotiationMarginPct?: boolean
     status?: boolean
+    customContent?: boolean
+    scopeDetails?: boolean
     createdById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -11845,6 +11857,8 @@ export namespace Prisma {
     finalQuote?: boolean
     negotiationMarginPct?: boolean
     status?: boolean
+    customContent?: boolean
+    scopeDetails?: boolean
     createdById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -11876,6 +11890,8 @@ export namespace Prisma {
     finalQuote?: boolean
     negotiationMarginPct?: boolean
     status?: boolean
+    customContent?: boolean
+    scopeDetails?: boolean
     createdById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -11907,12 +11923,14 @@ export namespace Prisma {
     finalQuote?: boolean
     negotiationMarginPct?: boolean
     status?: boolean
+    customContent?: boolean
+    scopeDetails?: boolean
     createdById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type QuoteOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dealId" | "serviceId" | "proposalNumber" | "proposalDate" | "clientLogo" | "siteDays" | "reportDays" | "manpowerCost" | "instrumentCost" | "travelKms" | "travelRatePerKm" | "foodRatePerPersonDay" | "foodTravelCost" | "subtotal" | "marginPct" | "marginAmount" | "bufferPct" | "bufferAmount" | "finalQuote" | "negotiationMarginPct" | "status" | "createdById" | "createdAt" | "updatedAt", ExtArgs["result"]["quote"]>
+  export type QuoteOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dealId" | "serviceId" | "proposalNumber" | "proposalDate" | "clientLogo" | "siteDays" | "reportDays" | "manpowerCost" | "instrumentCost" | "travelKms" | "travelRatePerKm" | "foodRatePerPersonDay" | "foodTravelCost" | "subtotal" | "marginPct" | "marginAmount" | "bufferPct" | "bufferAmount" | "finalQuote" | "negotiationMarginPct" | "status" | "customContent" | "scopeDetails" | "createdById" | "createdAt" | "updatedAt", ExtArgs["result"]["quote"]>
   export type QuoteInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     deal?: boolean | DealDefaultArgs<ExtArgs>
     service?: boolean | ServiceDefaultArgs<ExtArgs>
@@ -11966,6 +11984,8 @@ export namespace Prisma {
       finalQuote: Prisma.Decimal
       negotiationMarginPct: Prisma.Decimal | null
       status: $Enums.QuoteStatus
+      customContent: Prisma.JsonValue | null
+      scopeDetails: string | null
       createdById: string
       createdAt: Date
       updatedAt: Date
@@ -12420,6 +12440,8 @@ export namespace Prisma {
     readonly finalQuote: FieldRef<"Quote", 'Decimal'>
     readonly negotiationMarginPct: FieldRef<"Quote", 'Decimal'>
     readonly status: FieldRef<"Quote", 'QuoteStatus'>
+    readonly customContent: FieldRef<"Quote", 'Json'>
+    readonly scopeDetails: FieldRef<"Quote", 'String'>
     readonly createdById: FieldRef<"Quote", 'String'>
     readonly createdAt: FieldRef<"Quote", 'DateTime'>
     readonly updatedAt: FieldRef<"Quote", 'DateTime'>
@@ -16306,6 +16328,7 @@ export namespace Prisma {
     clientLogo: string | null
     templateId: string | null
     status: $Enums.ProposalStatus | null
+    scopeDetails: string | null
     fileUrl: string | null
     generatedAt: Date | null
     sentAt: Date | null
@@ -16320,6 +16343,7 @@ export namespace Prisma {
     clientLogo: string | null
     templateId: string | null
     status: $Enums.ProposalStatus | null
+    scopeDetails: string | null
     fileUrl: string | null
     generatedAt: Date | null
     sentAt: Date | null
@@ -16334,6 +16358,8 @@ export namespace Prisma {
     clientLogo: number
     templateId: number
     status: number
+    customContent: number
+    scopeDetails: number
     fileUrl: number
     generatedAt: number
     sentAt: number
@@ -16350,6 +16376,7 @@ export namespace Prisma {
     clientLogo?: true
     templateId?: true
     status?: true
+    scopeDetails?: true
     fileUrl?: true
     generatedAt?: true
     sentAt?: true
@@ -16364,6 +16391,7 @@ export namespace Prisma {
     clientLogo?: true
     templateId?: true
     status?: true
+    scopeDetails?: true
     fileUrl?: true
     generatedAt?: true
     sentAt?: true
@@ -16378,6 +16406,8 @@ export namespace Prisma {
     clientLogo?: true
     templateId?: true
     status?: true
+    customContent?: true
+    scopeDetails?: true
     fileUrl?: true
     generatedAt?: true
     sentAt?: true
@@ -16465,6 +16495,8 @@ export namespace Prisma {
     clientLogo: string | null
     templateId: string | null
     status: $Enums.ProposalStatus
+    customContent: JsonValue | null
+    scopeDetails: string | null
     fileUrl: string | null
     generatedAt: Date
     sentAt: Date | null
@@ -16496,6 +16528,8 @@ export namespace Prisma {
     clientLogo?: boolean
     templateId?: boolean
     status?: boolean
+    customContent?: boolean
+    scopeDetails?: boolean
     fileUrl?: boolean
     generatedAt?: boolean
     sentAt?: boolean
@@ -16513,6 +16547,8 @@ export namespace Prisma {
     clientLogo?: boolean
     templateId?: boolean
     status?: boolean
+    customContent?: boolean
+    scopeDetails?: boolean
     fileUrl?: boolean
     generatedAt?: boolean
     sentAt?: boolean
@@ -16530,6 +16566,8 @@ export namespace Prisma {
     clientLogo?: boolean
     templateId?: boolean
     status?: boolean
+    customContent?: boolean
+    scopeDetails?: boolean
     fileUrl?: boolean
     generatedAt?: boolean
     sentAt?: boolean
@@ -16547,12 +16585,14 @@ export namespace Prisma {
     clientLogo?: boolean
     templateId?: boolean
     status?: boolean
+    customContent?: boolean
+    scopeDetails?: boolean
     fileUrl?: boolean
     generatedAt?: boolean
     sentAt?: boolean
   }
 
-  export type ProposalOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "quoteId" | "dealId" | "proposalNumber" | "proposalDate" | "clientLogo" | "templateId" | "status" | "fileUrl" | "generatedAt" | "sentAt", ExtArgs["result"]["proposal"]>
+  export type ProposalOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "quoteId" | "dealId" | "proposalNumber" | "proposalDate" | "clientLogo" | "templateId" | "status" | "customContent" | "scopeDetails" | "fileUrl" | "generatedAt" | "sentAt", ExtArgs["result"]["proposal"]>
   export type ProposalInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     quote?: boolean | QuoteDefaultArgs<ExtArgs>
     deal?: boolean | DealDefaultArgs<ExtArgs>
@@ -16585,6 +16625,8 @@ export namespace Prisma {
       clientLogo: string | null
       templateId: string | null
       status: $Enums.ProposalStatus
+      customContent: Prisma.JsonValue | null
+      scopeDetails: string | null
       fileUrl: string | null
       generatedAt: Date
       sentAt: Date | null
@@ -17022,6 +17064,8 @@ export namespace Prisma {
     readonly clientLogo: FieldRef<"Proposal", 'String'>
     readonly templateId: FieldRef<"Proposal", 'String'>
     readonly status: FieldRef<"Proposal", 'ProposalStatus'>
+    readonly customContent: FieldRef<"Proposal", 'Json'>
+    readonly scopeDetails: FieldRef<"Proposal", 'String'>
     readonly fileUrl: FieldRef<"Proposal", 'String'>
     readonly generatedAt: FieldRef<"Proposal", 'DateTime'>
     readonly sentAt: FieldRef<"Proposal", 'DateTime'>
@@ -31836,6 +31880,8 @@ export namespace Prisma {
     finalQuote: 'finalQuote',
     negotiationMarginPct: 'negotiationMarginPct',
     status: 'status',
+    customContent: 'customContent',
+    scopeDetails: 'scopeDetails',
     createdById: 'createdById',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -31896,6 +31942,8 @@ export namespace Prisma {
     clientLogo: 'clientLogo',
     templateId: 'templateId',
     status: 'status',
+    customContent: 'customContent',
+    scopeDetails: 'scopeDetails',
     fileUrl: 'fileUrl',
     generatedAt: 'generatedAt',
     sentAt: 'sentAt'
@@ -32306,6 +32354,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Json'
+   */
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
+   * Reference to a field of type 'QueryMode'
+   */
+  export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+  /**
    * Reference to a field of type 'LineItemType'
    */
   export type EnumLineItemTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LineItemType'>
@@ -32358,20 +32420,6 @@ export namespace Prisma {
    * Reference to a field of type 'ProposalStatus[]'
    */
   export type ListEnumProposalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProposalStatus[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'Json'
-   */
-  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-  /**
-   * Reference to a field of type 'QueryMode'
-   */
-  export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -32911,6 +32959,8 @@ export namespace Prisma {
     finalQuote?: DecimalFilter<"Quote"> | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: DecimalNullableFilter<"Quote"> | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFilter<"Quote"> | $Enums.QuoteStatus
+    customContent?: JsonNullableFilter<"Quote">
+    scopeDetails?: StringNullableFilter<"Quote"> | string | null
     createdById?: StringFilter<"Quote"> | string
     createdAt?: DateTimeFilter<"Quote"> | Date | string
     updatedAt?: DateTimeFilter<"Quote"> | Date | string
@@ -32945,6 +32995,8 @@ export namespace Prisma {
     finalQuote?: SortOrder
     negotiationMarginPct?: SortOrderInput | SortOrder
     status?: SortOrder
+    customContent?: SortOrderInput | SortOrder
+    scopeDetails?: SortOrderInput | SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -32982,6 +33034,8 @@ export namespace Prisma {
     finalQuote?: DecimalFilter<"Quote"> | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: DecimalNullableFilter<"Quote"> | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFilter<"Quote"> | $Enums.QuoteStatus
+    customContent?: JsonNullableFilter<"Quote">
+    scopeDetails?: StringNullableFilter<"Quote"> | string | null
     createdById?: StringFilter<"Quote"> | string
     createdAt?: DateTimeFilter<"Quote"> | Date | string
     updatedAt?: DateTimeFilter<"Quote"> | Date | string
@@ -33016,6 +33070,8 @@ export namespace Prisma {
     finalQuote?: SortOrder
     negotiationMarginPct?: SortOrderInput | SortOrder
     status?: SortOrder
+    customContent?: SortOrderInput | SortOrder
+    scopeDetails?: SortOrderInput | SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -33052,6 +33108,8 @@ export namespace Prisma {
     finalQuote?: DecimalWithAggregatesFilter<"Quote"> | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: DecimalNullableWithAggregatesFilter<"Quote"> | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusWithAggregatesFilter<"Quote"> | $Enums.QuoteStatus
+    customContent?: JsonNullableWithAggregatesFilter<"Quote">
+    scopeDetails?: StringNullableWithAggregatesFilter<"Quote"> | string | null
     createdById?: StringWithAggregatesFilter<"Quote"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Quote"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Quote"> | Date | string
@@ -33292,6 +33350,8 @@ export namespace Prisma {
     clientLogo?: StringNullableFilter<"Proposal"> | string | null
     templateId?: StringNullableFilter<"Proposal"> | string | null
     status?: EnumProposalStatusFilter<"Proposal"> | $Enums.ProposalStatus
+    customContent?: JsonNullableFilter<"Proposal">
+    scopeDetails?: StringNullableFilter<"Proposal"> | string | null
     fileUrl?: StringNullableFilter<"Proposal"> | string | null
     generatedAt?: DateTimeFilter<"Proposal"> | Date | string
     sentAt?: DateTimeNullableFilter<"Proposal"> | Date | string | null
@@ -33309,6 +33369,8 @@ export namespace Prisma {
     clientLogo?: SortOrderInput | SortOrder
     templateId?: SortOrderInput | SortOrder
     status?: SortOrder
+    customContent?: SortOrderInput | SortOrder
+    scopeDetails?: SortOrderInput | SortOrder
     fileUrl?: SortOrderInput | SortOrder
     generatedAt?: SortOrder
     sentAt?: SortOrderInput | SortOrder
@@ -33329,6 +33391,8 @@ export namespace Prisma {
     clientLogo?: StringNullableFilter<"Proposal"> | string | null
     templateId?: StringNullableFilter<"Proposal"> | string | null
     status?: EnumProposalStatusFilter<"Proposal"> | $Enums.ProposalStatus
+    customContent?: JsonNullableFilter<"Proposal">
+    scopeDetails?: StringNullableFilter<"Proposal"> | string | null
     fileUrl?: StringNullableFilter<"Proposal"> | string | null
     generatedAt?: DateTimeFilter<"Proposal"> | Date | string
     sentAt?: DateTimeNullableFilter<"Proposal"> | Date | string | null
@@ -33346,6 +33410,8 @@ export namespace Prisma {
     clientLogo?: SortOrderInput | SortOrder
     templateId?: SortOrderInput | SortOrder
     status?: SortOrder
+    customContent?: SortOrderInput | SortOrder
+    scopeDetails?: SortOrderInput | SortOrder
     fileUrl?: SortOrderInput | SortOrder
     generatedAt?: SortOrder
     sentAt?: SortOrderInput | SortOrder
@@ -33366,6 +33432,8 @@ export namespace Prisma {
     clientLogo?: StringNullableWithAggregatesFilter<"Proposal"> | string | null
     templateId?: StringNullableWithAggregatesFilter<"Proposal"> | string | null
     status?: EnumProposalStatusWithAggregatesFilter<"Proposal"> | $Enums.ProposalStatus
+    customContent?: JsonNullableWithAggregatesFilter<"Proposal">
+    scopeDetails?: StringNullableWithAggregatesFilter<"Proposal"> | string | null
     fileUrl?: StringNullableWithAggregatesFilter<"Proposal"> | string | null
     generatedAt?: DateTimeWithAggregatesFilter<"Proposal"> | Date | string
     sentAt?: DateTimeNullableWithAggregatesFilter<"Proposal"> | Date | string | null
@@ -35151,6 +35219,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     deal: DealCreateNestedOneWithoutQuotesInput
@@ -35184,6 +35254,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -35213,6 +35285,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deal?: DealUpdateOneRequiredWithoutQuotesNestedInput
@@ -35246,6 +35320,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -35277,6 +35353,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -35303,6 +35381,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -35330,6 +35410,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -35574,6 +35656,8 @@ export namespace Prisma {
     proposalDate?: Date | string | null
     clientLogo?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -35591,6 +35675,8 @@ export namespace Prisma {
     clientLogo?: string | null
     templateId?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -35602,6 +35688,8 @@ export namespace Prisma {
     proposalDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35619,6 +35707,8 @@ export namespace Prisma {
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     templateId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35633,6 +35723,8 @@ export namespace Prisma {
     clientLogo?: string | null
     templateId?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -35644,6 +35736,8 @@ export namespace Prisma {
     proposalDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35658,6 +35752,8 @@ export namespace Prisma {
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     templateId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37708,6 +37804,29 @@ export namespace Prisma {
     notIn?: $Enums.QuoteStatus[] | ListEnumQuoteStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumQuoteStatusFilter<$PrismaModel> | $Enums.QuoteStatus
   }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type DealScalarRelationFilter = {
     is?: DealWhereInput
@@ -37747,6 +37866,8 @@ export namespace Prisma {
     finalQuote?: SortOrder
     negotiationMarginPct?: SortOrder
     status?: SortOrder
+    customContent?: SortOrder
+    scopeDetails?: SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -37793,6 +37914,7 @@ export namespace Prisma {
     finalQuote?: SortOrder
     negotiationMarginPct?: SortOrder
     status?: SortOrder
+    scopeDetails?: SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -37821,6 +37943,7 @@ export namespace Prisma {
     finalQuote?: SortOrder
     negotiationMarginPct?: SortOrder
     status?: SortOrder
+    scopeDetails?: SortOrder
     createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -37898,6 +38021,32 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumQuoteStatusFilter<$PrismaModel>
     _max?: NestedEnumQuoteStatusFilter<$PrismaModel>
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type EnumLineItemTypeFilter<$PrismaModel = never> = {
@@ -38097,6 +38246,8 @@ export namespace Prisma {
     clientLogo?: SortOrder
     templateId?: SortOrder
     status?: SortOrder
+    customContent?: SortOrder
+    scopeDetails?: SortOrder
     fileUrl?: SortOrder
     generatedAt?: SortOrder
     sentAt?: SortOrder
@@ -38111,6 +38262,7 @@ export namespace Prisma {
     clientLogo?: SortOrder
     templateId?: SortOrder
     status?: SortOrder
+    scopeDetails?: SortOrder
     fileUrl?: SortOrder
     generatedAt?: SortOrder
     sentAt?: SortOrder
@@ -38125,6 +38277,7 @@ export namespace Prisma {
     clientLogo?: SortOrder
     templateId?: SortOrder
     status?: SortOrder
+    scopeDetails?: SortOrder
     fileUrl?: SortOrder
     generatedAt?: SortOrder
     sentAt?: SortOrder
@@ -38166,29 +38319,6 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
-  export type JsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
 
   export type AuditLogCountOrderByAggregateInput = {
     id?: SortOrder
@@ -38216,32 +38346,6 @@ export namespace Prisma {
     entityType?: SortOrder
     entityId?: SortOrder
     timestamp?: SortOrder
-  }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type SystemConfigCountOrderByAggregateInput = {
@@ -40453,6 +40557,29 @@ export namespace Prisma {
     _min?: NestedEnumQuoteStatusFilter<$PrismaModel>
     _max?: NestedEnumQuoteStatusFilter<$PrismaModel>
   }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type NestedEnumLineItemTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.LineItemType | EnumLineItemTypeFieldRefInput<$PrismaModel>
@@ -40520,29 +40647,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumProposalStatusFilter<$PrismaModel>
     _max?: NestedEnumProposalStatusFilter<$PrismaModel>
-  }
-  export type NestedJsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -40625,6 +40729,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     deal: DealCreateNestedOneWithoutQuotesInput
@@ -40657,6 +40763,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     lineItems?: QuoteLineItemUncheckedCreateNestedManyWithoutQuoteInput
@@ -40835,6 +40943,8 @@ export namespace Prisma {
     finalQuote?: DecimalFilter<"Quote"> | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: DecimalNullableFilter<"Quote"> | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFilter<"Quote"> | $Enums.QuoteStatus
+    customContent?: JsonNullableFilter<"Quote">
+    scopeDetails?: StringNullableFilter<"Quote"> | string | null
     createdById?: StringFilter<"Quote"> | string
     createdAt?: DateTimeFilter<"Quote"> | Date | string
     updatedAt?: DateTimeFilter<"Quote"> | Date | string
@@ -40972,6 +41082,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     deal: DealCreateNestedOneWithoutQuotesInput
@@ -41003,6 +41115,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -41577,6 +41691,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     service: ServiceCreateNestedOneWithoutQuotesInput
@@ -41608,6 +41724,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -41632,6 +41750,8 @@ export namespace Prisma {
     proposalDate?: Date | string | null
     clientLogo?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -41647,6 +41767,8 @@ export namespace Prisma {
     clientLogo?: string | null
     templateId?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -41788,6 +41910,8 @@ export namespace Prisma {
     clientLogo?: StringNullableFilter<"Proposal"> | string | null
     templateId?: StringNullableFilter<"Proposal"> | string | null
     status?: EnumProposalStatusFilter<"Proposal"> | $Enums.ProposalStatus
+    customContent?: JsonNullableFilter<"Proposal">
+    scopeDetails?: StringNullableFilter<"Proposal"> | string | null
     fileUrl?: StringNullableFilter<"Proposal"> | string | null
     generatedAt?: DateTimeFilter<"Proposal"> | Date | string
     sentAt?: DateTimeNullableFilter<"Proposal"> | Date | string | null
@@ -41962,6 +42086,8 @@ export namespace Prisma {
     proposalDate?: Date | string | null
     clientLogo?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -41977,6 +42103,8 @@ export namespace Prisma {
     clientLogo?: string | null
     templateId?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -42195,6 +42323,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     deal: DealCreateNestedOneWithoutQuotesInput
@@ -42227,6 +42357,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42271,6 +42403,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deal?: DealUpdateOneRequiredWithoutQuotesNestedInput
@@ -42303,6 +42437,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42331,6 +42467,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     deal: DealCreateNestedOneWithoutQuotesInput
@@ -42363,6 +42501,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42477,6 +42617,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deal?: DealUpdateOneRequiredWithoutQuotesNestedInput
@@ -42509,6 +42651,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42695,6 +42839,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     deal: DealCreateNestedOneWithoutQuotesInput
@@ -42727,6 +42873,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -42825,6 +42973,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deal?: DealUpdateOneRequiredWithoutQuotesNestedInput
@@ -42857,6 +43007,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -42971,6 +43123,8 @@ export namespace Prisma {
     proposalDate?: Date | string | null
     clientLogo?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -42986,6 +43140,8 @@ export namespace Prisma {
     proposalDate?: Date | string | null
     clientLogo?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -43460,6 +43616,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -43551,6 +43709,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deal?: DealUpdateOneRequiredWithoutQuotesNestedInput
@@ -43583,6 +43743,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lineItems?: QuoteLineItemUncheckedUpdateManyWithoutQuoteNestedInput
@@ -43613,6 +43775,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -43737,6 +43901,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -43867,6 +44033,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deal?: DealUpdateOneRequiredWithoutQuotesNestedInput
@@ -43898,6 +44066,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -43928,6 +44098,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -44190,6 +44362,8 @@ export namespace Prisma {
     finalQuote?: Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: Decimal | DecimalJsLike | number | string | null
     status?: $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -44203,6 +44377,8 @@ export namespace Prisma {
     clientLogo?: string | null
     templateId?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -44229,6 +44405,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     service?: ServiceUpdateOneRequiredWithoutQuotesNestedInput
@@ -44260,6 +44438,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -44290,6 +44470,8 @@ export namespace Prisma {
     finalQuote?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     negotiationMarginPct?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     status?: EnumQuoteStatusFieldUpdateOperationsInput | $Enums.QuoteStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -44301,6 +44483,8 @@ export namespace Prisma {
     proposalDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -44316,6 +44500,8 @@ export namespace Prisma {
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     templateId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -44329,6 +44515,8 @@ export namespace Prisma {
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     templateId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -44363,6 +44551,8 @@ export namespace Prisma {
     clientLogo?: string | null
     templateId?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -44437,6 +44627,8 @@ export namespace Prisma {
     proposalDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -44452,6 +44644,8 @@ export namespace Prisma {
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     templateId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -44465,6 +44659,8 @@ export namespace Prisma {
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     templateId?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -44478,6 +44674,8 @@ export namespace Prisma {
     proposalDate?: Date | string | null
     clientLogo?: string | null
     status?: $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: string | null
     fileUrl?: string | null
     generatedAt?: Date | string
     sentAt?: Date | string | null
@@ -44489,6 +44687,8 @@ export namespace Prisma {
     proposalDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -44504,6 +44704,8 @@ export namespace Prisma {
     proposalDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -44517,6 +44719,8 @@ export namespace Prisma {
     proposalDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clientLogo?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumProposalStatusFieldUpdateOperationsInput | $Enums.ProposalStatus
+    customContent?: NullableJsonNullValueInput | InputJsonValue
+    scopeDetails?: NullableStringFieldUpdateOperationsInput | string | null
     fileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     generatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

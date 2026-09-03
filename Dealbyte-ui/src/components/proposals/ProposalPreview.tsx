@@ -1,7 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Proposal } from '@/lib/api/proposals';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { costingApi } from '@/lib/api/costing';
+import { Proposal, proposalsApi } from '@/lib/api/proposals';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { ASSESSMENT_ASSETS } from '@/lib/constants/assessment-assets';
 import {
@@ -14,8 +16,14 @@ import {
   INITIAL_DIGIWELD_CLOUD_ROWS,
   DEFAULT_COMPRESSOR_ROI_DATA,
   CompressorRoiData,
+  DEFAULT_DIGIWELD_STEP5_TEXT,
+  DEFAULT_WELDING_STEP5_TEXT,
+  DEFAULT_CPM_STEP5_TEXT,
+  DEFAULT_IR_BLASTER_STEP5_TEXT,
+  DEFAULT_WATER_MANAGEMENT_STEP5_TEXT,
+  DEFAULT_ENERGY_AUDIT_STEP5_TEXT,
 } from '@/components/costing/constants';
-import { Send, Printer, Download, Loader2, FileText } from 'lucide-react';
+import { Send, Printer, Download, Loader2, FileText, Edit3, X, Check, Save } from 'lucide-react';
 import { generateWordDocument } from './wordExport';
 import FullPageWatermark from '@/components/common/FullPageWatermark';
 import { toast } from 'sonner';
@@ -440,6 +448,60 @@ export default function ProposalPreview({
 
   const isEnergyAudit = !isIotOrControls && !isBms;
 
+  const clientName =
+    deal?.clientName ||
+    (proposal as any)?.clientName ||
+    (proposal?.quote as any)?.deal?.clientName ||
+    (proposal as any)?.deal?.clientName ||
+    (quote as any)?.clientName ||
+    '';
+
+  const { data: dbCostingSheet } = useQuery({
+    queryKey: ['proposal-costing-sheet', clientName, subServiceTitle, serviceTitle],
+    queryFn: async () => {
+      if (!clientName) return null;
+      try {
+        const sheets = await costingApi.getSheets({ clientName });
+        if (sheets && sheets.length > 0) {
+          const matched = sheets.find((s: any) => {
+            const sSub = (s.subService || '').toLowerCase();
+            const sCat = (s.serviceCategory || '').toLowerCase();
+            if (isWeldDataDigitalized) {
+              return sSub.includes('digiweld') || sSub.includes('weld data') || sCat.includes('welding');
+            }
+            if (isWeldingIot) {
+              return sSub.includes('welding') || sCat.includes('welding');
+            }
+            if (subServiceTitle) {
+              return sSub.includes(subServiceTitle) || subServiceTitle.includes(sSub);
+            }
+            if (serviceTitle) {
+              return sCat.includes(serviceTitle) || serviceTitle.includes(sCat);
+            }
+            return false;
+          });
+          if (matched) return matched;
+          return sheets[0];
+        }
+      } catch (e) {
+        console.error('Error fetching costing sheets for proposal', e);
+      }
+      return null;
+    },
+    staleTime: 30000,
+  });
+
+  const activeCostingSheet =
+    (proposal as any)?.costingSheet ||
+    (proposal as any)?.costing_sheet ||
+    (proposal as any)?.costingData ||
+    (proposal as any)?.quote?.costingSheet ||
+    (quote as any)?.costingSheet ||
+    (deal as any)?.costingSheet ||
+    (deal as any)?.quote?.costingSheet ||
+    dbCostingSheet ||
+    null;
+
   const flatIotItems = DEFAULT_IOT_CATEGORIES.flatMap((c) => c.items);
   const hasSavedLineItems = Boolean(quote?.lineItems && quote.lineItems.length > 0);
 
@@ -473,6 +535,7 @@ export default function ProposalPreview({
     quote?.finalQuote ||
     (proposal as any)?.finalQuote ||
     (proposal as any)?.quote?.finalQuote ||
+    activeCostingSheet?.finalQuote ||
     (proposal as any)?.costingSheet?.finalQuote ||
     (quote as any)?.costingSheet?.finalQuote ||
     (deal as any)?.quote?.finalQuote ||
@@ -482,7 +545,146 @@ export default function ProposalPreview({
 
   const finalProposedValue = finalPrice || iotTotalSum;
 
-  const totalPages = isCompressorAirLeakageAudit ? 6 : isCompressorAirLeakageRectification ? 3 : isEcFan ? 4 : 5;
+  const queryClient = useQueryClient();
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [editedScopeText, setEditedScopeText] = React.useState('');
+  const [editedProposalNumber, setEditedProposalNumber] = React.useState(proposalRef);
+  const [editedProposalDate, setEditedProposalDate] = React.useState(
+    proposal.proposalDate ? new Date(proposal.proposalDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+  );
+
+  const savedScopeOfWork =
+    proposal?.customContent?.scopeOfWork ||
+    proposal?.customContent?.step5Text ||
+    proposal?.scopeDetails ||
+    (proposal?.quote as any)?.customContent?.scopeOfWork ||
+    (proposal?.quote as any)?.customContent?.step5Text ||
+    (proposal?.quote as any)?.scopeDetails ||
+    activeCostingSheet?.scopeDetails ||
+    '';
+
+  const getDefaultScopeText = () => {
+    if (isWeldDataDigitalized) return DEFAULT_DIGIWELD_STEP5_TEXT;
+    if (isWeldingIot) return DEFAULT_WELDING_STEP5_TEXT;
+    if (isCpmChillerManagement) return DEFAULT_CPM_STEP5_TEXT;
+    if (isIrBlaster) return DEFAULT_IR_BLASTER_STEP5_TEXT;
+    if (isWaterManagement) return DEFAULT_WATER_MANAGEMENT_STEP5_TEXT;
+    if (isEnergyAudit) return DEFAULT_ENERGY_AUDIT_STEP5_TEXT;
+    return DEFAULT_DIGIWELD_STEP5_TEXT;
+  };
+
+  const updateProposalMutation = useMutation({
+    mutationFn: (data: any) => proposalsApi.update(proposal.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proposal', proposal.id] });
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      setIsEditModalOpen(false);
+      toast.success('Proposal updated & saved to Database successfully!');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to update proposal');
+    },
+  });
+
+  const handleSaveProposalEdits = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProposalMutation.mutate({
+      proposalNumber: editedProposalNumber,
+      proposalDate: editedProposalDate,
+      customContent: {
+        ...(proposal.customContent || {}),
+        scopeOfWork: editedScopeText,
+        step5Text: editedScopeText,
+      },
+      scopeDetails: editedScopeText,
+    });
+  };
+
+  const renderFormattedScopeText = (text: string) => {
+    if (!text) return null;
+    const rawLines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const blocks: { type: 'header' | 'paragraph' | 'bullet'; content: string }[] = [];
+    let currentBulletGroup: string[] = [];
+
+    rawLines.forEach((line) => {
+      const isBullet = line.startsWith('•') || line.startsWith('●') || line.startsWith('-') || line.startsWith('*');
+      const isHeader = (line.endsWith(':') || line === line.toUpperCase()) && !isBullet && line.length < 60;
+
+      if (isHeader) {
+        if (currentBulletGroup.length > 0) {
+          blocks.push({ type: 'bullet', content: currentBulletGroup.join('\n') });
+          currentBulletGroup = [];
+        }
+        blocks.push({ type: 'header', content: line });
+      } else if (isBullet) {
+        currentBulletGroup.push(line.replace(/^[•●\-*]\s*/, ''));
+      } else {
+        if (currentBulletGroup.length > 0) {
+          blocks.push({ type: 'bullet', content: currentBulletGroup.join('\n') });
+          currentBulletGroup = [];
+        }
+        // If inline header like "Technologies Used:" or "Deliverables:" is embedded in paragraph
+        const headerMatch = line.match(/(.*?)(Technologies Used:|Deliverables:|Scope of Work:)(.*)/i);
+        if (headerMatch && headerMatch[1].trim()) {
+          blocks.push({ type: 'paragraph', content: headerMatch[1].trim() });
+          blocks.push({ type: 'header', content: headerMatch[2].trim() });
+          if (headerMatch[3].trim()) {
+            blocks.push({ type: 'paragraph', content: headerMatch[3].trim() });
+          }
+        } else {
+          blocks.push({ type: 'paragraph', content: line });
+        }
+      }
+    });
+
+    if (currentBulletGroup.length > 0) {
+      blocks.push({ type: 'bullet', content: currentBulletGroup.join('\n') });
+    }
+
+    return (
+      <div className="space-y-4 text-[12px] leading-[1.75] text-slate-800" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
+        {blocks.map((block, bIdx) => {
+          if (block.type === 'header') {
+            return (
+              <h3
+                key={bIdx}
+                className="text-[20px] font-bold text-slate-900 underline underline-offset-4 decoration-1 tracking-tight pt-2"
+              >
+                {block.content}
+              </h3>
+            );
+          }
+          if (block.type === 'bullet') {
+            const items = block.content.split('\n');
+            return (
+              <ul key={bIdx} className="pl-4 space-y-2 text-slate-800">
+                {items.map((item, iIdx) => (
+                  <li key={iIdx} className="flex items-start gap-2">
+                    <span className="text-slate-900 font-bold shrink-0">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            );
+          }
+          return (
+            <p key={bIdx} className="text-slate-800 leading-[1.75]">
+              {block.content}
+            </p>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const totalPages = isCompressorAirLeakageAudit
+    ? 6
+    : isCompressorAirLeakageRectification
+    ? 3
+    : isEcFan
+    ? 4
+    : 5;
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
 
   const downloadFullPdf = async () => {
@@ -593,17 +795,55 @@ export default function ProposalPreview({
       setIsGeneratingWord(true);
       toast.info('Generating Word document (.doc)...');
 
+      const commercialRows = isWeldDataDigitalized
+        ? [
+            {
+              sl: 1,
+              name: 'Digiweld (Weld Data Digitalization)',
+              desc: 'New Product Model, Data Conversion, Integration & Validation, Technologies & Deliverables support.',
+              price: finalPrice,
+              isRecurring: false,
+            },
+          ]
+        : isIotOrControls
+        ? flatIotItems.map((r, idx) => ({
+            sl: r.stepNo || idx + 1,
+            name: r.description,
+            desc: `${r.qty} ${r.uom}`,
+            price: r.customerPrice,
+            isRecurring: !!r.isRecurring,
+          }))
+        : [
+            {
+              sl: 1,
+              name: deal?.service?.name || 'Energy Audit & Engineering Scope',
+              desc: 'Detailed engineering scope, audit validation, and project deliverables.',
+              price: finalPrice,
+              isRecurring: false,
+            },
+          ];
+
       const wordHtml = generateWordDocument({
         proposalRef,
         proposalDate,
         clientName: deal?.clientName || 'Valued Client',
-        clientLogo: (proposal as any)?.clientLogo || '',
+        clientLogo: (proposal as any)?.clientLogo || (proposal as any)?.deal?.clientLogo || '',
+        serviceName: isWeldDataDigitalized
+          ? 'Digiweld (Weld Data Digitalization)'
+          : isWeldingIot
+          ? 'Welding IoT & Kit'
+          : isWaterManagement
+          ? 'Water Management Solution (WMS)'
+          : deal?.service?.name || 'Energy Management Solution',
+        scopeOfWork: savedScopeOfWork || getDefaultScopeText(),
+        commercialRows,
         finalPrice,
         formatCurrency,
         isCpmChillerManagement,
         origin: window.location.origin,
         costingSheet: (proposal as any)?.costingSheet || (proposal as any)?.costing_sheet || (proposal as any)?.costingData || (proposal as any)?.quote?.costingSheet || (deal as any)?.costingSheet || (deal as any)?.quote?.costingSheet || {},
         projectName: (deal as any)?.projectName,
+        totalPages,
       });
 
       const sanitizedClient = (deal?.clientName || 'Client').replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -680,6 +920,22 @@ export default function ProposalPreview({
                 <FileText className="h-4 w-4" /> Download Word (.doc)
               </>
             )}
+          </button>
+
+          <button
+            onClick={() => {
+              setEditedScopeText(savedScopeOfWork || getDefaultScopeText());
+              setEditedProposalNumber(proposalRef);
+              setEditedProposalDate(
+                proposal.proposalDate
+                  ? new Date(proposal.proposalDate).toISOString().split('T')[0]
+                  : new Date().toISOString().split('T')[0]
+              );
+              setIsEditModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-indigo-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border border-indigo-200 shadow-2xs"
+          >
+            <Edit3 className="h-3.5 w-3.5 text-indigo-600" /> Edit Proposal Text
           </button>
 
           <button
@@ -828,7 +1084,89 @@ export default function ProposalPreview({
       ) : (
         <>
           {/* ══════════════════════════════════════════════════════════════════ */}
-          {/* DOCUMENT PAGE 1: EXECUTIVE SUMMARY, ABOUT & CLIENT INFORMATION    */}
+          {/* DOCUMENT PAGE 1: OFFICIAL COVER PAGE                              */}
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          <div
+            className="proposal-page relative z-10 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xl w-full max-w-[800px] mx-auto text-slate-800 h-[1130px] min-h-[1130px] max-h-[1130px] flex flex-col justify-between overflow-hidden"
+            style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
+          >
+            <div className="border-2 border-slate-900 p-6 sm:p-8 flex-1 flex flex-col justify-between relative overflow-hidden">
+              <div
+                className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.14] bg-center bg-no-repeat"
+                style={{ backgroundImage: "url('/watermark-transparent.png')", backgroundSize: 'contain' }}
+                aria-hidden="true"
+              />
+
+              {/* Top Sustainabyte Logo */}
+              <div className="relative z-10 flex justify-end">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/Company-Logo-Light.png"
+                  alt="Sustainabyte Technologies Logo"
+                  className="h-16 sm:h-20 w-auto object-contain"
+                />
+              </div>
+
+              {/* Center Title, Client Logo & Quotation Info */}
+              <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center space-y-8 my-auto">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 underline underline-offset-8 decoration-1 leading-relaxed max-w-xl">
+                  Techno Commercial Proposal for{' '}
+                  {isWeldDataDigitalized
+                    ? 'Digiweld (Weld Data Digitalization)'
+                    : isWeldingIot
+                    ? 'Welding IoT & Kit'
+                    : isWaterManagement
+                    ? 'Water Management Solution (WMS)'
+                    : deal?.service?.name || 'Energy Management Solution'}
+                </h1>
+
+                {((proposal as any)?.clientLogo || (proposal as any)?.deal?.clientLogo) ? (
+                  <div className="py-4 max-w-[280px] max-h-[140px] flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={(proposal as any)?.clientLogo || (proposal as any)?.deal?.clientLogo}
+                      alt={`${deal?.clientName || 'Client'} Logo`}
+                      className="max-h-[130px] max-w-full object-contain mx-auto"
+                    />
+                  </div>
+                ) : (
+                  <div className="py-3 px-6 bg-slate-50 border border-slate-200 rounded-xl">
+                    <h2 className="text-lg font-black text-slate-900 tracking-tight">{deal?.clientName || 'Valued Client'}</h2>
+                  </div>
+                )}
+
+                <div className="text-center text-xs text-slate-800 space-y-1.5 font-medium">
+                  <p>Quotation No: <strong className="font-mono text-slate-900">{proposalRef}</strong></p>
+                  <p>Date: <strong className="text-slate-900">{proposalDate}</strong></p>
+                </div>
+              </div>
+
+              {/* Bottom Copyright & Confidential Box */}
+              <div className="relative z-10 border-t border-slate-300 pt-4 grid grid-cols-2 gap-6 text-[10px] text-slate-800 leading-snug">
+                <div>
+                  <p className="font-bold text-[11px] uppercase tracking-wider text-slate-950 mb-1">COPYRIGHT</p>
+                  <p className="text-slate-700">
+                    &copy; This Report is the copyright of <strong><u>Sustainabyte Technologies Pvt Ltd</u></strong>. Any unauthorised reproduction or usage by any person other than the addressee is strictly prohibited
+                  </p>
+                </div>
+                <div>
+                  <p className="font-bold text-[11px] uppercase tracking-wider text-slate-950 mb-1">CONFIDENTIAL</p>
+                  <p className="text-slate-700">
+                    All reasonable precautionary methods in handling the document and the information contained herein should be taken to prevent any third party from obtaining access. No responsibility is taken by <u>Sustainabyte Technologies Pvt Ltd</u> for the use of this document by any third party.
+                  </p>
+                </div>
+              </div>
+
+              <div className="relative z-10 border-t border-slate-200 pt-2.5 mt-3 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                <span>Ref: {proposalRef}</span>
+                <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
+                <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">Page 1 of {totalPages}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* DOCUMENT PAGE 2: EXECUTIVE SUMMARY, ABOUT & CLIENT INFORMATION    */}
           {/* ══════════════════════════════════════════════════════════════════ */}
           <div
             className="proposal-page relative z-10 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xl w-full max-w-[800px] mx-auto text-slate-800 h-[1130px] min-h-[1130px] max-h-[1130px] flex flex-col justify-between overflow-hidden"
@@ -841,89 +1179,45 @@ export default function ProposalPreview({
                 aria-hidden="true"
               />
 
-              <div className="relative z-10 space-y-6">
-                {/* Top Side Logo & Document Header */}
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-slate-200 pb-4 gap-4">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                      Official Commercial Proposal
-                    </span>
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1 uppercase">
-                      {isWeldDataDigitalized
-                        ? 'IoT & Controls / Weld Data Digitalized'
-                        : isWaterManagement
-                          ? 'IoT & Controls / Water Management Solution (WMS)'
-                          : isWeldingIot
-                            ? 'IoT & Controls / Welding IoT & Kit'
-                            : isBms
-                              ? 'Building Management System (BMS) Assessment'
-                              : isIotOrControls
-                                ? deal?.service?.name
-                                  ? `IoT & Controls / ${deal.service.name}`
-                                  : 'IoT & Controls / Energy Management Solution (EMS)'
-                                : deal?.service?.name?.toUpperCase() || 'Energy Audit & Engineering Scope'}
-                    </h1>
-                    <div className="flex items-center gap-3 text-xs text-slate-500 mt-1 font-mono font-medium">
-                      <span>Ref: <strong className="text-slate-800">{proposalRef}</strong></span>
-                      <span>•</span>
-                      <span>Date: <strong className="text-slate-800">{proposalDate}</strong></span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/Company-Logo-Light.png"
-                      alt="Sustainabyte Technologies Logo"
-                      className="h-16 sm:h-20 w-auto object-contain"
-                    />
-                  </div>
+              <div className="relative z-10 space-y-4">
+                {/* Top Side Logo Only */}
+                <div className="flex justify-end pb-3 border-b border-slate-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/Company-Logo-Light.png"
+                    alt="Sustainabyte Technologies Logo"
+                    className="h-14 sm:h-16 w-auto object-contain"
+                  />
                 </div>
 
-                {/* Step 1: Proposal Prepared For */}
-                <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-100">
-                  <div>
-                    <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Proposal Prepared For:</p>
-                    <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">{deal?.clientName || 'Valued Client'}</h2>
-                    <p className="text-xs text-slate-600 font-medium mt-0.5">
-                      Service Scope: <span className="font-bold text-slate-800">{isWeldDataDigitalized ? 'Weld Data Digitalized (Fusionbyte – WeldWise Suite)' : (deal?.service?.name || 'Energy Management & Optimization')}</span>
-                    </p>
-                  </div>
-                  {(proposal as any).clientLogo && (
-                    <div className="h-14 w-32 bg-white p-1 flex items-center justify-center shrink-0 border border-slate-100 rounded-lg shadow-2xs">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={(proposal as any).clientLogo}
-                        alt="Client Logo"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Step 2: About Sustainabyte */}
-                <div className="space-y-3.5 pt-1">
-                  <h3
-                    className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
-                    style={{ fontSize: '20px' }}
+                {/* About Sustainabyte */}
+                <div className="space-y-4 pt-1">
+                  <h2
+                    className="text-[20px] font-bold text-slate-900 underline underline-offset-4 decoration-1 tracking-tight"
                   >
                     About Sustainabyte:
-                  </h3>
+                  </h2>
 
                   <div
-                    className="space-y-3.5 text-slate-800 font-normal text-left"
-                    style={{ fontSize: '12px', lineHeight: '1.65' }}
+                    className="space-y-4 text-slate-800 font-normal text-left text-[12px] leading-[1.75]"
                   >
                     <p>
-                      Sustainabyte is a private limited company, based out in Chennai, with client base spreading across 3 countries. It is a climate-tech start-up, predominantly focusing on energy conservation methodologies across Industries, Commercial building and residential complexes. Sustainabyte.ai is dedicated to leveraging advanced technology for global sustainability.
+                      Sustainabyte is a private limited company, based out in Chennai, with client base spreading across 3 countries. It is a climate-tech start-up, predominantly focussing on energy conservation methodologies across Industries, Commercial building and residential complexes.
+                      <br />
+                      Sustainabyte.ai is dedicated to leveraging advanced technology for global sustainability. Our mission is to minimize environmental impact while enhancing operational efficiency through innovative solutions
                     </p>
                     <p>
-                      Our mission is to minimize environmental impact while enhancing operational efficiency through innovative solutions. Sustainabyte is a technology-driven sustainability company, providing cutting-edge solutions for enterprises, to identify, plan and operationalize their Net Zero Carbon ambitions. Our mission is to deliver sustainable prosperity for companies, by balancing people, planet and profit. We demonstrate this by leveraging proprietary machine-learning algorithms, which provide measurable outcomes.
+                      Sustainabyte is a technology-driven sustainability company, providing cutting-edge solutions for enterprises, to identify, plan and operationalize their Net Zero Carbon ambitions.
+                      <br />
+                      Our mission is to deliver sustainable prosperity for companies, by balancing people, planet and profit. We demonstrate this by leveraging proprietary machine-learning algorithms, which provide measurable outcomes.
                     </p>
                     <p>
-                      Our goal is to collaborate with companies and help them to work smarter, make critical decisions more quickly and consume less. In addition, by doing this at scale, we will make a significant impact on the carbon footprint of commercial and industrial assets, globally. At Sustainabyte, we understand how important it is to be productive and sustainable. As a first step, we provide expert advisory to create a blueprint for sustainability roadmap and Net Zero Carbon Goals.
+                      Our goal is to collaborate with companies and help them to work smarter, make critical decisions more quickly and consume less. In addition, by doing this at scale, we will make a significant impact on the carbon footprint of commercial and industrial assets, globally.
+                      <br />
+                      At Sustainabyte, we understand how important it is to be productive and sustainable. As a first step, we provide expert advisory to create a blueprint for sustainability roadmap and Net Zero Carbon Goals.
                     </p>
                     <p>
-                      We implement our flagship IoT solution — OptiByte — our technology platform, as an overlay on the client’s existing systems, connecting data points to provide a bird’s eye view, which, really is making the invisible, visible. Our reporting module then presents the ESG scores, operational efficiency KPI has and compares it against the milestones. This drives a program of continuous improvement by identifying improvement opportunities and recommended changes to deliver empirical and tangible sustainability goals. We pride in delivering results as early as in 30-60 days.
+                      We implement our flagship IoT solution — OptiByte — our technology platform, as an overlay on the client&apos;s existing systems, connecting data points to provide a bird&apos;s eye view, which, really is making the invisible, visible. Our reporting module then presents the ESG scores, operational efficiency KPI has and compares it against the milestones. This drives a program of continuous improvement by identifying improvement opportunities and recommended changes to deliver empirical and tangible sustainability goals. We pride in delivering results as early as in 30-60 days.
                     </p>
                   </div>
                 </div>
@@ -932,13 +1226,13 @@ export default function ProposalPreview({
               <div className="relative z-10 border-t border-slate-200 pt-3 mt-6 flex items-center justify-between text-[10px] text-slate-400 font-medium">
                 <span>Ref: {proposalRef}</span>
                 <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
-                <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">Page 1 of {totalPages}</span>
+                <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">Page 2 of {totalPages}</span>
               </div>
             </div>
           </div>
 
           {/* ══════════════════════════════════════════════════════════════════ */}
-          {/* DOCUMENT PAGE 2: WELD DATA DIGITALIZED / WELDING IOT / IOT / AUDIT */}
+          {/* DOCUMENT PAGE 3: WELD DATA DIGITALIZED / WELDING IOT / IOT / AUDIT */}
           {/* ══════════════════════════════════════════════════════════════════ */}
           {isWeldDataDigitalized ? (
             <div
@@ -952,119 +1246,101 @@ export default function ProposalPreview({
                   aria-hidden="true"
                 />
 
-                <div className="relative z-10 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-slate-200 pb-2 gap-4">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Scope of Work &amp; Project Overview</p>
-                      <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">{deal?.clientName} — Digiweld (Weld Data Digitalization)</h2>
-                      <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-                        <span>Ref: <strong>{proposalRef}</strong></span>
+                <div className="relative z-10 space-y-4">
+                  {/* Top Side Logo Only */}
+                  <div className="flex justify-end pb-3 border-b border-slate-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/Company-Logo-Light.png"
+                      alt="Sustainabyte Technologies Logo"
+                      className="h-14 sm:h-16 w-auto object-contain"
+                    />
+                  </div>
+
+                  {/* 1. Scope of Work & 4 Pillars & Technologies */}
+                  {savedScopeOfWork ? (
+                    renderFormattedScopeText(savedScopeOfWork)
+                  ) : (
+                    <>
+                      {/* 1. Scope of Work */}
+                      <div className="space-y-1">
+                        <h3
+                          className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
+                          style={{ fontSize: '15px' }}
+                        >
+                          Scope of Work:
+                        </h3>
+                        <p className="text-slate-800 text-[11px] leading-snug font-medium">
+                          Development of a centralized digital platform for BIQ data digitalization, Weld Engineering Documents &amp; NDT Reports management, Paint Defect Mapping, and Weld Audit monitoring. The solution includes real-time dashboards, defect trend analysis, process traceability, audit tracking, and AI-powered reporting to improve manufacturing quality, compliance, and operational efficiency.
+                        </p>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-end shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="/Company-Logo-Light.png"
-                        alt="Sustainabyte Technologies Logo"
-                        className="h-14 sm:h-16 w-auto object-contain"
-                      />
-                    </div>
-                  </div>
 
-                  {/* 1. Scope of Work */}
-                  <div className="space-y-1">
-                    <h3
-                      className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
-                      style={{ fontSize: '15px' }}
-                    >
-                      Scope of Work:
-                    </h3>
-                    <p className="text-slate-800 text-[11px] leading-snug font-medium">
-                      Development of a centralized digital platform for BIQ data digitalization, Weld Engineering Documents &amp; NDT Reports management, Paint Defect Mapping, and Weld Audit monitoring. The solution includes real-time dashboards, defect trend analysis, process traceability, audit tracking, and AI-powered reporting to improve manufacturing quality, compliance, and operational efficiency.
-                    </p>
-                  </div>
+                      {/* 4 Pillars of Solution */}
+                      <div className="space-y-2 text-[11px] leading-snug text-slate-800">
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-slate-950">BIQ Data Digitalization</p>
+                          <p className="text-slate-700">Digitalization of BIQ inspection and quality records through a centralized platform for real-time monitoring and traceability. The system enables defect tracking, inspection logging, and dashboard-based analytics for improved quality control and reporting.</p>
+                        </div>
 
-                  {/* 4 Pillars of Solution */}
-                  <div className="space-y-2 text-[11px] leading-snug text-slate-800">
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-slate-950">BIQ Data Digitalization</p>
-                      <p className="text-slate-700">Digitalization of BIQ inspection and quality records through a centralized platform for real-time monitoring and traceability. The system enables defect tracking, inspection logging, and dashboard-based analytics for improved quality control and reporting.</p>
-                    </div>
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-slate-950">Weld Engineering Data Digitalization</p>
+                          <p className="text-slate-700">Development of a digital weld engineering management system to capture weld process data, WPS records, welding parameters, and joint-wise traceability. The platform provides process monitoring, parameter analysis, and centralized documentation management.</p>
+                        </div>
 
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-slate-950">Weld Engineering Data Digitalization</p>
-                      <p className="text-slate-700">Development of a digital weld engineering management system to capture weld process data, WPS records, welding parameters, and joint-wise traceability. The platform provides process monitoring, parameter analysis, and centralized documentation management.</p>
-                    </div>
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-slate-950">Paint Defect Mapping</p>
+                          <p className="text-slate-700">Implementation of a paint defect mapping and analysis system for recording, categorizing, and monitoring paint-related defects across production stages. The solution includes trend analysis, Pareto charts, and dashboard visualization for continuous quality improvement.</p>
+                        </div>
 
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-slate-950">Paint Defect Mapping</p>
-                      <p className="text-slate-700">Implementation of a paint defect mapping and analysis system for recording, categorizing, and monitoring paint-related defects across production stages. The solution includes trend analysis, Pareto charts, and dashboard visualization for continuous quality improvement.</p>
-                    </div>
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-slate-950">Weld Audit Documents Digitalization</p>
+                          <p className="text-slate-700">Digitalization of weld audit documents, inspection checklists, and compliance records through a structured audit management system. The platform supports audit tracking, corrective action monitoring, document archival, and real-time audit dashboards.</p>
+                        </div>
+                      </div>
 
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-slate-950">Weld Audit Documents Digitalization</p>
-                      <p className="text-slate-700">Digitalization of weld audit documents, inspection checklists, and compliance records through a structured audit management system. The platform supports audit tracking, corrective action monitoring, document archival, and real-time audit dashboards.</p>
-                    </div>
-                  </div>
+                      {/* Technologies Used & Deliverables (Row-Wise) */}
+                      <div className="space-y-2 pt-1 border-t border-slate-200 text-[10.5px]">
+                        {/* 1. Technologies Used */}
+                        <div className="space-y-0.5">
+                          <h4
+                            className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
+                            style={{ fontSize: '13.5px' }}
+                          >
+                            Technologies Used:
+                          </h4>
+                          <ul className="pl-4 space-y-0.5 text-slate-800 leading-snug">
+                            <li>● <strong>Frontend:</strong> Flutter (Android Only)</li>
+                            <li>● <strong>Backend:</strong> Firebase (Firestore, Auth, Cloud Functions)</li>
+                            <li>● <strong>Web App:</strong> Next.js, Tailwind css</li>
+                            <li>● <strong>Email Notifications:</strong> Firebase Email Service or 3rd Party API (e.g., Send Grid)</li>
+                            <li>● <strong>State Management:</strong> Provider / Riverpod / Bloc</li>
+                          </ul>
+                        </div>
 
-                  {/* Technologies Used, Timeline Estimate & Deliverables (Row-Wise) */}
-                  <div className="space-y-2 pt-1 border-t border-slate-200 text-[10.5px]">
-                    {/* 1. Technologies Used */}
-                    <div className="space-y-0.5">
-                      <h4
-                        className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
-                        style={{ fontSize: '13.5px' }}
-                      >
-                        Technologies Used:
-                      </h4>
-                      <ul className="pl-4 space-y-0.5 text-slate-800 leading-snug">
-                        <li>● <strong>Frontend:</strong> Flutter (Android Only)</li>
-                        <li>● <strong>Backend:</strong> Firebase (Firestore, Auth, Cloud Functions)</li>
-                        <li>● <strong>Web App:</strong> Next.js, Tailwind css</li>
-                        <li>● <strong>Email Notifications:</strong> Firebase Email Service or 3rd Party API (e.g., Send Grid)</li>
-                        <li>● <strong>State Management:</strong> Provider / Riverpod / Bloc</li>
-                      </ul>
-                    </div>
-
-                    {/* 2. Timeline Estimate */}
-                    <div className="space-y-0.5 pt-0.5">
-                      <h4
-                        className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
-                        style={{ fontSize: '13.5px' }}
-                      >
-                        Timeline Estimate:
-                      </h4>
-                      <ul className="pl-4 space-y-0.5 text-slate-800 leading-snug">
-                        <li>● <strong>UI/UX Design:</strong> 2 weeks</li>
-                        <li>● <strong>Development (All Features):</strong> 4 weeks</li>
-                        <li>● <strong>Testing &amp; QA:</strong> 2 weeks</li>
-                        <li>● <strong>Deployment &amp; Training:</strong> 1 week</li>
-                        <li>● <strong>Total:</strong> 9 weeks</li>
-                      </ul>
-                    </div>
-
-                    {/* 3. Deliverables */}
-                    <div className="space-y-0.5 pt-0.5">
-                      <h4
-                        className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
-                        style={{ fontSize: '13.5px' }}
-                      >
-                        Deliverables:
-                      </h4>
-                      <ul className="pl-4 space-y-0.5 text-slate-800 leading-snug">
-                        <li>● Complete mobile app (Android and Web)</li>
-                        <li>● Source code and Firebase configuration</li>
-                        <li>● User manual and technical documentation</li>
-                        <li>● One year of basic support and updates</li>
-                      </ul>
-                    </div>
-                  </div>
+                        {/* 2. Deliverables */}
+                        <div className="space-y-0.5 pt-0.5">
+                          <h4
+                            className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
+                            style={{ fontSize: '13.5px' }}
+                          >
+                            Deliverables:
+                          </h4>
+                          <ul className="pl-4 space-y-0.5 text-slate-800 leading-snug">
+                            <li>● Complete mobile app (Android and Web)</li>
+                            <li>● Source code and Firebase configuration</li>
+                            <li>● User manual and technical documentation</li>
+                            <li>● One year of basic support and updates</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="relative z-10 border-t border-slate-200 pt-3 mt-3 flex items-center justify-between text-[10px] text-slate-400 font-medium">
                   <span>Ref: {proposalRef}</span>
                   <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
-                  <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">Page 2 of {totalPages}</span>
+                  <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">Page 3 of {totalPages}</span>
                 </div>
               </div>
             </div>
@@ -1698,7 +1974,7 @@ export default function ProposalPreview({
           {/* ══════════════════════════════════════════════════════════════════ */}
           {/* DOCUMENT PAGE 3: IOT SCOPE ROADMAP OR ENERGY AUDIT TEAM EXPERTISE  */}
           {/* ══════════════════════════════════════════════════════════════════ */}
-          {!isCompressorAirLeakageRectification && (
+          {!isCompressorAirLeakageRectification && !isWeldDataDigitalized && (
             <div
               className="proposal-page relative z-10 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xl w-full max-w-[800px] mx-auto text-slate-800 h-[1130px] min-h-[1130px] max-h-[1130px] flex flex-col justify-between overflow-hidden"
               style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
@@ -1829,22 +2105,7 @@ export default function ProposalPreview({
                         </div>
                       </div>
 
-                      {/* Timeline Estimate */}
-                      <div className="space-y-1 pt-1 border-t border-slate-100">
-                        <h3
-                          className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
-                          style={{ fontSize: '15px' }}
-                        >
-                          Timeline Estimate:
-                        </h3>
-                        <ul className="pl-4 space-y-0.5 text-[11px] text-slate-800 leading-snug">
-                          <li>● <strong>UI/UX Design :</strong> 6 weeks</li>
-                          <li>● <strong>Development (All Features):</strong> 4 weeks</li>
-                          <li>● <strong>Testing &amp; QA :</strong> 2 weeks</li>
-                          <li>● <strong>Deployment &amp; Training :</strong> 2 week</li>
-                          <li>● <strong>Total :</strong> 14 weeks</li>
-                        </ul>
-                      </div>
+
 
                       {/* Deliverables */}
                       <div className="space-y-1 pt-1 border-t border-slate-100">
@@ -2460,24 +2721,20 @@ export default function ProposalPreview({
                 />
 
                 <div className="relative z-10 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-slate-200 pb-3 gap-4">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        {isCompressorAirLeakageAudit ? 'Detailed Scope of Work & Detection Methodology' : 'Commercial Investment & Pricing Breakdown'}
-                      </p>
-                      <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">{deal?.clientName} — {deal?.service?.name}</h2>
-                      <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-                        <span>Ref: <strong>{proposalRef}</strong></span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-end shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="/Company-Logo-Light.png"
-                        alt="Sustainabyte Technologies Logo"
-                        className="h-14 sm:h-16 w-auto object-contain"
-                      />
-                    </div>
+                  {/* Top Side Logo Only */}
+                  <div className="flex justify-end pb-3 border-b border-slate-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/Company-Logo-Light.png"
+                      alt="Sustainabyte Technologies Logo"
+                      className="h-14 sm:h-16 w-auto object-contain"
+                    />
+                  </div>
+
+                  <div className="pt-1">
+                    <h2 className="text-[20px] font-bold text-slate-900 underline underline-offset-4 decoration-1 tracking-tight">
+                      {isCompressorAirLeakageAudit ? 'Detailed Scope of Work & Detection Methodology:' : 'Commercial Investment & Pricing Breakdown:'}
+                    </h2>
                   </div>
 
                   {/* Step 4 / Scope Header */}
@@ -2491,7 +2748,7 @@ export default function ProposalPreview({
                         : isCompressorAirLeakageRectification
                           ? 'Cost Estimate:'
                           : isWeldDataDigitalized
-                            ? 'Step 4: Commercial Breakdown — Fusionbyte – WeldWise Suite'
+                            ? 'Step 4: Commercial Breakdown — Digiweld'
                             : isWaterManagement
                               ? 'Step 4: Commercial Breakdown — IoT & Controls / Water Management Solution'
                               : isWeldingIot
@@ -2719,37 +2976,68 @@ export default function ProposalPreview({
                         );
                       })()
                     ) : isWeldDataDigitalized ? (
-                      /* Digiweld (Weld Data Digitalized / Phase 3) Commercials Table */
+                      /* Digiweld (Weld Data Digitalized) Commercials Table */
                       (() => {
-                        const swCostingRows = (proposal as any)?.costingSheet?.weldingSoftwareRows || INITIAL_DIGIWELD_SOFTWARE_ROWS;
-                        const cloudCostingRows = (proposal as any)?.costingSheet?.weldingCloudRows || INITIAL_DIGIWELD_CLOUD_ROWS;
+                        const rawSwRows = activeCostingSheet?.weldingSoftwareRows || (proposal as any)?.costingSheet?.weldingSoftwareRows;
+                        const hasCustomSw = Array.isArray(rawSwRows) && rawSwRows.length > 0;
+                        const swCostingRows = hasCustomSw
+                          ? rawSwRows.filter((r: any) => Number(r.price || 0) > 0 || (Number(r.qty || 0) > 0 && Number(r.unitPrice || 0) > 0))
+                          : (hasSavedLineItems ? mappedSavedItems : INITIAL_DIGIWELD_SOFTWARE_ROWS);
 
-                        const digiweldOneTimeItems = swCostingRows.map((r: any, idx: number) => {
-                          const matchedLine = mappedSavedItems.find((m) => m.description?.toLowerCase().includes(r.item?.toLowerCase()));
-                          const price = matchedLine ? matchedLine.customerPrice : (Number(r.price) || Number(r.unitPrice * (r.qty || 1)) || 0);
-                          const remarks = r.remarks || (r.item?.toLowerCase().includes('conversion') || r.item?.toLowerCase().includes('integration') || r.item?.toLowerCase().includes('checksheet') || r.item?.toLowerCase().includes('files') ? 'Excel to JSON Conversion for Phase 3' : r.item?.toLowerCase().includes('buffer') ? 'Additional Support Activities' : 'New Activity for Phase 3');
-                          return {
-                            sNo: idx + 1,
-                            category: r.item || r.description,
-                            remarks,
-                            price,
-                          };
-                        });
+                        const digiweldOneTimeItems = swCostingRows
+                          .map((r: any, idx: number) => {
+                            const matchedLine: any = !hasCustomSw ? mappedSavedItems.find((m) => m.description?.toLowerCase().includes(r.item?.toLowerCase())) : null;
+                            const qty = matchedLine ? Number(matchedLine.qty || 1) : (r.qty !== undefined ? Number(r.qty) : 1);
+                            const unitPrice = matchedLine ? (Number(matchedLine.unitPrice) || Math.round(Number(matchedLine.customerPrice) / (Number(matchedLine.qty) || 1))) : (Number(r.unitPrice) || Number(r.price) || 0);
+                            const totalPrice = matchedLine ? Number(matchedLine.customerPrice) : (r.price !== undefined && Number(r.price) > 0 ? Number(r.price) : (qty * unitPrice));
+                            const itemTitle = r.item || r.category || r.componentName || r.description || 'Deliverable Item';
+                            const itemDesc = r.description && r.description !== itemTitle ? r.description : (r.remarks || '—');
+                            return {
+                              sNo: idx + 1,
+                              category: itemTitle,
+                              description: itemDesc,
+                              qty,
+                              unitPrice,
+                              price: totalPrice,
+                            };
+                          })
+                          .filter((item: any) => Number(item.price) > 0);
 
-                        const digiweldRecurringItems = cloudCostingRows.map((r: any, idx: number) => {
-                          const matchedLine = mappedSavedItems.find((m) => m.description?.toLowerCase().includes(r.component?.toLowerCase()));
-                          const price = matchedLine ? matchedLine.customerPrice : (Number(r.monthlyPrice) || Number(r.unitMonthlyPrice) || 0);
-                          return {
-                            sNo: idx + 1,
-                            service: r.component || r.description,
-                            remarks: r.remarks || 'Existing Infrastructure Enhancement',
-                            price,
-                          };
-                        });
+                        const rawCloudRows = activeCostingSheet?.weldingCloudRows || (proposal as any)?.costingSheet?.weldingCloudRows;
+                        const hasCustomCloud = Array.isArray(rawCloudRows) && rawCloudRows.length > 0;
+                        const cloudCostingRows = hasCustomCloud
+                          ? rawCloudRows.filter((r: any) => Number(r.monthlyPrice || 0) > 0 || Number(r.yearlyPrice || 0) > 0)
+                          : (hasCustomSw ? [] : INITIAL_DIGIWELD_CLOUD_ROWS);
+
+                        const digiweldRecurringItems = cloudCostingRows
+                          .map((r: any, idx: number) => {
+                            const matchedLine: any = !hasCustomCloud ? mappedSavedItems.find((m) => m.description?.toLowerCase().includes(r.component?.toLowerCase())) : null;
+                            const qty = matchedLine ? Number(matchedLine.qty || 1) : (r.qty !== undefined ? Number(r.qty) : 1);
+                            const unitMonthlyPrice = matchedLine ? (Number(matchedLine.unitPrice) || Number(matchedLine.customerPrice)) : (Number(r.unitMonthlyPrice) || Number(r.monthlyPrice) || 0);
+                            const monthlyPrice = matchedLine ? Number(matchedLine.customerPrice) : (r.monthlyPrice !== undefined && Number(r.monthlyPrice) > 0 ? Number(r.monthlyPrice) : (qty * unitMonthlyPrice));
+                            const yearlyPrice = Number(r.yearlyPrice) || (monthlyPrice * 12);
+                            const serviceTitle = r.component || r.service || r.description || 'Cloud Service';
+                            const serviceDesc = r.description && r.description !== serviceTitle ? r.description : (r.remarks || r.type || 'Existing Infrastructure Enhancement');
+                            return {
+                              sNo: idx + 1,
+                              service: serviceTitle,
+                              description: serviceDesc,
+                              qty,
+                              unitMonthlyPrice,
+                              price: monthlyPrice,
+                              yearlyPrice,
+                            };
+                          })
+                          .filter((item: any) => Number(item.price) > 0);
 
                         const totalOneTime = digiweldOneTimeItems.reduce((acc: number, item: any) => acc + Number(item.price || 0), 0);
                         const totalRecurringMonthly = digiweldRecurringItems.reduce((acc: number, item: any) => acc + Number(item.price || 0), 0);
-                        const calculatedTotal = finalProposedValue > 0 ? finalProposedValue : (totalOneTime + (totalRecurringMonthly * 12));
+                        const calculatedTotal =
+                          activeCostingSheet?.finalQuote
+                            ? Number(activeCostingSheet.finalQuote)
+                            : finalProposedValue > 0
+                            ? finalProposedValue
+                            : (totalOneTime + (totalRecurringMonthly * 12));
 
                         return (
                           <div className="space-y-3">
@@ -2758,33 +3046,35 @@ export default function ProposalPreview({
                                 Commercials:
                               </h4>
 
-                              {/* ONE TIME COST - PHASE 3 */}
+                              {/* ONE TIME COST  */}
                               <div className="space-y-1 mb-2.5">
                                 <div className="bg-slate-800 text-white px-3 py-1 text-[10.5px] font-extrabold uppercase tracking-wide rounded-t-lg">
-                                  ONE TIME COST - PHASE 3
+                                  ONE TIME COST 
                                 </div>
                                 <div className="border border-slate-300 rounded-b-lg overflow-hidden text-[10.5px]">
                                   <table className="w-full text-left">
                                     <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200">
                                       <tr>
-                                        <th className="py-1 px-3">Category</th>
-                                        <th className="py-1 px-3">Remarks</th>
-                                        <th className="py-1 px-3 text-right w-28">Price</th>
+                                        <th className="py-1 px-2.5 w-8 text-center">Sl</th>
+                                        <th className="py-1 px-3 min-w-[180px]">Deliverable Item / Scope</th>
+                                        <th className="py-1 px-3 min-w-[160px]">Description &amp; Deliverables</th>
+                                        <th className="py-1 px-3 text-right w-32 bg-indigo-50/50 text-indigo-950 font-black">Total Price</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 text-slate-700">
                                       {digiweldOneTimeItems.map((row: any, idx: number) => (
                                         <tr key={idx} className="hover:bg-slate-50/50">
+                                          <td className="py-0.5 px-2.5 text-center text-slate-500 font-bold">{row.sNo}</td>
                                           <td className="py-0.5 px-3 font-semibold text-slate-900 leading-tight">{row.category}</td>
-                                          <td className="py-0.5 px-3 text-slate-600 font-medium">{row.remarks}</td>
-                                          <td className="py-0.5 px-3 text-right font-bold text-slate-900">{formatCurrency(row.price)}</td>
+                                          <td className="py-0.5 px-3 text-slate-600 font-medium">{row.description}</td>
+                                          <td className="py-0.5 px-3 text-right font-black text-indigo-950 bg-indigo-50/30">{formatCurrency(row.price)}</td>
                                         </tr>
                                       ))}
                                     </tbody>
                                     <tfoot className="bg-slate-100 font-black text-slate-900 border-t border-slate-300">
                                       <tr>
-                                        <td colSpan={2} className="py-1 px-3 uppercase text-[10px] tracking-wider font-extrabold text-right">
-                                          Total One-Time (Phase 3)
+                                        <td colSpan={3} className="py-1 px-3 uppercase text-[10px] tracking-wider font-extrabold text-right">
+                                          Total One-Time Cost
                                         </td>
                                         <td className="py-1 px-3 text-right text-emerald-700 font-black">
                                           {formatCurrency(totalOneTime)}
@@ -2795,42 +3085,46 @@ export default function ProposalPreview({
                                 </div>
                               </div>
 
-                              {/* RECURRING COST */}
-                              <div className="space-y-1">
-                                <div className="bg-slate-800 text-white px-3 py-1 text-[10.5px] font-extrabold uppercase tracking-wide rounded-t-lg">
-                                  RECURRING COST (MONTHLY INFRASTRUCTURE &amp; SUPPORT)
-                                </div>
-                                <div className="border border-slate-300 rounded-b-lg overflow-hidden text-[10.5px]">
-                                  <table className="w-full text-left">
-                                    <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200">
-                                      <tr>
-                                        <th className="py-1 px-3">Service</th>
-                                        <th className="py-1 px-3">Remarks</th>
-                                        <th className="py-1 px-3 text-right w-28">Price / Mo</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                                      {digiweldRecurringItems.map((row: any, idx: number) => (
-                                        <tr key={idx} className="hover:bg-slate-50/50">
-                                          <td className="py-0.5 px-3 font-semibold text-slate-900 leading-tight">{row.service}</td>
-                                          <td className="py-0.5 px-3 text-slate-600 font-medium">{row.remarks}</td>
-                                          <td className="py-0.5 px-3 text-right font-bold text-slate-900">{formatCurrency(row.price)}</td>
+                              {/* RECURRING COST (Only shown if recurring items exist) */}
+                              {digiweldRecurringItems.length > 0 && (
+                                <div className="space-y-1">
+                                  <div className="bg-slate-800 text-white px-3 py-1 text-[10.5px] font-extrabold uppercase tracking-wide rounded-t-lg">
+                                    RECURRING COST (MONTHLY INFRASTRUCTURE &amp; SUPPORT)
+                                  </div>
+                                  <div className="border border-slate-300 rounded-b-lg overflow-hidden text-[10.5px]">
+                                    <table className="w-full text-left">
+                                      <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200">
+                                        <tr>
+                                          <th className="py-1 px-2.5 w-8 text-center">Sl</th>
+                                          <th className="py-1 px-3 min-w-[180px]">Service / Component</th>
+                                          <th className="py-1 px-3 min-w-[160px]">Description &amp; Infrastructure</th>
+                                          <th className="py-1 px-3 text-right w-32 bg-purple-50/50 text-purple-950 font-black">Price / Mo</th>
                                         </tr>
-                                      ))}
-                                    </tbody>
-                                    <tfoot className="bg-slate-100 font-black text-slate-900 border-t border-slate-300">
-                                      <tr>
-                                        <td colSpan={2} className="py-1 px-3 uppercase text-[10px] tracking-wider font-extrabold text-right">
-                                          Total Recurring (Monthly)
-                                        </td>
-                                        <td className="py-1 px-3 text-right text-emerald-700 font-black">
-                                          {formatCurrency(totalRecurringMonthly)} / mo
-                                        </td>
-                                      </tr>
-                                    </tfoot>
-                                  </table>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                                        {digiweldRecurringItems.map((row: any, idx: number) => (
+                                          <tr key={idx} className="hover:bg-slate-50/50">
+                                            <td className="py-0.5 px-2.5 text-center text-slate-500 font-bold">{row.sNo}</td>
+                                            <td className="py-0.5 px-3 font-semibold text-slate-900 leading-tight">{row.service}</td>
+                                            <td className="py-0.5 px-3 text-slate-600 font-medium">{row.description}</td>
+                                            <td className="py-0.5 px-3 text-right font-black text-purple-950 bg-purple-50/30">{formatCurrency(row.price)}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                      <tfoot className="bg-slate-100 font-black text-slate-900 border-t border-slate-300">
+                                        <tr>
+                                          <td colSpan={3} className="py-1 px-3 uppercase text-[10px] tracking-wider font-extrabold text-right">
+                                            Total Recurring (Monthly)
+                                          </td>
+                                          <td className="py-1 px-3 text-right text-emerald-700 font-black">
+                                            {formatCurrency(totalRecurringMonthly)} / mo
+                                          </td>
+                                        </tr>
+                                      </tfoot>
+                                    </table>
+                                  </div>
                                 </div>
-                              </div>
+                              )}
 
                               {/* TOTAL PROPOSED COMMERCIAL VALUE */}
                               <div className="bg-slate-900 text-white p-2 px-4 flex justify-between items-center font-extrabold text-xs rounded-lg mt-2.5">
@@ -3001,7 +3295,7 @@ export default function ProposalPreview({
                                           </tr>
                                         ))
                                       ) : (
-                                        ((proposal as any)?.costingSheet?.weldingHardwareRows || INITIAL_WELDING_HARDWARE_ROWS).map((row: any, idx: number) => (
+                                        (activeCostingSheet?.weldingHardwareRows || (proposal as any)?.costingSheet?.weldingHardwareRows || INITIAL_WELDING_HARDWARE_ROWS).map((row: any, idx: number) => (
                                           <tr key={idx} className="hover:bg-slate-50/50">
                                             <td className="py-0.5 px-2 text-center font-semibold text-slate-500">{row.slNo || idx + 1}</td>
                                             <td className="py-0.5 px-3 font-medium text-slate-900 leading-tight">{row.componentName}</td>
@@ -3040,7 +3334,7 @@ export default function ProposalPreview({
                                             </tr>
                                           ))
                                         ) : (
-                                          ((proposal as any)?.costingSheet?.weldingSoftwareRows || INITIAL_WELDING_SOFTWARE_ROWS).map((row: any, idx: number) => (
+                                          (activeCostingSheet?.weldingSoftwareRows || (proposal as any)?.costingSheet?.weldingSoftwareRows || INITIAL_WELDING_SOFTWARE_ROWS).map((row: any, idx: number) => (
                                             <tr key={idx}>
                                               <td className="py-1 px-2 font-bold text-slate-900 text-center">{row.item || 'Software Development'}</td>
                                               <td className="py-1 px-2 leading-snug text-slate-800">{row.description}</td>
@@ -3082,7 +3376,7 @@ export default function ProposalPreview({
                                             );
                                           })
                                         ) : (
-                                          ((proposal as any)?.costingSheet?.weldingCloudRows || INITIAL_WELDING_CLOUD_ROWS).map((row: any, idx: number) => (
+                                          (activeCostingSheet?.weldingCloudRows || (proposal as any)?.costingSheet?.weldingCloudRows || INITIAL_WELDING_CLOUD_ROWS).map((row: any, idx: number) => (
                                             <tr key={idx}>
                                               <td className="py-0.5 px-2 font-semibold text-slate-900 leading-tight">{row.component}</td>
                                               <td className="py-0.5 px-2 text-slate-700 leading-tight">{row.description}</td>
@@ -3228,22 +3522,14 @@ export default function ProposalPreview({
               />
 
               <div className="relative z-10 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-slate-200 pb-3 gap-4">
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Commercial Proposal (Final Terms &amp; Authorization)</p>
-                    <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">{deal?.clientName} — Terms &amp; Commercial Sign-off</h2>
-                    <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-                      <span>Ref: <strong>{proposalRef}</strong></span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/Company-Logo-Light.png"
-                      alt="Sustainabyte Technologies Logo"
-                      className="h-14 sm:h-16 w-auto object-contain"
-                    />
-                  </div>
+                {/* Top Side Logo Only */}
+                <div className="flex justify-end pb-3 border-b border-slate-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/Company-Logo-Light.png"
+                    alt="Sustainabyte Technologies Logo"
+                    className="h-14 sm:h-16 w-auto object-contain"
+                  />
                 </div>
 
                 {/* Step 6: NOTE & Support Required (For IoT / Controls / WMS) */}
@@ -3766,6 +4052,112 @@ export default function ProposalPreview({
             </div>
           </div>
         </>
+      )}
+      {/* Edit Proposal Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                  <Edit3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Edit Proposal Content</h3>
+                  <p className="text-xs text-slate-500">Edit Scope of Work, Deliverables, Ref # and Date (Saved via PUT API)</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body Form */}
+            <form onSubmit={handleSaveProposalEdits} className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Proposal Reference Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editedProposalNumber}
+                    onChange={(e) => setEditedProposalNumber(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono"
+                    placeholder="e.g. STPL-001"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Proposal Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editedProposalDate}
+                    onChange={(e) => setEditedProposalDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Scope of Work, Deliverables &amp; Solution Details
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setEditedScopeText(getDefaultScopeText())}
+                    className="text-[11px] text-indigo-600 hover:underline font-semibold cursor-pointer"
+                  >
+                    Reset to Default Text
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 mb-2">
+                  Separate distinct sections or headings with blank lines. Headings ending in a colon (:) or bullet points (•) will be cleanly formatted.
+                </p>
+                <textarea
+                  rows={14}
+                  value={editedScopeText}
+                  onChange={(e) => setEditedScopeText(e.target.value)}
+                  className="w-full p-3 text-xs border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono leading-relaxed resize-y bg-slate-50/50"
+                  placeholder="Enter proposal scope of work, deliverables, and technical specifications..."
+                />
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={updateProposalMutation.isPending}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateProposalMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {updateProposalMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving via API...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-3.5 w-3.5" /> Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

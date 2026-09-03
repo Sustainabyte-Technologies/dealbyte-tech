@@ -240,10 +240,14 @@ function CostingSheetContent() {
   const isWeldingIotActive = useMemo(() => {
     const subLower = (activeSubServiceName || '').toLowerCase();
     const catLower = (activeCategoryName || '').toLowerCase();
-    if (subLower.includes('weld data digitalized') || subLower.includes('weld data')) {
-      return false;
-    }
-    return subLower.includes('welding') || catLower.includes('welding');
+    return (
+      subLower.includes('welding') ||
+      catLower.includes('welding') ||
+      subLower.includes('digiweld') ||
+      subLower.includes('weld data') ||
+      subLower.includes('weldwise') ||
+      subLower.includes('fusionbyte')
+    );
   }, [activeSubServiceName, activeCategoryName]);
 
   const isIotControlsActive = useMemo(() => {
@@ -279,11 +283,9 @@ function CostingSheetContent() {
   }, [activeSubServiceName, activeCategoryName]);
 
   const isEmsActive = useMemo(() => {
+    if (isWeldingIotActive) return false;
     const subLower = (activeSubServiceName || '').toLowerCase();
     const catLower = (activeCategoryName || '').toLowerCase();
-    if (subLower.includes('weld data digitalized') || subLower.includes('weld data')) {
-      return true;
-    }
     return (
       (catLower === 'hardware' ||
         catLower.includes('hardware') ||

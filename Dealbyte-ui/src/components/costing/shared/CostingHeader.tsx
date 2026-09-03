@@ -76,7 +76,7 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
   ],
   dynamicChillerManagementSubServices = ['CPM (Chiller Plant Management)'],
   dynamicWeldingIotSubServices = [
-    'Welding IoT & Kit',
+    'Welding IoT Kit',
     'Digiweld',
   ],
   dynamicAutomationSubServices = [
@@ -332,7 +332,7 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
               } else if (category === 'Chiller Management') {
                 setSubServiceOption('CPM (Chiller Plant Management)');
               } else if (category === 'Welding' || category === 'Welding IoT') {
-                setSubServiceOption('Welding IoT & Kit');
+                setSubServiceOption('Digiweld');
               } else if (category === 'Automation') {
                 setSubServiceOption('Compressed Air Automation');
               } else if (category === 'IR Blaster') {

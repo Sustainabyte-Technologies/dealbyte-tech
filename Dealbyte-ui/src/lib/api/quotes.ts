@@ -40,6 +40,8 @@ export interface CreateQuoteInput {
   bufferPct?: number;
   lineItems?: any[];
   finalQuote?: number;
+  customContent?: any;
+  scopeDetails?: string;
 }
 
 export interface QuoteLineItem {
@@ -60,6 +62,8 @@ export interface Quote {
   proposalNumber?: string | null;
   proposalDate?: string | null;
   clientLogo?: string | null;
+  customContent?: any;
+  scopeDetails?: string | null;
   siteDays: number;
   reportDays: number;
   manpowerCost: number;

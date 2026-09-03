@@ -213,6 +213,8 @@ exports.Prisma.QuoteScalarFieldEnum = {
   finalQuote: 'finalQuote',
   negotiationMarginPct: 'negotiationMarginPct',
   status: 'status',
+  customContent: 'customContent',
+  scopeDetails: 'scopeDetails',
   createdById: 'createdById',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -261,6 +263,8 @@ exports.Prisma.ProposalScalarFieldEnum = {
   clientLogo: 'clientLogo',
   templateId: 'templateId',
   status: 'status',
+  customContent: 'customContent',
+  scopeDetails: 'scopeDetails',
   fileUrl: 'fileUrl',
   generatedAt: 'generatedAt',
   sentAt: 'sentAt'

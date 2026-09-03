@@ -35,6 +35,8 @@ export class ProposalsService {
     const proposalNumber = dto.proposalNumber || quote.proposalNumber || 'STPL-001';
     const proposalDate = dto.proposalDate ? new Date(dto.proposalDate) : quote.proposalDate || new Date();
     const clientLogo = dto.clientLogo || quote.clientLogo || null;
+    const customContent = dto.customContent !== undefined ? dto.customContent : quote.customContent;
+    const scopeDetails = dto.scopeDetails !== undefined ? dto.scopeDetails : quote.scopeDetails;
 
     const existing = await this.prisma.proposal.findFirst({
       where: { quoteId: dto.quoteId },
@@ -47,6 +49,8 @@ export class ProposalsService {
           proposalNumber,
           proposalDate,
           clientLogo,
+          customContent,
+          scopeDetails,
           ...(dto.templateId ? { templateId: dto.templateId } : {}),
         },
       });
@@ -61,6 +65,8 @@ export class ProposalsService {
         proposalNumber,
         proposalDate,
         clientLogo,
+        customContent,
+        scopeDetails,
         templateId: dto.templateId || null,
         fileUrl: null,
       },
@@ -103,7 +109,7 @@ export class ProposalsService {
       where: {
         proposals: { none: {} },
       },
-      select: { id: true, dealId: true, createdAt: true },
+      select: { id: true, dealId: true, createdAt: true, customContent: true, scopeDetails: true },
     });
 
     if (quotesWithoutProposals.length > 0) {
@@ -112,6 +118,8 @@ export class ProposalsService {
           quoteId: q.id,
           dealId: q.dealId,
           status: 'DRAFT',
+          customContent: q.customContent ? (q.customContent as any) : undefined,
+          scopeDetails: q.scopeDetails || undefined,
           generatedAt: q.createdAt,
         })),
       });
@@ -120,7 +128,7 @@ export class ProposalsService {
     return this.prisma.proposal.findMany({
       orderBy: { generatedAt: 'desc' },
       include: {
-        quote: { select: { id: true, finalQuote: true, status: true } },
+        quote: { select: { id: true, finalQuote: true, status: true, customContent: true, scopeDetails: true } },
         deal: {
           include: {
             service: { select: { id: true, name: true } },
@@ -170,10 +178,12 @@ export class ProposalsService {
         ...(dto.status ? { status: dto.status } : {}),
         ...(dto.clientLogo !== undefined ? { clientLogo: dto.clientLogo } : {}),
         ...(dto.proposalDate ? { proposalDate: new Date(dto.proposalDate) } : {}),
+        ...(dto.customContent !== undefined ? { customContent: dto.customContent } : {}),
+        ...(dto.scopeDetails !== undefined ? { scopeDetails: dto.scopeDetails } : {}),
       },
     });
 
-    // Sync proposalNumber and clientLogo on the Quote model if linked
+    // Sync proposalNumber, clientLogo, customContent, scopeDetails on the Quote model if linked
     if (proposal.quoteId) {
       await this.prisma.quote.update({
         where: { id: proposal.quoteId },
@@ -181,6 +191,8 @@ export class ProposalsService {
           ...(dto.proposalNumber ? { proposalNumber: dto.proposalNumber } : {}),
           ...(dto.clientLogo !== undefined ? { clientLogo: dto.clientLogo } : {}),
           ...(dto.proposalDate ? { proposalDate: new Date(dto.proposalDate) } : {}),
+          ...(dto.customContent !== undefined ? { customContent: dto.customContent } : {}),
+          ...(dto.scopeDetails !== undefined ? { scopeDetails: dto.scopeDetails } : {}),
         },
       });
     }

@@ -320,7 +320,7 @@ function NewQuoteContent() {
     'Water Management Solution',
   ];
   const WELDING_IOT_SUB_SERVICES = [
-    'Welding IoT & Kit',
+    'Welding IoT Kit',
     'Digiweld',
   ];
   const HARDWARE_SUB_SERVICES = [
@@ -776,13 +776,6 @@ Apply powerful dynamic filters to quickly review weld history, current status, d
 AI-Powered Dashboards & Reporting
 Generate intuitive visual reports using AI-driven tools—trendlines, Pareto charts, pie charts, and more—to drive clear insights and continuous process improvement.
 
-Timeline Estimate
-●UI/UX Design : 6 weeks
-●Development (All Features): 4 weeks
-●Testing & QA :  2weeks
-●Deployment & Training : 2 week
-●Total : 14 weeks
-
 Deliverables
 ●Complete mobile app (Android and Web)
 ●Source code and Firebase configuration
@@ -1143,6 +1136,10 @@ PAN Number – ABNCS4869A`;
         if (customItems.length > 0) {
           setIotStep5Rows(customItems);
         }
+      }
+
+      if (existingQuote.customContent?.scopeOfWork || existingQuote.customContent?.step5Text || existingQuote.scopeDetails) {
+        setEmsStep5Text(existingQuote.customContent?.scopeOfWork || existingQuote.customContent?.step5Text || existingQuote.scopeDetails || '');
       }
     }
   }, [existingQuote]);
@@ -2227,7 +2224,7 @@ PAN Number – ABNCS4869A`;
         swRows.forEach((r: any, idx: number) => {
           extracted.push({
             id: `dw-${idx}`,
-            section: '1. ONE TIME COST - PHASE 3',
+            section: '1. ONE TIME COST ',
             stepNo: `${idx + 1}`,
             description: `${r.item || r.description || 'Deliverable'}`,
             qty: typeof r.qty === 'number' ? r.qty : 1,
@@ -2939,9 +2936,12 @@ PAN Number – ABNCS4869A`;
       } else if (isCpmChillerManagement) {
         selectedCategory = 'Chiller Management';
         selectedSubService = 'CPM (Chiller Plant Management)';
+      } else if (isWeldDataDigitalized) {
+        selectedCategory = 'Welding';
+        selectedSubService = activeCostingSheet?.subService || selectedSubServiceOptions[0] || 'Digiweld';
       } else if (isWeldingIot) {
         selectedCategory = 'Welding';
-        selectedSubService = 'Welding IoT & Kit';
+        selectedSubService = activeCostingSheet?.subService || selectedSubServiceOptions[0] || 'Welding IoT & Kit';
       } else if (isBms) {
         selectedCategory = 'BMS';
         selectedSubService = 'BMS';
@@ -2991,6 +2991,12 @@ PAN Number – ABNCS4869A`;
         instruments: instruments && instruments.length > 0 ? instruments : [],
         lineItems,
         finalQuote: computedFinalQuote,
+        customContent: {
+          scopeOfWork: emsStep5Text,
+          step5Text: emsStep5Text,
+          costingSheet: activeCostingSheet || undefined,
+        },
+        scopeDetails: emsStep5Text || undefined,
       };
 
       if (editQuoteId) {
@@ -3365,7 +3371,7 @@ PAN Number – ABNCS4869A`;
                             } else if (cat === 'Chiller Management') {
                               setSelectedSubServiceOptions(['CPM (Chiller Plant Management)']);
                             } else if (cat === 'Welding' || cat === 'Welding IoT') {
-                              setSelectedSubServiceOptions(['Welding IoT & Kit']);
+                              setSelectedSubServiceOptions(['Digiweld']);
                             } else if (cat === 'Automation') {
                               setSelectedSubServiceOptions(['Compressed Air Automation']);
                             } else if (cat === 'IR Blaster') {
@@ -4468,42 +4474,49 @@ PAN Number – ABNCS4869A`;
                       )}
                     </div>
 
-                    {/* Table 1: ONE TIME COST - PHASE 3 */}
+                    {/* Table 1: ONE TIME COST  */}
                     <div className="space-y-1">
                       <div className="bg-slate-800 text-white px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wide rounded-t-xl">
-                        ONE TIME COST - PHASE 3
+                        ONE TIME COST 
                       </div>
                       <div className="border border-slate-200 rounded-b-xl overflow-hidden text-xs">
                         <table className="w-full text-left">
                           <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200 text-[11px]">
                             <tr>
-                              <th className="py-2.5 px-3.5">Category</th>
-                              <th className="py-2.5 px-3.5">Remarks</th>
-                              <th className="py-2.5 px-3.5 text-right w-36">Price (₹)</th>
+                              <th className="py-2.5 px-3 w-8 text-center">Sl</th>
+                              <th className="py-2.5 px-3.5 min-w-[180px]">Category / Deliverable</th>
+                              <th className="py-2.5 px-3.5 min-w-[160px]">Remarks</th>
+                              <th className="py-2.5 px-3.5 text-right w-36 bg-indigo-50/60 text-indigo-950 font-black">Total Price (₹)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                            {((activeCostingSheet as any)?.weldingSoftwareRows || INITIAL_DIGIWELD_SOFTWARE_ROWS).map((row: any, idx: number) => {
-                              const remarks = row.remarks || (row.item?.toLowerCase().includes('conversion') || row.item?.toLowerCase().includes('integration') || row.item?.toLowerCase().includes('checksheet') || row.item?.toLowerCase().includes('files') ? 'Excel to JSON Conversion for Phase 3' : row.item?.toLowerCase().includes('buffer') ? 'Additional Support Activities' : 'New Activity for Phase 3');
-                              const price = Number(row.price) || Number(row.unitPrice * (row.qty || 1)) || 0;
-                              return (
+                            {((activeCostingSheet as any)?.weldingSoftwareRows || INITIAL_DIGIWELD_SOFTWARE_ROWS)
+                              .map((row: any) => {
+                                const remarks = row.remarks || (row.item?.toLowerCase().includes('conversion') || row.item?.toLowerCase().includes('integration') || row.item?.toLowerCase().includes('checksheet') || row.item?.toLowerCase().includes('files') ? 'Excel to JSON Conversion' : row.item?.toLowerCase().includes('buffer') ? 'Additional Support Activities' : 'Platform Feature & Deliverable');
+                                const qty = Number(row.qty !== undefined ? row.qty : 1);
+                                const unitPrice = Number(row.unitPrice || row.price || 0);
+                                const totalPrice = Number(row.price) || (qty * unitPrice);
+                                return { ...row, remarks, totalPrice };
+                              })
+                              .filter((row: any) => row.totalPrice > 0)
+                              .map((row: any, idx: number) => (
                                 <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                  <td className="py-2 px-3 text-center text-slate-500 font-bold">{idx + 1}</td>
                                   <td className="py-2 px-3.5 font-semibold text-slate-900 leading-snug">{row.item || row.description}</td>
-                                  <td className="py-2 px-3.5 text-slate-600">{remarks}</td>
-                                  <td className="py-2 px-3.5 text-right font-bold text-slate-900">{formatCurrency(price)}</td>
+                                  <td className="py-2 px-3.5 text-slate-600">{row.remarks}</td>
+                                  <td className="py-2 px-3.5 text-right font-black text-indigo-950 bg-indigo-50/30">{formatCurrency(row.totalPrice)}</td>
                                 </tr>
-                              );
-                            })}
+                              ))}
                           </tbody>
                           <tfoot className="bg-slate-100 font-black text-slate-900 border-t border-slate-300">
                             <tr>
-                              <td colSpan={2} className="py-2 px-3.5 uppercase text-xs tracking-wider text-right font-extrabold">
-                                Total One-Time (Phase 3)
+                              <td colSpan={3} className="py-2 px-3.5 uppercase text-xs tracking-wider text-right font-extrabold">
+                                Total One-Time Cost
                               </td>
                               <td className="py-2 px-3.5 text-right text-emerald-700 font-black text-sm">
                                 {formatCurrency(
                                   ((activeCostingSheet as any)?.weldingSoftwareRows || INITIAL_DIGIWELD_SOFTWARE_ROWS)
-                                    .reduce((sum: number, r: any) => sum + (Number(r.price) || Number(r.unitPrice * (r.qty || 1)) || 0), 0)
+                                    .reduce((sum: number, r: any) => sum + (Number(r.price) || Number((r.unitPrice || r.price || 0) * (r.qty !== undefined ? r.qty : 1)) || 0), 0)
                                 )}
                               </td>
                             </tr>
@@ -4521,32 +4534,39 @@ PAN Number – ABNCS4869A`;
                         <table className="w-full text-left">
                           <thead className="bg-slate-100 text-slate-800 font-extrabold border-b border-slate-200 text-[11px]">
                             <tr>
-                              <th className="py-2.5 px-3.5">Service</th>
-                              <th className="py-2.5 px-3.5">Remarks</th>
-                              <th className="py-2.5 px-3.5 text-right w-36">Price / Mo (₹)</th>
+                              <th className="py-2.5 px-3 w-8 text-center">Sl</th>
+                              <th className="py-2.5 px-3.5 min-w-[180px]">Service / Component</th>
+                              <th className="py-2.5 px-3.5 min-w-[160px]">Remarks</th>
+                              <th className="py-2.5 px-3.5 text-right w-36 bg-purple-50/60 text-purple-950 font-black">Price / Mo (₹)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
-                            {((activeCostingSheet as any)?.weldingCloudRows || INITIAL_DIGIWELD_CLOUD_ROWS).map((row: any, idx: number) => {
-                              const price = Number(row.monthlyPrice || row.unitMonthlyPrice || 0);
-                              return (
+                            {((activeCostingSheet as any)?.weldingCloudRows || INITIAL_DIGIWELD_CLOUD_ROWS)
+                              .map((row: any) => {
+                                const qty = Number(row.qty !== undefined ? row.qty : 1);
+                                const unitMonthlyPrice = Number(row.unitMonthlyPrice || row.monthlyPrice || 0);
+                                const monthlyPrice = Number(row.monthlyPrice) || (qty * unitMonthlyPrice);
+                                return { ...row, monthlyPrice };
+                              })
+                              .filter((row: any) => row.monthlyPrice > 0)
+                              .map((row: any, idx: number) => (
                                 <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                  <td className="py-2 px-3 text-center text-slate-500 font-bold">{idx + 1}</td>
                                   <td className="py-2 px-3.5 font-semibold text-slate-900 leading-snug">{row.component || row.description}</td>
                                   <td className="py-2 px-3.5 text-slate-600">{row.remarks || 'Existing Infrastructure Enhancement'}</td>
-                                  <td className="py-2 px-3.5 text-right font-bold text-slate-900">{formatCurrency(price)}</td>
+                                  <td className="py-2 px-3.5 text-right font-black text-purple-950 bg-purple-50/30">{formatCurrency(row.monthlyPrice)}</td>
                                 </tr>
-                              );
-                            })}
+                              ))}
                           </tbody>
                           <tfoot className="bg-slate-100 font-black text-slate-900 border-t border-slate-300">
                             <tr>
-                              <td colSpan={2} className="py-2 px-3.5 uppercase text-xs tracking-wider text-right font-extrabold">
+                              <td colSpan={3} className="py-2 px-3.5 uppercase text-xs tracking-wider text-right font-extrabold">
                                 Total Recurring (Monthly)
                               </td>
                               <td className="py-2 px-3.5 text-right text-emerald-700 font-black text-sm">
                                 {formatCurrency(
                                   ((activeCostingSheet as any)?.weldingCloudRows || INITIAL_DIGIWELD_CLOUD_ROWS)
-                                    .reduce((sum: number, r: any) => sum + Number(r.monthlyPrice || r.unitMonthlyPrice || 0), 0)
+                                    .reduce((sum: number, r: any) => sum + (Number(r.monthlyPrice) || Number((r.unitMonthlyPrice || r.monthlyPrice || 0) * (r.qty !== undefined ? r.qty : 1)) || 0), 0)
                                 )} / mo
                               </td>
                             </tr>
@@ -5090,6 +5110,8 @@ PAN Number – ABNCS4869A`;
                       ? 'Step 5: Scope of Supply, Technical Specifications & Monitored Parameters — IAQ Sensor'
                       : isIrBlaster
                       ? 'Step 5: Scope of Work, Technical Capabilities & Energy Benefits — IR Blaster AC Energy Solutions'
+                      : isWeldDataDigitalized
+                      ? 'Step 5: Scope of Work, Deliverables & Solution Architecture — Digiweld'
                       : isWeldingIot
                       ? 'Step 5: Scope of Work, POC Success Criteria & Benefits — Welding IoT & Kit'
                       : isWaterManagement
@@ -5114,7 +5136,7 @@ PAN Number – ABNCS4869A`;
                       : isIrBlaster
                       ? 'Scope of Supply, About IR Blaster, Key Automation Features & Measurable Energy Savings'
                       : isWeldingIot
-                      ? 'Scope of Supply, Customer Dependencies, POC Criteria, Timeline & Welding Benefits'
+                      ? 'Scope of Supply, Customer Dependencies, POC Criteria & Welding Benefits'
                       : isWaterManagement
                       ? 'Water Management Scope of Work, Centralized Dashboard & Digitalization Overview'
                       : isBms
@@ -5297,6 +5319,8 @@ PAN Number – ABNCS4869A`;
                       ? 'Step 6: Commercial Terms, Warranty & Payment Schedule — IAQ Sensor'
                       : isIrBlaster
                       ? 'Step 6: Client Support, Terms and Conditions & Payment Schedule — IR Blaster'
+                      : isWeldDataDigitalized
+                      ? 'Step 6: Client Support, Terms and Conditions & Payment Schedule — Digiweld'
                       : isWeldingIot
                       ? 'Step 6: Client Support, Terms and Conditions & Payment Schedule — Welding IoT & Kit'
                       : isWaterManagement

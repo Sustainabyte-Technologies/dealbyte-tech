@@ -200,7 +200,11 @@ export default function DashboardPage() {
                   <tr key={quote.id} className="hover:bg-rose-50/30 transition-colors">
                     <td className="py-3.5 px-6 font-medium text-slate-900">
                       <div>{quote.deal?.clientName || 'Client'}</div>
-                      <div className="text-[11px] text-slate-500">{quote.deal?.service?.name}</div>
+                      <div className="text-[11px] text-slate-500">
+                        {quote.deal?.service?.name?.toLowerCase().includes('digiweld') || quote.deal?.service?.name?.toLowerCase().includes('weld data')
+                          ? 'Digiweld'
+                          : quote.deal?.service?.name || 'Standard Service'}
+                      </div>
                     </td>
                     <td className="py-3.5 px-6">{quote.createdBy?.name || 'User'}</td>
                     <td className="py-3.5 px-6 font-bold text-rose-600">{quote.marginPct}%</td>

@@ -143,6 +143,13 @@ export class CreateQuoteDto {
   @Min(0)
   @IsOptional()
   finalQuote?: number;
+
+  @IsOptional()
+  customContent?: any;
+
+  @IsString()
+  @IsOptional()
+  scopeDetails?: string;
 }
 
 // ─── Update Quote ───────────────────────────────────────────────────────────
@@ -246,6 +253,13 @@ export class UpdateQuoteDto {
   @Min(0)
   @IsOptional()
   finalQuote?: number;
+
+  @IsOptional()
+  customContent?: any;
+
+  @IsString()
+  @IsOptional()
+  scopeDetails?: string;
 }
 
 // ─── Negotiate ──────────────────────────────────────────────────────────────

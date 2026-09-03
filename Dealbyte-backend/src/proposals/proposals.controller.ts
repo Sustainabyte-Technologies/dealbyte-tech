@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Patch, Body, Param, UseGuards,
+  Controller, Get, Post, Patch, Put, Body, Param, UseGuards,
 } from '@nestjs/common';
 import { ProposalsService } from './proposals.service';
 import { GenerateProposalDto, UpdateProposalStatusDto, UpdateProposalDto } from './dto';
@@ -24,6 +24,15 @@ export class ProposalsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.proposalsService.findOne(id);
+  }
+
+  @Put(':id')
+  updatePut(
+    @Param('id') id: string,
+    @Body() dto: UpdateProposalDto,
+    @CurrentUser('userId') userId: string,
+  ) {
+    return this.proposalsService.update(id, dto, userId);
   }
 
   @Patch(':id')

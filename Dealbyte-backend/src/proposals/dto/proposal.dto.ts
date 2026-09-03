@@ -21,6 +21,13 @@ export class GenerateProposalDto {
   @IsString()
   @IsOptional()
   clientLogo?: string;
+
+  @IsOptional()
+  customContent?: any;
+
+  @IsString()
+  @IsOptional()
+  scopeDetails?: string;
 }
 
 export class UpdateProposalStatusDto {
@@ -48,4 +55,11 @@ export class UpdateProposalDto {
   @IsString()
   @IsOptional()
   clientLogo?: string;
+
+  @IsOptional()
+  customContent?: any;
+
+  @IsString()
+  @IsOptional()
+  scopeDetails?: string;
 }

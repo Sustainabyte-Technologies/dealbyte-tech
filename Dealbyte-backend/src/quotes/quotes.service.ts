@@ -126,6 +126,8 @@ export class QuotesService {
           bufferPct: result.bufferPct,
           bufferAmount: result.bufferAmount,
           finalQuote: dto.finalQuote ?? result.finalQuote,
+          customContent: dto.customContent || null,
+          scopeDetails: dto.scopeDetails || null,
           createdById: activeUserId,
         },
       });
@@ -165,6 +167,8 @@ export class QuotesService {
           proposalNumber: effectiveProposalNumber,
           proposalDate: parsedDate,
           clientLogo: dto.clientLogo || null,
+          customContent: dto.customContent || null,
+          scopeDetails: dto.scopeDetails || null,
           status: 'DRAFT',
         },
       });
@@ -317,6 +321,8 @@ export class QuotesService {
           bufferPct: result.bufferPct,
           bufferAmount: result.bufferAmount,
           finalQuote: dto.finalQuote ?? result.finalQuote,
+          customContent: dto.customContent !== undefined ? dto.customContent : existing.customContent,
+          scopeDetails: dto.scopeDetails !== undefined ? dto.scopeDetails : existing.scopeDetails,
         },
       });
 
@@ -356,6 +362,8 @@ export class QuotesService {
             proposalNumber: dto.proposalNumber || existing.proposalNumber || 'STPL-001',
             proposalDate: parsedDate,
             clientLogo: dto.clientLogo !== undefined ? dto.clientLogo : existing.clientLogo,
+            customContent: dto.customContent !== undefined ? dto.customContent : undefined,
+            scopeDetails: dto.scopeDetails !== undefined ? dto.scopeDetails : undefined,
           },
         });
       }

@@ -207,6 +207,8 @@ model Quote {
   finalQuote            Decimal     @db.Decimal(14, 2) @default(0)
   negotiationMarginPct  Decimal?    @db.Decimal(5, 2)
   status                QuoteStatus @default(DRAFT)
+  customContent         Json?
+  scopeDetails          String?     @db.Text
   createdById           String
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
@@ -295,6 +297,8 @@ model Proposal {
   clientLogo     String?
   templateId     String?
   status         ProposalStatus @default(DRAFT)
+  customContent  Json?
+  scopeDetails   String?        @db.Text
   fileUrl        String?
   generatedAt    DateTime       @default(now())
   sentAt         DateTime?

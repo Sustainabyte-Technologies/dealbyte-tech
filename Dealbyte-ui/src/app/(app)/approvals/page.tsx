@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, XCircle, Clock, ShieldAlert, FileText, ArrowRight, FileSpreadsheet, Trash2, Search, Filter, AlertTriangle, RefreshCw } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, ShieldAlert, FileText, ArrowRight, FileSpreadsheet, Trash2, Search, Filter, AlertTriangle, RefreshCw, Download } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { approvalsApi, ApprovalRequest } from '@/lib/api/approvals';
 import { costingApi } from '@/lib/api/costing';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { exportCostingSheetToExcel } from '@/lib/exportCostingExcel';
 
 export default function ApprovalsPage() {
   const queryClient = useQueryClient();
@@ -502,6 +503,13 @@ export default function ApprovalsPage() {
                               Edit Costing
                             </Link>
                             <button
+                              onClick={() => exportCostingSheetToExcel(sheet)}
+                              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-lg border border-emerald-100 transition-colors cursor-pointer flex items-center gap-1"
+                              title="Download Costing as Excel"
+                            >
+                              <Download className="h-3 w-3" /> Excel
+                            </button>
+                            <button
                               onClick={() => setSheetToDelete(sheet)}
                               className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 rounded-lg border border-rose-100 transition-colors cursor-pointer"
                               title="Delete Costing Sheet"
@@ -580,7 +588,7 @@ export default function ApprovalsPage() {
       {/* Costing Sheet View Modal */}
       {activeCostingSheet && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 md:p-8 shadow-2xl border border-slate-200 my-8">
+          <div className="bg-white rounded-3xl max-w-5xl w-full p-6 md:p-8 shadow-2xl border border-slate-200 my-8">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
               <div>
                 <span className="bg-emerald-50 text-emerald-800 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider">
@@ -590,21 +598,56 @@ export default function ApprovalsPage() {
                   {activeCostingSheet.clientName}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Service: <span className="font-semibold text-slate-700">{activeCostingSheet.subService}</span>
+                  Service: <span className="font-semibold text-slate-700">{activeCostingSheet.subService || activeCostingSheet.serviceCategory}</span>
                   {activeCostingSheet.projectName && ` • Project: ${activeCostingSheet.projectName}`}
+                  {activeCostingSheet.siteName && ` • Sites: ${activeCostingSheet.siteName}`}
                 </p>
               </div>
               <button
                 onClick={() => setActiveCostingSheet(null)}
-                className="text-slate-400 hover:text-slate-600 font-bold text-lg p-1.5 hover:bg-slate-100 rounded-full transition-colors"
+                className="text-slate-400 hover:text-slate-600 font-bold text-lg p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 text-xs">
-              {/* Conditional rendering for CPM vs EMS vs standard sheet */}
+              {/* Site, Travel & Station Logistics Banner */}
+              {(activeCostingSheet.siteName || activeCostingSheet.stationType || activeCostingSheet.outstationStartLocation) && (
+                <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 text-xs shadow-2xs">
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Site Deployment Location(s)</span>
+                    <span className="font-bold text-slate-900 text-sm">{activeCostingSheet.siteName || 'Inside Chennai / Standard Base'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Station Mode</span>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded font-black text-xs uppercase tracking-wider ${
+                      activeCostingSheet.stationType === 'OUTSTATION' ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                    }`}>
+                      {activeCostingSheet.stationType || 'LOCAL'}
+                    </span>
+                  </div>
+                  {activeCostingSheet.outstationStartLocation && (
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Transit Route</span>
+                      <span className="font-bold text-slate-700">{activeCostingSheet.outstationStartLocation} ➔ {activeCostingSheet.outstationEndLocation || 'Client Site'}</span>
+                    </div>
+                  )}
+                  {activeCostingSheet.selectedAccommodationTier && (
+                    <div>
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Lodging / Stay</span>
+                      <span className="font-bold text-purple-800 uppercase text-xs">{activeCostingSheet.selectedAccommodationTier} Tier</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Conditional rendering for CPM vs EMS vs Welding/Digiweld vs standard sheet */}
               {(() => {
+                const sheetMargin = activeCostingSheet.marginPct !== undefined && activeCostingSheet.marginPct !== null
+                  ? Number(activeCostingSheet.marginPct)
+                  : (activeCostingSheet.profitPct !== undefined ? Number(activeCostingSheet.profitPct) : 40);
+
                 const isCpm = activeCostingSheet.instrumentRows?.isCpm ||
                               Boolean(activeCostingSheet.isCpm) ||
                               activeCostingSheet.subService?.toLowerCase().includes('cpm') ||
@@ -612,12 +655,14 @@ export default function ApprovalsPage() {
                               activeCostingSheet.serviceCategory?.toLowerCase().includes('chiller');
 
                 if (isCpm) {
-                  const instObj = activeCostingSheet.instrumentRows || {};
-                  const hwRows = (activeCostingSheet.cpmHardwareRows || instObj.cpmHardwareRows || []).filter((r: any) => Number(r.qty || 0) > 0);
-                  const elecRows = (activeCostingSheet.cpmElectricalRows || instObj.cpmElectricalRows || []).filter((r: any) => Number(r.qty || 0) > 0);
-                  const commRows = (activeCostingSheet.cpmCommissioningManpowerRows || instObj.cpmCommissioningManpowerRows || activeCostingSheet.manpowerRows || []).filter((r: any) => Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0);
-                  const instManRows = (activeCostingSheet.cpmInstallationManpowerRows || instObj.cpmInstallationManpowerRows || []).filter((r: any) => Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0);
-                  const cloudRows = (activeCostingSheet.cpmCloudRows || instObj.cpmCloudRows || []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const instObj = activeCostingSheet.instrumentRows && typeof activeCostingSheet.instrumentRows === 'object' && !Array.isArray(activeCostingSheet.instrumentRows)
+                    ? activeCostingSheet.instrumentRows
+                    : {};
+                  const hwRows = (Array.isArray(activeCostingSheet.cpmHardwareRows) ? activeCostingSheet.cpmHardwareRows : Array.isArray(instObj.cpmHardwareRows) ? instObj.cpmHardwareRows : []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const elecRows = (Array.isArray(activeCostingSheet.cpmElectricalRows) ? activeCostingSheet.cpmElectricalRows : Array.isArray(instObj.cpmElectricalRows) ? instObj.cpmElectricalRows : []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const commRows = (Array.isArray(activeCostingSheet.cpmCommissioningManpowerRows) ? activeCostingSheet.cpmCommissioningManpowerRows : Array.isArray(instObj.cpmCommissioningManpowerRows) ? instObj.cpmCommissioningManpowerRows : Array.isArray(activeCostingSheet.manpowerRows) ? activeCostingSheet.manpowerRows : []).filter((r: any) => Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0);
+                  const instManRows = (Array.isArray(activeCostingSheet.cpmInstallationManpowerRows) ? activeCostingSheet.cpmInstallationManpowerRows : Array.isArray(instObj.cpmInstallationManpowerRows) ? instObj.cpmInstallationManpowerRows : []).filter((r: any) => Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0);
+                  const cloudRows = (Array.isArray(activeCostingSheet.cpmCloudRows) ? activeCostingSheet.cpmCloudRows : Array.isArray(instObj.cpmCloudRows) ? instObj.cpmCloudRows : []).filter((r: any) => Number(r.qty || 0) > 0);
 
                   return (
                     <div className="space-y-6">
@@ -633,24 +678,35 @@ export default function ApprovalsPage() {
                                 <th className="p-2 w-10">Sl</th>
                                 <th className="p-2">Brand / Model</th>
                                 <th className="p-2">Item Description</th>
-                                <th className="p-2 text-center w-16">Qty</th>
-                                <th className="p-2 text-center w-16">UoM</th>
-                                <th className="p-2 text-right w-28">Unit Cost</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-center w-14">UoM</th>
+                                <th className="p-2 text-right w-24">Unit Cost (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-24">Unit Price (₹)</th>
+                                <th className="p-2 text-right w-24 font-bold text-slate-900">Total Price (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
-                              {hwRows.map((r: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-slate-50/50">
-                                  <td className="p-2 text-slate-400 font-semibold">{r.slNo || idx + 1}</td>
-                                  <td className="p-2 text-slate-600 font-bold">{r.brand} {r.modelNo ? `(${r.modelNo})` : ''}</td>
-                                  <td className="p-2 text-slate-800">{r.itemDescription}</td>
-                                  <td className="p-2 text-center">{r.qty}</td>
-                                  <td className="p-2 text-center text-slate-500">{r.uom}</td>
-                                  <td className="p-2 text-right">₹{formatCurrency(r.unitCost || 0).replace('₹', '')}</td>
-                                  <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(Number(r.qty || 0) * Number(r.unitCost || 0)).replace('₹', '')}</td>
-                                </tr>
-                              ))}
+                              {hwRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty || 0);
+                                const unitCost = Number(r.unitCost || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : Math.round(unitCost / Math.max(0.01, (100 - margin) / 100));
+                                const totalPrice = r.price !== undefined ? Number(r.price) : qty * unitPrice;
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-400 font-semibold">{r.slNo || idx + 1}</td>
+                                    <td className="p-2 text-slate-600 font-bold">{r.brand} {r.modelNo ? `(${r.modelNo})` : ''}</td>
+                                    <td className="p-2 text-slate-800">{r.itemDescription}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-center text-slate-500">{r.uom}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitPrice).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-slate-900">₹{formatCurrency(totalPrice).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -660,30 +716,41 @@ export default function ApprovalsPage() {
                       {elecRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-emerald-900">
-                            Step 2: Electrical Hardware & Consumables
+                            Step 2: Electrical Hardware &amp; Consumables
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                                 <th className="p-2 w-10">Sl</th>
                                 <th className="p-2">Item Description</th>
-                                <th className="p-2 text-center w-16">Qty</th>
-                                <th className="p-2 text-center w-16">UoM</th>
-                                <th className="p-2 text-right w-28">Unit Cost</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-center w-14">UoM</th>
+                                <th className="p-2 text-right w-24">Unit Cost (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-24">Total Cost (₹)</th>
+                                <th className="p-2 text-right w-24 font-bold text-emerald-900">Total Price (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
-                              {elecRows.map((r: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-slate-50/50">
-                                  <td className="p-2 text-slate-400 font-semibold">{r.slNo || idx + 1}</td>
-                                  <td className="p-2 text-slate-800">{r.itemDescription}</td>
-                                  <td className="p-2 text-center">{r.qty}</td>
-                                  <td className="p-2 text-center text-slate-500">{r.uom}</td>
-                                  <td className="p-2 text-right">₹{formatCurrency(r.unitCost || 0).replace('₹', '')}</td>
-                                  <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(Number(r.qty || 0) * Number(r.unitCost || 0)).replace('₹', '')}</td>
-                                </tr>
-                              ))}
+                              {elecRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty || 0);
+                                const unitCost = Number(r.unitCost || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const totalCost = qty * unitCost;
+                                const totalPrice = Math.round(totalCost / Math.max(0.01, (100 - margin) / 100));
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-400 font-semibold">{r.slNo || idx + 1}</td>
+                                    <td className="p-2 text-slate-800">{r.itemDescription}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-center text-slate-500">{r.uom}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-emerald-900">₹{formatCurrency(totalPrice).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -693,27 +760,39 @@ export default function ApprovalsPage() {
                       {commRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-indigo-900">
-                            Step 3: Testing and Commissioning Scope
+                            Step 3: Testing and Commissioning Manpower &amp; Mandays
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-                                <th className="p-2">Role / Level</th>
-                                <th className="p-2 text-center w-24">Site Days</th>
-                                <th className="p-2 text-right w-28">Day Rate</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2">Member / Role Name</th>
+                                <th className="p-2 text-center w-16">Site Days</th>
+                                <th className="p-2 text-center w-16">Report Days</th>
+                                <th className="p-2 text-right w-24">Site Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Report Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Food / Day (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-indigo-900">Total Cost (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
                               {commRows.map((r: any, idx: number) => {
-                                const totalCost = (Number(r.siteWorkCost || 0) + Number(r.foodRatePerDay || 0)) * Number(r.siteWorkingDays || 0) +
-                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                const siteDays = Number(r.siteWorkingDays || 0);
+                                const reportDays = Number(r.reportWorkingDays || 0);
+                                const siteRate = Number(r.siteWorkCost || 0);
+                                const reportRate = Number(r.reportWorkCost || 0);
+                                const foodRate = Number(r.foodRatePerDay || 0);
+                                const totalCost = (siteRate + foodRate) * siteDays + (reportRate * reportDays);
                                 return (
                                   <tr key={idx} className="hover:bg-slate-50/50">
-                                    <td className="p-2 text-slate-800">{r.name ? `${r.name} (${r.roleLevel?.replace('_', ' ') || 'Engineer'})` : (r.roleLevel?.replace('_', ' ') || 'Engineer')}</td>
-                                    <td className="p-2 text-center">{r.siteWorkingDays}</td>
-                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
-                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-slate-800 font-semibold">
+                                      {r.name ? `${r.name} — ${r.roleLevel?.replace('_', ' ') || 'Engineer'}` : (r.roleLevel?.replace('_', ' ') || 'Engineer')}
+                                    </td>
+                                    <td className="p-2 text-center font-bold">{siteDays}</td>
+                                    <td className="p-2 text-center text-slate-500">{reportDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(siteRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(reportRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(foodRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-indigo-900">₹{formatCurrency(totalCost).replace('₹', '')}</td>
                                   </tr>
                                 );
                               })}
@@ -726,27 +805,39 @@ export default function ApprovalsPage() {
                       {instManRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-purple-900">
-                            Step 4: Installation Charges Mandays Scope
+                            Step 4: Installation Charges Mandays &amp; Field Crew
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-                                <th className="p-2">Role / Level</th>
-                                <th className="p-2 text-center w-24">Site Days</th>
-                                <th className="p-2 text-right w-28">Day Rate</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2">Member / Role Name</th>
+                                <th className="p-2 text-center w-16">Site Days</th>
+                                <th className="p-2 text-center w-16">Report Days</th>
+                                <th className="p-2 text-right w-24">Site Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Report Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Food / Day (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-purple-900">Total Cost (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
                               {instManRows.map((r: any, idx: number) => {
-                                const totalCost = (Number(r.siteWorkCost || 0) + Number(r.foodRatePerDay || 0)) * Number(r.siteWorkingDays || 0) +
-                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                const siteDays = Number(r.siteWorkingDays || 0);
+                                const reportDays = Number(r.reportWorkingDays || 0);
+                                const siteRate = Number(r.siteWorkCost || 0);
+                                const reportRate = Number(r.reportWorkCost || 0);
+                                const foodRate = Number(r.foodRatePerDay || 0);
+                                const totalCost = (siteRate + foodRate) * siteDays + (reportRate * reportDays);
                                 return (
                                   <tr key={idx} className="hover:bg-slate-50/50">
-                                    <td className="p-2 text-slate-800">{r.name ? `${r.name} (${r.roleLevel?.replace('_', ' ') || 'Technician'})` : (r.roleLevel?.replace('_', ' ') || 'Technician')}</td>
-                                    <td className="p-2 text-center">{r.siteWorkingDays}</td>
-                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
-                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-slate-800 font-semibold">
+                                      {r.name ? `${r.name} — ${r.roleLevel?.replace('_', ' ') || 'Technician'}` : (r.roleLevel?.replace('_', ' ') || 'Technician')}
+                                    </td>
+                                    <td className="p-2 text-center font-bold">{siteDays}</td>
+                                    <td className="p-2 text-center text-slate-500">{reportDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(siteRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(reportRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(foodRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-purple-900">₹{formatCurrency(totalCost).replace('₹', '')}</td>
                                   </tr>
                                 );
                               })}
@@ -759,28 +850,36 @@ export default function ApprovalsPage() {
                       {cloudRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-amber-900">
-                            Step 5: Software Cost (Cloud Basis)
+                            Step 5: Software &amp; Cloud Platform Scope
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                                 <th className="p-2">Module Description</th>
-                                <th className="p-2 text-center w-16">Qty</th>
-                                <th className="p-2 text-center w-16">UoM</th>
-                                <th className="p-2 text-right w-28">Unit Cost</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-center w-14">UoM</th>
+                                <th className="p-2 text-right w-24">Unit Cost (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-24 font-bold text-amber-900">Total Price (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
-                              {cloudRows.map((r: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-slate-50/50">
-                                  <td className="p-2 text-slate-800">{r.itemDescription}</td>
-                                  <td className="p-2 text-center">{r.qty}</td>
-                                  <td className="p-2 text-center text-slate-500">{r.uom}</td>
-                                  <td className="p-2 text-right">₹{formatCurrency(r.unitCost || 0).replace('₹', '')}</td>
-                                  <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(Number(r.qty || 0) * Number(r.unitCost || 0)).replace('₹', '')}</td>
-                                </tr>
-                              ))}
+                              {cloudRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty || 0);
+                                const unitCost = Number(r.unitCost || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const totalPrice = Math.round((qty * unitCost) / Math.max(0.01, (100 - margin) / 100));
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-800">{r.itemDescription}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-center text-slate-500">{r.uom}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right font-bold text-amber-900">₹{formatCurrency(totalPrice).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -802,19 +901,21 @@ export default function ApprovalsPage() {
                               activeCostingSheet.serviceCategory?.toLowerCase().includes('iot');
 
                 if (isEms) {
-                  const instObj = activeCostingSheet.instrumentRows || {};
-                  const hwRows = (activeCostingSheet.emsHardwareRows || instObj.emsHardwareRows || []).filter((r: any) => Number(r.qty || 0) > 0);
-                  const caaAutoRows = (activeCostingSheet.caaAutoManpowerRows || instObj.caaAutoManpowerRows || []).filter((r: any) => 
+                  const instObj = activeCostingSheet.instrumentRows && typeof activeCostingSheet.instrumentRows === 'object' && !Array.isArray(activeCostingSheet.instrumentRows)
+                    ? activeCostingSheet.instrumentRows
+                    : {};
+                  const hwRows = (Array.isArray(activeCostingSheet.emsHardwareRows) ? activeCostingSheet.emsHardwareRows : Array.isArray(instObj.emsHardwareRows) ? instObj.emsHardwareRows : []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const caaAutoRows = (Array.isArray(activeCostingSheet.caaAutoManpowerRows) ? activeCostingSheet.caaAutoManpowerRows : Array.isArray(instObj.caaAutoManpowerRows) ? instObj.caaAutoManpowerRows : []).filter((r: any) => 
                     Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0
                   );
-                  const caaInstRows = (activeCostingSheet.caaInstManpowerRows || instObj.caaInstManpowerRows || []).filter((r: any) => 
+                  const caaInstRows = (Array.isArray(activeCostingSheet.caaInstManpowerRows) ? activeCostingSheet.caaInstManpowerRows : Array.isArray(instObj.caaInstManpowerRows) ? instObj.caaInstManpowerRows : []).filter((r: any) => 
                     Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0
                   );
-                  const mpRows = (activeCostingSheet.manpowerRows || instObj.emsManpowerRows || []).filter((r: any) => 
+                  const mpRows = (Array.isArray(activeCostingSheet.manpowerRows) ? activeCostingSheet.manpowerRows : Array.isArray(instObj.emsManpowerRows) ? instObj.emsManpowerRows : []).filter((r: any) => 
                     Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0
                   );
-                  const pfRows = (activeCostingSheet.emsPlatformRows || instObj.emsPlatformRows || []).filter((r: any) => Number(r.qty || 0) > 0);
-                  const rcRows = (activeCostingSheet.emsRecurringRows || instObj.emsRecurringRows || []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const pfRows = (Array.isArray(activeCostingSheet.emsPlatformRows) ? activeCostingSheet.emsPlatformRows : Array.isArray(instObj.emsPlatformRows) ? instObj.emsPlatformRows : []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const rcRows = (Array.isArray(activeCostingSheet.emsRecurringRows) ? activeCostingSheet.emsRecurringRows : Array.isArray(instObj.emsRecurringRows) ? instObj.emsRecurringRows : []).filter((r: any) => Number(r.qty || 0) > 0);
 
                   return (
                     <div className="space-y-6">
@@ -822,30 +923,41 @@ export default function ApprovalsPage() {
                       {hwRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-indigo-900">
-                            1. Hardware Supply
+                            1. Hardware Supply Matrix
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                                 <th className="p-2 w-10">No</th>
-                                <th className="p-2">Description</th>
-                                <th className="p-2 text-center w-16">Qty</th>
-                                <th className="p-2 text-center w-16">UoM</th>
-                                <th className="p-2 text-right w-28">Unit Cost</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2">Description / Scope</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-center w-14">UoM</th>
+                                <th className="p-2 text-right w-24">Unit Cost (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-24">Unit Price (₹)</th>
+                                <th className="p-2 text-right w-24 font-bold text-slate-900">Total Price (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
-                              {hwRows.map((r: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-slate-50/50">
-                                  <td className="p-2 text-slate-400 font-semibold">{r.code || idx + 1}</td>
-                                  <td className="p-2 text-slate-800">{r.description}</td>
-                                  <td className="p-2 text-center">{r.qty}</td>
-                                  <td className="p-2 text-center text-slate-500">{r.uom}</td>
-                                  <td className="p-2 text-right">₹{formatCurrency(r.unitCost || 0).replace('₹', '')}</td>
-                                  <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(Number(r.qty || 0) * Number(r.unitCost || 0)).replace('₹', '')}</td>
-                                </tr>
-                              ))}
+                              {hwRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty || 0);
+                                const unitCost = Number(r.unitCost || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : Math.round(unitCost / Math.max(0.01, (100 - margin) / 100));
+                                const totalPrice = r.price !== undefined ? Number(r.price) : qty * unitPrice;
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-400 font-semibold">{r.code || idx + 1}</td>
+                                    <td className="p-2 text-slate-800">{r.description}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-center text-slate-500">{r.uom}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitPrice).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-slate-900">₹{formatCurrency(totalPrice).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -855,27 +967,39 @@ export default function ApprovalsPage() {
                       {isCompressedAir && caaAutoRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-purple-900">
-                            2. Automation & Commissioning Engineering Scope
+                            2. Automation &amp; Commissioning Engineering Scope
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-                                <th className="p-2">Member / Role</th>
-                                <th className="p-2 text-center w-24">Site Days</th>
-                                <th className="p-2 text-right w-28">Site Day Rate</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2">Member / Role Name</th>
+                                <th className="p-2 text-center w-16">Site Days</th>
+                                <th className="p-2 text-center w-16">Report Days</th>
+                                <th className="p-2 text-right w-24">Site Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Report Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Food / Day (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-purple-900">Total Cost (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
                               {caaAutoRows.map((r: any, idx: number) => {
-                                const totalCost = (Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0)) + 
-                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                const siteDays = Number(r.siteWorkingDays || 0);
+                                const reportDays = Number(r.reportWorkingDays || 0);
+                                const siteRate = Number(r.siteWorkCost || 0);
+                                const reportRate = Number(r.reportWorkCost || 0);
+                                const foodRate = Number(r.foodRatePerDay || 0);
+                                const totalCost = (siteRate + foodRate) * siteDays + (reportRate * reportDays);
                                 return (
                                   <tr key={idx} className="hover:bg-slate-50/50">
-                                    <td className="p-2 text-slate-800">{r.name ? `${r.name} (${r.roleLevel?.replace('_', ' ') || 'Engineer'})` : (r.roleLevel?.replace('_', ' ') || 'Engineer')}</td>
-                                    <td className="p-2 text-center font-bold text-slate-900">{r.siteWorkingDays}</td>
-                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
-                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-slate-800 font-semibold">
+                                      {r.name ? `${r.name} — ${r.roleLevel?.replace('_', ' ') || 'Engineer'}` : (r.roleLevel?.replace('_', ' ') || 'Engineer')}
+                                    </td>
+                                    <td className="p-2 text-center font-bold text-slate-900">{siteDays}</td>
+                                    <td className="p-2 text-center text-slate-500">{reportDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(siteRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(reportRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(foodRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-purple-900">₹{formatCurrency(totalCost).replace('₹', '')}</td>
                                   </tr>
                                 );
                               })}
@@ -888,27 +1012,39 @@ export default function ApprovalsPage() {
                       {isCompressedAir && caaInstRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-indigo-900">
-                            3. Installation, Commissioning & Site Engineering Scope
+                            3. Installation, Commissioning &amp; Site Engineering Scope
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-                                <th className="p-2">Member / Role</th>
-                                <th className="p-2 text-center w-24">Site Days</th>
-                                <th className="p-2 text-right w-28">Site Day Rate</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2">Member / Role Name</th>
+                                <th className="p-2 text-center w-16">Site Days</th>
+                                <th className="p-2 text-center w-16">Report Days</th>
+                                <th className="p-2 text-right w-24">Site Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Report Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Food / Day (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-indigo-900">Total Cost (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
                               {caaInstRows.map((r: any, idx: number) => {
-                                const totalCost = (Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0)) + 
-                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                const siteDays = Number(r.siteWorkingDays || 0);
+                                const reportDays = Number(r.reportWorkingDays || 0);
+                                const siteRate = Number(r.siteWorkCost || 0);
+                                const reportRate = Number(r.reportWorkCost || 0);
+                                const foodRate = Number(r.foodRatePerDay || 0);
+                                const totalCost = (siteRate + foodRate) * siteDays + (reportRate * reportDays);
                                 return (
                                   <tr key={idx} className="hover:bg-slate-50/50">
-                                    <td className="p-2 text-slate-800">{r.name ? `${r.name} (${r.roleLevel?.replace('_', ' ') || 'Technician'})` : (r.roleLevel?.replace('_', ' ') || 'Technician')}</td>
-                                    <td className="p-2 text-center font-bold text-slate-900">{r.siteWorkingDays}</td>
-                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
-                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-slate-800 font-semibold">
+                                      {r.name ? `${r.name} — ${r.roleLevel?.replace('_', ' ') || 'Technician'}` : (r.roleLevel?.replace('_', ' ') || 'Technician')}
+                                    </td>
+                                    <td className="p-2 text-center font-bold text-slate-900">{siteDays}</td>
+                                    <td className="p-2 text-center text-slate-500">{reportDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(siteRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(reportRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(foodRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-indigo-900">₹{formatCurrency(totalCost).replace('₹', '')}</td>
                                   </tr>
                                 );
                               })}
@@ -917,33 +1053,43 @@ export default function ApprovalsPage() {
                         </div>
                       )}
 
-                      {/* Standard EMS Manpower (if not dual compressed air) */}
+                      {/* Standard EMS Manpower */}
                       {!isCompressedAir && mpRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-purple-900">
-                            2. Manpower, Site & Engineering Expenses
+                            2. Manpower, Site &amp; Engineering Expenses
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-                                <th className="p-2">Role / Level</th>
-                                <th className="p-2 text-center w-24">Site Days</th>
-                                <th className="p-2 text-center w-24">Report Days</th>
-                                <th className="p-2 text-right w-28">Site Day Rate</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2">Member / Role Name</th>
+                                <th className="p-2 text-center w-16">Site Days</th>
+                                <th className="p-2 text-center w-16">Report Days</th>
+                                <th className="p-2 text-right w-24">Site Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Report Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Food / Day (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-purple-900">Total Cost (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
                               {mpRows.map((r: any, idx: number) => {
-                                const totalCost = (Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0)) + 
-                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                const siteDays = Number(r.siteWorkingDays || 0);
+                                const reportDays = Number(r.reportWorkingDays || 0);
+                                const siteRate = Number(r.siteWorkCost || 0);
+                                const reportRate = Number(r.reportWorkCost || 0);
+                                const foodRate = Number(r.foodRatePerDay || 0);
+                                const totalCost = (siteRate + foodRate) * siteDays + (reportRate * reportDays);
                                 return (
                                   <tr key={idx} className="hover:bg-slate-50/50">
-                                    <td className="p-2 text-slate-800">{r.roleLevel?.replace('_', ' ') || r.role || 'Engineer'}</td>
-                                    <td className="p-2 text-center">{r.siteWorkingDays}</td>
-                                    <td className="p-2 text-center text-slate-500">{r.reportWorkingDays}</td>
-                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
-                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-slate-800 font-semibold">
+                                      {r.name ? `${r.name} — ${r.roleLevel?.replace('_', ' ') || r.role || 'Engineer'}` : (r.roleLevel?.replace('_', ' ') || r.role || 'Engineer')}
+                                    </td>
+                                    <td className="p-2 text-center font-bold text-slate-900">{siteDays}</td>
+                                    <td className="p-2 text-center text-slate-500">{reportDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(siteRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(reportRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(foodRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-purple-900">₹{formatCurrency(totalCost).replace('₹', '')}</td>
                                   </tr>
                                 );
                               })}
@@ -956,28 +1102,36 @@ export default function ApprovalsPage() {
                       {pfRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-sky-900">
-                            3. IoT platform setup & cloud configuration
+                            3. IoT Platform Setup &amp; Cloud Configuration
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                                 <th className="p-2">Platform Setup Description</th>
-                                <th className="p-2 text-center w-16">Qty</th>
-                                <th className="p-2 text-center w-16">UoM</th>
-                                <th className="p-2 text-right w-28">Unit Cost</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-center w-14">UoM</th>
+                                <th className="p-2 text-right w-24">Unit Cost (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-28 font-bold text-sky-900">Total Price (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
-                              {pfRows.map((r: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-slate-50/50">
-                                  <td className="p-2 text-slate-800">{r.description}</td>
-                                  <td className="p-2 text-center">{r.qty}</td>
-                                  <td className="p-2 text-center text-slate-500">{r.uom}</td>
-                                  <td className="p-2 text-right">₹{formatCurrency(r.unitCost || 0).replace('₹', '')}</td>
-                                  <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(Number(r.qty || 0) * Number(r.unitCost || 0)).replace('₹', '')}</td>
-                                </tr>
-                              ))}
+                              {pfRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty || 0);
+                                const unitCost = Number(r.unitCost || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const totalPrice = Math.round((qty * unitCost) / Math.max(0.01, (100 - margin) / 100));
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-800">{r.description}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-center text-slate-500">{r.uom}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right font-bold text-sky-900">₹{formatCurrency(totalPrice).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -987,28 +1141,227 @@ export default function ApprovalsPage() {
                       {rcRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-amber-900">
-                            4. Subscription & cloud charges (yearly costing)
+                            4. Subscription &amp; Cloud Charges (Yearly Costing)
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                                 <th className="p-2">Subscription Description</th>
-                                <th className="p-2 text-center w-16">Qty</th>
-                                <th className="p-2 text-center w-16">UoM</th>
-                                <th className="p-2 text-right w-28">Monthly Rate</th>
-                                <th className="p-2 text-right w-28">Yearly Total</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-center w-14">UoM</th>
+                                <th className="p-2 text-right w-24">Monthly Cost (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-24">Monthly Price (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-amber-900">Yearly Total (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
-                              {rcRows.map((r: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-slate-50/50">
-                                  <td className="p-2 text-slate-800">{r.description}</td>
-                                  <td className="p-2 text-center">{r.qty}</td>
-                                  <td className="p-2 text-center text-slate-500">{r.uom}</td>
-                                  <td className="p-2 text-right">₹{formatCurrency(r.unitCostPerMonth || 0).replace('₹', '')}</td>
-                                  <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(Number(r.qty || 0) * Number(r.unitCostPerMonth || 0) * 12).replace('₹', '')}</td>
-                                </tr>
-                              ))}
+                              {rcRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty || 0);
+                                const monthlyCost = Number(r.unitCostPerMonth || r.monthlyCost || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const monthlyPrice = r.monthlyPrice !== undefined ? Number(r.monthlyPrice) : Math.round(monthlyCost / Math.max(0.01, (100 - margin) / 100));
+                                const yearlyTotal = r.yearlyPrice !== undefined ? Number(r.yearlyPrice) : monthlyPrice * 12 * (qty || 1);
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-800">{r.description}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-center text-slate-500">{r.uom}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(monthlyCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(monthlyPrice).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-amber-900">₹{formatCurrency(yearlyTotal).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } else if (
+                  Boolean(activeCostingSheet.isWeldingIot) ||
+                  activeCostingSheet.subService?.toLowerCase().includes('welding') ||
+                  activeCostingSheet.subService?.toLowerCase().includes('digiweld') ||
+                  activeCostingSheet.subService?.toLowerCase().includes('weld data') ||
+                  activeCostingSheet.serviceCategory?.toLowerCase().includes('welding') ||
+                  Boolean(activeCostingSheet.weldingSoftwareRows?.length) ||
+                  Boolean(activeCostingSheet.weldingHardwareRows?.length) ||
+                  Boolean(activeCostingSheet.weldingCloudRows?.length)
+                ) {
+                  const swRows = (Array.isArray(activeCostingSheet.weldingSoftwareRows) ? activeCostingSheet.weldingSoftwareRows : []).filter((r: any) => Number(r.price || 0) > 0 || (Number(r.qty || 0) > 0 && Number(r.unitPrice || 0) > 0));
+                  const hwRows = (Array.isArray(activeCostingSheet.weldingHardwareRows) ? activeCostingSheet.weldingHardwareRows : []).filter((r: any) => Number(r.qty || 0) > 0);
+                  const cloudRows = (Array.isArray(activeCostingSheet.weldingCloudRows) ? activeCostingSheet.weldingCloudRows : []).filter((r: any) => Number(r.monthlyPrice || 0) > 0 || Number(r.yearlyPrice || 0) > 0);
+                  const instRows = (Array.isArray(activeCostingSheet.weldingInstallationRows) ? activeCostingSheet.weldingInstallationRows : []).filter((r: any) => Number(r.qty || 0) > 0 || Number(r.unitPrice || 0) > 0);
+
+                  return (
+                    <div className="space-y-6">
+                      {/* One Time / Software Scope */}
+                      {swRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-indigo-900">
+                            One-Time Cost / Software Deliverables
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2 w-10">Sl</th>
+                                <th className="p-2">Deliverable Item / Scope</th>
+                                <th className="p-2">Remarks / Details</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-right w-24">Unit Cost (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-24">Unit Price (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-indigo-900">Total Price (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {swRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty !== undefined ? r.qty : 1);
+                                const unitPrice = Number(r.unitPrice || r.price || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const unitCost = r.unitCost !== undefined ? Number(r.unitCost) : Math.round(unitPrice * (1 - (margin / 100)));
+                                const totalPrice = Number(r.price) || (qty * unitPrice);
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-400 font-semibold">{idx + 1}</td>
+                                    <td className="p-2 text-slate-800 font-semibold">{r.item || r.description}</td>
+                                    <td className="p-2 text-slate-600">{r.remarks || '—'}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(unitCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitPrice).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-indigo-900">₹{formatCurrency(totalPrice).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Hardware Scope */}
+                      {hwRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-sky-900">
+                            Hardware Components
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2 w-10">Sl</th>
+                                <th className="p-2">Component</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-right w-24">Unit Cost (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-24">Unit Price (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-slate-900">Total Price (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {hwRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty || 0);
+                                const unitCost = Number(r.unitCost || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const unitPrice = r.unitPrice !== undefined ? Number(r.unitPrice) : Math.round(unitCost / Math.max(0.01, (100 - margin) / 100));
+                                const totalPrice = r.price !== undefined ? Number(r.price) : qty * unitPrice;
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-400 font-semibold">{idx + 1}</td>
+                                    <td className="p-2 text-slate-800">{r.component || r.name}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitPrice).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-slate-900">₹{formatCurrency(totalPrice).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Recurring Cloud Scope */}
+                      {cloudRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-purple-900">
+                            Recurring Cloud Infrastructure &amp; Support
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2 w-10">Sl</th>
+                                <th className="p-2">Service / Component</th>
+                                <th className="p-2">Tier / Remarks</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-right w-24">Unit Cost / Mo (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-24">Monthly Price (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-purple-900">Yearly Price (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {cloudRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty || 1);
+                                const monthlyPrice = Number(r.monthlyPrice || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const unitMonthlyCost = r.unitMonthlyCost !== undefined ? Number(r.unitMonthlyCost) : Math.round((monthlyPrice / qty) * (1 - (margin / 100)));
+                                const yearlyPrice = Number(r.yearlyPrice) || (monthlyPrice * 12);
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-400 font-semibold">{idx + 1}</td>
+                                    <td className="p-2 text-slate-800 font-semibold">{r.component || r.description}</td>
+                                    <td className="p-2 text-slate-600">{r.remarks || r.tier || '—'}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(unitMonthlyCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(monthlyPrice).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-purple-900">₹{formatCurrency(yearlyPrice).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Installation Scope */}
+                      {instRows.length > 0 && (
+                        <div>
+                          <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-emerald-900">
+                            Installation &amp; Commissioning
+                          </h4>
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2 w-10">Sl</th>
+                                <th className="p-2">Deliverable Scope</th>
+                                <th className="p-2 text-center w-14">Qty</th>
+                                <th className="p-2 text-right w-24">Unit Cost (₹)</th>
+                                <th className="p-2 text-center w-16">Margin</th>
+                                <th className="p-2 text-right w-28 font-bold text-emerald-900">Total Price (₹)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-medium">
+                              {instRows.map((r: any, idx: number) => {
+                                const qty = Number(r.qty || 1);
+                                const unitPrice = Number(r.unitPrice || r.price || 0);
+                                const margin = r.marginPct !== undefined ? Number(r.marginPct) : sheetMargin;
+                                const unitCost = r.unitCost !== undefined ? Number(r.unitCost) : Math.round(unitPrice * (1 - (margin / 100)));
+                                const totalPrice = Number(r.price) || (qty * unitPrice);
+                                return (
+                                  <tr key={idx} className="hover:bg-slate-50/50">
+                                    <td className="p-2 text-slate-400 font-semibold">{idx + 1}</td>
+                                    <td className="p-2 text-slate-800">{r.scope || r.description}</td>
+                                    <td className="p-2 text-center font-bold">{qty}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(unitCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-center font-semibold text-emerald-700">{margin}%</td>
+                                    <td className="p-2 text-right font-bold text-emerald-900">₹{formatCurrency(totalPrice).replace('₹', '')}</td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -1017,13 +1370,17 @@ export default function ApprovalsPage() {
                   );
                 } else {
                   // General Audit Sheets
-                  const mpRows = (activeCostingSheet.manpowerRows || []).filter((r: any) => 
+                  const rawMp = Array.isArray(activeCostingSheet.manpowerRows) ? activeCostingSheet.manpowerRows : [];
+                  const rawInst = Array.isArray(activeCostingSheet.instrumentRows) ? activeCostingSheet.instrumentRows : [];
+                  const rawExtra = Array.isArray(activeCostingSheet.extraExpenseRows) ? activeCostingSheet.extraExpenseRows : [];
+
+                  const mpRows = rawMp.filter((r: any) => 
                     Number(r.siteWorkingDays || 0) > 0 || Number(r.reportWorkingDays || 0) > 0
                   );
-                  const instRows = (activeCostingSheet.instrumentRows || []).filter((r: any) => 
+                  const instRows = rawInst.filter((r: any) => 
                     Number(r.sets || 0) > 0 && Number(r.siteWorkingDays || 0) > 0 && Number(r.rentalCost || 0) > 0
                   );
-                  const extraRows = (activeCostingSheet.extraExpenseRows || []).filter((r: any) => 
+                  const extraRows = rawExtra.filter((r: any) => 
                     Number(r.qty || 0) > 0 && Number(r.rate || 0) > 0
                   );
 
@@ -1033,29 +1390,39 @@ export default function ApprovalsPage() {
                       {mpRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-indigo-900">
-                            Manpower Resource Allocation
+                            Manpower Resource Allocation &amp; Mandays
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
                               <tr className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
-                                <th className="p-2">Role Name</th>
-                                <th className="p-2 text-center w-24">Site Days</th>
-                                <th className="p-2 text-center w-24">Report Days</th>
-                                <th className="p-2 text-right w-28">Site Rate</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2">Member / Role Name</th>
+                                <th className="p-2 text-center w-16">Site Days</th>
+                                <th className="p-2 text-center w-16">Report Days</th>
+                                <th className="p-2 text-right w-24">Site Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Report Rate (₹)</th>
+                                <th className="p-2 text-right w-24">Food / Day (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-slate-900">Total Cost (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
                               {mpRows.map((r: any, idx: number) => {
-                                const totalCost = (Number(r.siteWorkCost || 0) * Number(r.siteWorkingDays || 0)) + 
-                                                  (Number(r.reportWorkCost || 0) * Number(r.reportWorkingDays || 0));
+                                const siteDays = Number(r.siteWorkingDays || 0);
+                                const reportDays = Number(r.reportWorkingDays || 0);
+                                const siteRate = Number(r.siteWorkCost || 0);
+                                const reportRate = Number(r.reportWorkCost || 0);
+                                const foodRate = Number(r.foodRatePerDay || 0);
+                                const totalCost = (siteRate + foodRate) * siteDays + (reportRate * reportDays);
                                 return (
                                   <tr key={idx} className="hover:bg-slate-50/50">
-                                    <td className="p-2 text-slate-850 font-semibold">{r.role || r.roleLevel?.replace('_', ' ')}</td>
-                                    <td className="p-2 text-center">{r.siteWorkingDays}</td>
-                                    <td className="p-2 text-center text-slate-500">{r.reportWorkingDays}</td>
-                                    <td className="p-2 text-right">₹{formatCurrency(r.siteWorkCost || 0).replace('₹', '')}</td>
-                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-slate-800 font-semibold">
+                                      {r.name ? `${r.name} — ${r.roleLevel?.replace('_', ' ') || r.role || 'Auditor'}` : (r.roleLevel?.replace('_', ' ') || r.role || 'Auditor')}
+                                    </td>
+                                    <td className="p-2 text-center font-bold text-slate-900">{siteDays}</td>
+                                    <td className="p-2 text-center text-slate-500">{reportDays}</td>
+                                    <td className="p-2 text-right">₹{formatCurrency(siteRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(reportRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right text-slate-600">₹{formatCurrency(foodRate).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-slate-900">₹{formatCurrency(totalCost).replace('₹', '')}</td>
                                   </tr>
                                 );
                               })}
@@ -1076,8 +1443,8 @@ export default function ApprovalsPage() {
                                 <th className="p-2">Instrument</th>
                                 <th className="p-2 text-center w-20">Sets</th>
                                 <th className="p-2 text-center w-24">Site Days</th>
-                                <th className="p-2 text-right w-28">Day Rate</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2 text-right w-28">Day Rate (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-purple-900">Total Cost (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
@@ -1086,10 +1453,10 @@ export default function ApprovalsPage() {
                                 return (
                                   <tr key={idx} className="hover:bg-slate-50/50">
                                     <td className="p-2 text-slate-850">{r.instrumentName}</td>
-                                    <td className="p-2 text-center">{r.sets}</td>
+                                    <td className="p-2 text-center font-bold">{r.sets}</td>
                                     <td className="p-2 text-center">{r.siteWorkingDays}</td>
                                     <td className="p-2 text-right">₹{formatCurrency(r.rentalCost || 0).replace('₹', '')}</td>
-                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-purple-900">₹{formatCurrency(totalCost).replace('₹', '')}</td>
                                   </tr>
                                 );
                               })}
@@ -1102,7 +1469,7 @@ export default function ApprovalsPage() {
                       {extraRows.length > 0 && (
                         <div>
                           <h4 className="font-black text-slate-900 mb-2 border-b border-slate-100 pb-1 text-xs uppercase tracking-wider text-amber-900">
-                            Extra Logistics & Travel Expenses
+                            Extra Logistics &amp; Travel Expenses
                           </h4>
                           <table className="w-full text-left border-collapse">
                             <thead>
@@ -1111,8 +1478,8 @@ export default function ApprovalsPage() {
                                 <th className="p-2 w-32">Category</th>
                                 <th className="p-2 text-center w-20">Qty</th>
                                 <th className="p-2 text-center w-20">Days</th>
-                                <th className="p-2 text-right w-28">Rate</th>
-                                <th className="p-2 text-right w-28">Total Cost</th>
+                                <th className="p-2 text-right w-28">Rate (₹)</th>
+                                <th className="p-2 text-right w-28 font-bold text-amber-900">Total Cost (₹)</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
@@ -1122,10 +1489,10 @@ export default function ApprovalsPage() {
                                   <tr key={idx} className="hover:bg-slate-50/50">
                                     <td className="p-2 text-slate-800">{r.description}</td>
                                     <td className="p-2 text-slate-500 font-semibold text-[10px] uppercase tracking-wider">{r.category}</td>
-                                    <td className="p-2 text-center">{r.qty}</td>
+                                    <td className="p-2 text-center font-bold">{r.qty}</td>
                                     <td className="p-2 text-center text-slate-500">{r.days}</td>
                                     <td className="p-2 text-right">₹{formatCurrency(r.rate || 0).replace('₹', '')}</td>
-                                    <td className="p-2 text-right font-bold text-slate-700">₹{formatCurrency(totalCost).replace('₹', '')}</td>
+                                    <td className="p-2 text-right font-bold text-amber-900">₹{formatCurrency(totalCost).replace('₹', '')}</td>
                                   </tr>
                                 );
                               })}
@@ -1140,38 +1507,60 @@ export default function ApprovalsPage() {
             </div>
 
             {/* Calculations Summary Info */}
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-700">
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-extrabold">Sustainabyte Cost</span>
-                <p className="text-base font-black text-slate-900 mt-1">
-                  ₹{formatCurrency(activeCostingSheet.subtotalCost)}
-                </p>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-extrabold">Margin Percentage</span>
-                <p className="text-base font-black text-indigo-700 mt-1">
-                  {activeCostingSheet.marginPct}%
-                </p>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-extrabold">Buffer / Contingency</span>
-                <p className="text-base font-black text-amber-700 mt-1">
-                  {activeCostingSheet.bufferPct}%
-                </p>
-              </div>
-              <div>
-                <span className="text-emerald-800 block text-[10px] uppercase tracking-wider font-extrabold">Final Quote Price</span>
-                <p className="text-lg font-black text-emerald-700 mt-1">
-                  {formatCurrency(activeCostingSheet.finalQuote)}
-                </p>
-              </div>
-            </div>
+            {(() => {
+              const sheetMargin = activeCostingSheet.marginPct !== undefined && activeCostingSheet.marginPct !== null
+                ? Number(activeCostingSheet.marginPct)
+                : (activeCostingSheet.profitPct !== undefined ? Number(activeCostingSheet.profitPct) : 40);
 
-            <div className="flex items-center justify-end mt-6">
+              const sheetBuffer = activeCostingSheet.bufferPct !== undefined && activeCostingSheet.bufferPct !== null
+                ? Number(activeCostingSheet.bufferPct)
+                : 0;
+
+              const subtotalCost = Number(activeCostingSheet.subtotalCost || activeCostingSheet.totalCost || activeCostingSheet.costTotal || 0);
+              const finalQuote = Number(activeCostingSheet.finalQuote || activeCostingSheet.ourQuoteAmount || 0);
+
+              return (
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-700">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-extrabold">Sustainabyte Cost</span>
+                    <p className="text-base font-black text-slate-900 mt-1">
+                      ₹{formatCurrency(subtotalCost)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-extrabold">Margin Percentage</span>
+                    <p className="text-base font-black text-indigo-700 mt-1">
+                      {sheetMargin}%
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-extrabold">Buffer / Contingency</span>
+                    <p className="text-base font-black text-amber-700 mt-1">
+                      {sheetBuffer}%
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-emerald-800 block text-[10px] uppercase tracking-wider font-extrabold">Final Quote Price</span>
+                    <p className="text-lg font-black text-emerald-700 mt-1">
+                      {formatCurrency(finalQuote)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="flex items-center justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => exportCostingSheetToExcel(activeCostingSheet)}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Download className="h-3.5 w-3.5" /> Download Excel
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveCostingSheet(null)}
-                className="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-colors"
+                className="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
               >
                 Close Sheet
               </button>

@@ -30,7 +30,6 @@ export const DEFAULT_CLIENT_OPTIONS = [
   'Solid Pro',
   'Sags Apparels',
   'JN Machineries',
-  'PMEL India Pvt Ltd',
   'Velmurugan Industries',
   'Wheels India',
   'Whirlpool',
@@ -43,6 +42,7 @@ export const DEFAULT_CLIENT_OPTIONS = [
   'Aatral Engineering',
   'Visalam Energy',
   'Parekh Place India Pvt',
+  'Featherlite',
   'ITC',
   'CII',
   'Tidel Park',
@@ -68,6 +68,7 @@ export const DEFAULT_CLIENT_OPTIONS = [
   'Danfoss Industries Ltd',
   'Denali India',
   'Hyundai Motor India',
+  'Royal Enfield',
   'Saint-Gobain Glass',
   'TVS Motor Company',
 ];
@@ -82,6 +83,10 @@ export const CLIENT_LOGOS_MAP: Record<string, string> = {
   'dash renewable energy': '/logo/Dash Green.png',
   'dash green': '/logo/Dash Green.png',
   'dashrenevable energy': '/logo/Dash Green.png',
+  'featherlite': '/logo/Featherlite-red-band-logo.png',
+  'feather lite': '/logo/Featherlite-red-band-logo.png',
+  'featherlite furniture': '/logo/Featherlite-red-band-logo.png',
+  'featherlite living': '/logo/Featherlite-red-band-logo.png',
   'flextronics': '/logo/Flextronics.svg',
   'gestamp': '/logo/gestamlogoss1.svg',
   'gestamp india': '/logo/gestamlogoss1.svg',
@@ -89,6 +94,10 @@ export const CLIENT_LOGOS_MAP: Record<string, string> = {
   'itc': '/logo/ITC.webp',
   'itc limited': '/logo/ITC.webp',
   'jn machineries': '/logo/JN Machineries.jpg',
+  'royal enfield': '/logo/royalEnfieldLogo.svg',
+  'royalenfield': '/logo/royalEnfieldLogo.svg',
+  'royal enfield motors': '/logo/royalEnfieldLogo.svg',
+  'royal enfield india': '/logo/royalEnfieldLogo.svg',
   'sags apparels': '/logo/Sags Apparels.svg',
   'solid pro': '/logo/Solid Pro.svg',
   'solidpro': '/logo/Solid Pro.svg',
@@ -1991,11 +2000,6 @@ Reporting:
 • Provide a comprehensive report detailing including Provide actionable recommendations for optimizing the gas system based on leakage audit including leak repairs and potential energy-saving opportunities.
 • Tagging each leakage with mentioned details about location of the leakage, intensity of the leakage, replacement part and repair instruction.
 
-Timeline:
-• Day 1: Data Collection, Leakage Audit (Pre Audit).
-• Day 2: Analysis and Report Submission. (Off Site).
-• Day 3: Post Audit (Once the Rectifications Completed).
-
 Our Leakage Detector Overview:
 • Leak Detection Principle – Identifies high-frequency ultrasonic sound waves generated when compressed air, gas, or vacuum escapes through small openings.
 • Frequency Range – Typically operates between 20 kHz to 100 kHz, beyond the range of human hearing.
@@ -2634,7 +2638,7 @@ export const IOT_SERVICES_SUB_SERVICES = [
 ];
 
 export const WELDING_IOT_SUB_SERVICES = [
-  'Welding IoT & Kit',
+  'Welding IoT Kit',
   'Digiweld',
 ];
 
@@ -2978,22 +2982,11 @@ export const INITIAL_WELDING_HARDWARE_ROWS: WeldingHardwareRow[] = [
 ];
 
 export const INITIAL_DIGIWELD_SOFTWARE_ROWS: WeldingSoftwareRow[] = [
-  { id: 'dw_1', item: 'UI/UX Table Design for Documents (Mobile)', description: 'UI/UX Table Design for Documents (Mobile)', qty: 0, uom: 'Job', unitCost: 20000, marginPct: 40, unitPrice: 33333, price: 0 },
-  { id: 'dw_2', item: 'Backend API for Table (Mobile)', description: 'Backend API for Table (Mobile)', qty: 0, uom: 'Job', unitCost: 20000, marginPct: 40, unitPrice: 33333, price: 0 },
+  { id: 'dw_1', item: 'UI/UX Web Design', description: 'UI/UX Web Design', qty: 0, uom: 'Job', unitCost: 20000, marginPct: 40, unitPrice: 33333, price: 0 },
+  { id: 'dw_2', item: 'Backend API for Web', description: 'Backend API for Web', qty: 0, uom: 'Job', unitCost: 20000, marginPct: 40, unitPrice: 33333, price: 0 },
   { id: 'dw_3', item: 'Dashboard Report Generation UI/UX & Backend API (Web)', description: 'Dashboard Report Generation UI/UX & Backend API (Web)', qty: 0, uom: 'Job', unitCost: 10000, marginPct: 40, unitPrice: 16667, price: 0 },
-  { id: 'dw_4', item: 'Paint Defect Mapping with Weld Tracker Sheet UI & Backend (Mobile)', description: 'Paint Defect Mapping with Weld Tracker Sheet UI & Backend (Mobile)', qty: 0, uom: 'Job', unitCost: 15000, marginPct: 40, unitPrice: 25000, price: 0 },
-  { id: 'dw_5', item: '785HP ETO – 6770030 Data Conversion', description: '785HP ETO – 6770030 Data Conversion', qty: 0, uom: 'Job', unitCost: 3000, marginPct: 40, unitPrice: 5000, price: 0 },
-  { id: 'dw_6', item: '785 HP Updated Floor Data Conversion', description: '785 HP Updated Floor Data Conversion', qty: 0, uom: 'Job', unitCost: 3000, marginPct: 40, unitPrice: 5000, price: 0 },
-  { id: 'dw_7', item: '785HP ETO NDT Report Integration', description: '785HP ETO NDT Report Integration', qty: 0, uom: 'Job', unitCost: 2500, marginPct: 40, unitPrice: 4167, price: 0 },
-  { id: 'dw_8', item: 'Weld Try Out Report Integration', description: 'Weld Try Out Report Integration', qty: 0, uom: 'Job', unitCost: 1000, marginPct: 40, unitPrice: 1667, price: 0 },
-  { id: 'dw_9', item: 'LPA Checksheet Integration', description: 'LPA Checksheet Integration', qty: 0, uom: 'Job', unitCost: 1000, marginPct: 40, unitPrice: 1667, price: 0 },
-  { id: 'dw_10', item: 'Paint Defect Mapping Backend Creation', description: 'Paint Defect Mapping Backend Creation', qty: 0, uom: 'Job', unitCost: 10000, marginPct: 40, unitPrice: 16667, price: 0 },
-  { id: 'dw_11', item: 'Paint Defect Mapping UI Creation', description: 'Paint Defect Mapping UI Creation', qty: 0, uom: 'Job', unitCost: 10000, marginPct: 40, unitPrice: 16667, price: 0 },
-  { id: 'dw_12', item: 'Paint Defect Mapping – Per 5 Files', description: 'Paint Defect Mapping – Per 5 Files', qty: 0, uom: 'Job', unitCost: 5000, marginPct: 40, unitPrice: 8333, price: 0 },
-  { id: 'dw_13', item: 'Weld Station Planned Method Conformance Audit Checksheet', description: 'Weld Station Planned Method Conformance Audit Checksheet', qty: 0, uom: 'Job', unitCost: 1000, marginPct: 40, unitPrice: 1667, price: 0 },
-  { id: 'dw_14', item: 'Work Station Audit Integration', description: 'Work Station Audit Integration', qty: 0, uom: 'Job', unitCost: 1000, marginPct: 40, unitPrice: 1667, price: 0 },
-  { id: 'dw_15', item: 'Testing & Deployment', description: 'Testing & Deployment', qty: 0, uom: 'Job', unitCost: 5000, marginPct: 40, unitPrice: 8333, price: 0 },
-  { id: 'dw_16', item: 'Buffer / Miscellaneous', description: 'Buffer / Miscellaneous', qty: 0, uom: 'Job', unitCost: 500, marginPct: 40, unitPrice: 833, price: 0 },
+ 
+  { id: 'dw_4', item: 'Buffer / Miscellaneous', description: 'Buffer / Miscellaneous', qty: 0, uom: 'Job', unitCost: 500, marginPct: 40, unitPrice: 833, price: 0 },
 ];
 
 export const INITIAL_DIGIWELD_CLOUD_ROWS: WeldingCloudRow[] = [
@@ -3025,13 +3018,6 @@ Technologies Used:
 ● Web App: Next.js, Tailwind css
 ● Email Notifications: Firebase Email Service or 3rd Party API (e.g., Send Grid)
 ● State Management: Provider / Riverpod / Bloc
-
-Timeline Estimate:
-● UI/UX Design: 2 weeks
-● Development (All Features): 4 weeks
-● Testing & QA: 2 weeks
-● Deployment & Training: 1 week
-● Total: 9 weeks
 
 Deliverables:
 ● Complete mobile app (Android and Web)
@@ -3109,12 +3095,6 @@ POC / Phase 1 Success Criteria:
 1. Completion of hardware installation and Commissioning as per requirement
 2. Demonstration of deviation through Online weld parameter deviation indicator
 3. Demonstration of live and historic data trends in cloud with deviation alerts and alarms
-
-Timeline:
-• 4 Weeks: Kit Production and testing
-• 1 Week: Installation and Commissioning of Kits in welding machines
-• 1 Week: Configuration of Welding machines to Cloud platform
-• 2 Weeks: Validation of POC success criteria
 
 IoT 4.0 Welding benefits:
 
