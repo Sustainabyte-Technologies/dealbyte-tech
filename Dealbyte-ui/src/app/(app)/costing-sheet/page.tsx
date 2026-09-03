@@ -2096,7 +2096,27 @@ function CostingSheetContent() {
     }, 0);
   }, [iotControlsOpexRows]);
 
-  const iotTotalProjectCost = iotHardwareTotalPrice + emsManpowerTotalCost + iotOpexTotalYearly;
+  const iotOpexTotalYearlyCost = useMemo(() => {
+    return iotControlsOpexRows.reduce((sum, r) => {
+      const qty = Number(r.quantity || 0);
+      const uCost = Number(r.unitCost || 0);
+      const rowCost = r.quantity !== undefined && r.unitCost !== undefined
+        ? Math.round(qty * uCost)
+        : Math.round(Number(r.yearlyPrice || 0) * (1 - (profitPct || 40) / 100));
+      return sum + rowCost;
+    }, 0);
+  }, [iotControlsOpexRows, profitPct]);
+
+  const isIrBlasterCosting = (activeSubServiceName || '').toLowerCase().includes('ir blaster');
+  const iotHardwareBaseWithoutPkg = iotHardwareBasePrice;
+  const iotHardwareContingency = bufferPct > 0 ? Math.round(iotHardwareBaseWithoutPkg / Math.max(0.01, (100 - bufferPct) / 100)) : iotHardwareBaseWithoutPkg;
+  const iotHardwareRounded = roundToNearest(iotHardwareContingency + iotEffectivePackagingPrice, roundingNearest);
+  const iotOpexContingency = bufferPct > 0 ? Math.round(iotOpexTotalYearly / Math.max(0.01, (100 - bufferPct) / 100)) : iotOpexTotalYearly;
+  const iotOpexRounded = roundToNearest(iotOpexContingency, roundingNearest);
+  const iotFinalQuote = iotHardwareRounded + (isIrBlasterCosting ? iotOpexRounded : 0);
+  const iotRawTotalBase = iotHardwareTotalPrice + (isIrBlasterCosting ? iotOpexTotalYearly : emsManpowerTotalPrice);
+  const iotBufferAmount = iotFinalQuote - iotRawTotalBase;
+  const iotTotalProjectCost = iotHardwareBaseCost + iotEffectivePackagingCost + (isIrBlasterCosting ? iotOpexTotalYearlyCost : emsManpowerTotalCost);
 
   // ROI Projections
   const roiInflation = 1 + (Number(iotControlsRoiState.energyInflationPct) || 0) / 100;
@@ -2882,22 +2902,15 @@ function CostingSheetContent() {
           iotControlsTravelRows,
           iotControlsOpexRows,
           iotControlsRoiState,
+          iotPackagingPct,
+          iotPackagingMarginPct,
+          iotPackagingManualCost,
+          iotPackagingManualPrice,
           subtotalCost: iotTotalProjectCost,
           marginPct: profitPct,
           bufferPct: bufferPct,
-          bufferAmount: (() => {
-            const isIr = (activeSubServiceName || '').toLowerCase().includes('ir blaster');
-            const base = iotHardwareTotalPrice + (isIr ? iotOpexTotalYearly : 0);
-            const cont = bufferPct > 0 ? Math.round(base / Math.max(0.01, (100 - bufferPct) / 100)) : base;
-            const finalQ = Math.ceil(cont / Math.max(1, roundingNearest)) * Math.max(1, roundingNearest);
-            return finalQ - base;
-          })(),
-          finalQuote: (() => {
-            const isIr = (activeSubServiceName || '').toLowerCase().includes('ir blaster');
-            const base = iotHardwareTotalPrice + (isIr ? iotOpexTotalYearly : 0);
-            const cont = bufferPct > 0 ? Math.round(base / Math.max(0.01, (100 - bufferPct) / 100)) : base;
-            return Math.ceil(cont / Math.max(1, roundingNearest)) * Math.max(1, roundingNearest);
-          })(),
+          bufferAmount: iotBufferAmount,
+          finalQuote: iotFinalQuote,
           roundingNearest: roundingNearest,
         }
         : isWeldingIotActive
@@ -3046,8 +3059,13 @@ function CostingSheetContent() {
           iotControlsTravelRows,
           iotControlsOpexRows,
           iotControlsRoiState,
+          iotPackagingPct,
+          iotPackagingMarginPct,
+          iotPackagingManualCost,
+          iotPackagingManualPrice,
           marginPct: profitPct,
           bufferPct: bufferPct,
+          roundingNearest: roundingNearest,
         }
         : isWeldingIotActive
           ? {
@@ -3167,6 +3185,18 @@ function CostingSheetContent() {
       }
       if (template.iotControlsRoiState && typeof template.iotControlsRoiState === 'object') {
         setIotControlsRoiState(template.iotControlsRoiState);
+      }
+      if (template.iotPackagingPct !== undefined) {
+        setIotPackagingPct(Number(template.iotPackagingPct));
+      }
+      if (template.iotPackagingMarginPct !== undefined) {
+        setIotPackagingMarginPct(Number(template.iotPackagingMarginPct));
+      }
+      if (template.iotPackagingManualCost !== undefined) {
+        setIotPackagingManualCost(template.iotPackagingManualCost);
+      }
+      if (template.iotPackagingManualPrice !== undefined) {
+        setIotPackagingManualPrice(template.iotPackagingManualPrice);
       }
     }
 

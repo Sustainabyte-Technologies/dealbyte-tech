@@ -2597,6 +2597,15 @@ PAN Number – ABNCS4869A`;
           setIotStep5Rows(extracted);
         }
       } else if (isIotControls) {
+        const roundToNearest = (val: number, nearest: number = 100): number => {
+          const step = Number(nearest) || 1;
+          return Math.ceil(val / step) * step;
+        };
+
+        const buffer = Number(sheetAny?.bufferPct !== undefined ? sheetAny.bufferPct : 10);
+        const margin = Number(sheetAny?.marginPct !== undefined ? sheetAny.marginPct : 40);
+        const nearest = Number(sheetAny?.roundingNearest || 100);
+
         const extracted: Array<{
           id: string;
           section?: string;
@@ -2616,6 +2625,8 @@ PAN Number – ABNCS4869A`;
         const activeHw = hwRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0);
         activeHw.forEach((r: any, idx: number) => {
           const q = Number(r.quantity || r.qty || 1);
+          const rawPrice = Number(r.unitPrice || 0) > 0 ? Number(r.unitPrice) * q : calcPriceFromCost(Number(r.unitCost || 5000), r.marginPct ?? margin) * q;
+          const custPrice = buffer > 0 ? roundToNearest(rawPrice / Math.max(0.01, (100 - buffer) / 100), nearest) : roundToNearest(rawPrice, nearest);
           extracted.push({
             id: `ich-${idx}`,
             section: '1. IoT Hardware & Control Panel Scope',
@@ -2623,13 +2634,16 @@ PAN Number – ABNCS4869A`;
             description: r.productDescription || r.itemDescription || 'Hardware Control Component',
             qty: q,
             uom: 'Nos',
-            customerPrice: resolvePrice(r, Math.round(Number(r.unitPrice || 5000) * q)),
+            customerPrice: resolvePrice(r, custPrice),
           });
         });
 
         const mdRows = sheetAny?.iotControlsMandaysRows || [];
         const activeMd = mdRows.filter((r: any) => Number(r.mandays || 0) > 0 && Number(r.totalCost || r.ratePerDay || 0) > 0);
         activeMd.forEach((r: any, idx: number) => {
+          const rawCost = Number(r.totalCost || (r.ratePerDay ? r.ratePerDay * r.mandays : 25000));
+          const rawPrice = calcPriceFromCost(rawCost, margin);
+          const custPrice = buffer > 0 ? roundToNearest(rawPrice / Math.max(0.01, (100 - buffer) / 100), nearest) : roundToNearest(rawPrice, nearest);
           extracted.push({
             id: `icm-${idx}`,
             section: '2. Engineering & Commissioning Mandays Scope',
@@ -2637,24 +2651,35 @@ PAN Number – ABNCS4869A`;
             description: `${r.designation || 'Specialist'}: ${r.description || ''}`,
             qty: Number(r.mandays || 1),
             uom: 'Mandays',
-            customerPrice: resolvePrice(r, Number(r.totalCost || (r.ratePerDay ? r.ratePerDay * r.mandays : 25000))),
+            customerPrice: resolvePrice(r, custPrice),
           });
         });
 
         const opRows = sheetAny?.iotControlsOpexRows || [];
         const activeOp = opRows.filter((r: any) => Number(r.quantity || r.qty || 0) > 0 && Number(r.yearlyPrice || r.unitPrice || 0) > 0);
         activeOp.forEach((r: any, idx: number) => {
+          const q = Number(r.quantity || 1);
+          const rawPrice = Number(r.unitPrice || 0) > 0 ? Number(r.unitPrice) * q : Number(r.yearlyPrice || 12000);
+          const custPrice = buffer > 0 ? roundToNearest(rawPrice / Math.max(0.01, (100 - buffer) / 100), nearest) : roundToNearest(rawPrice, nearest);
           extracted.push({
             id: `ico-${idx}`,
             section: '3. Annual Maintenance & Cloud OPEX Scope',
             stepNo: `${extracted.length + 1}`,
             description: `${r.item || 'OPEX Support'}: ${r.description || ''}`,
-            qty: Number(r.quantity || 1),
+            qty: q,
             uom: 'Year',
-            customerPrice: resolvePrice(r, Number(r.yearlyPrice || 12000)),
+            customerPrice: resolvePrice(r, custPrice),
             isRecurring: true,
           });
         });
+
+        // Alignment with sheetAny.finalQuote if available
+        if (sheetAny?.finalQuote && Number(sheetAny.finalQuote) > 0 && extracted.length > 0) {
+          const currentSum = extracted.reduce((sum, item) => sum + (item.customerPrice || 0), 0);
+          if (currentSum !== Number(sheetAny.finalQuote)) {
+            extracted[0].customerPrice += (Number(sheetAny.finalQuote) - currentSum);
+          }
+        }
 
         if (extracted.length > 0) {
           setIotStep5Rows(extracted);

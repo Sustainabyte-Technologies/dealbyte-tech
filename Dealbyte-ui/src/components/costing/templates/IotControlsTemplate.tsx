@@ -200,7 +200,7 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
   // Buffer / Contingency calculations (Contingency is NOT applied to Packaging Charges)
   const hardwareBaseWithoutPkg = iotHardwareBasePrice;
   const hardwareContingency = bufferPct > 0 ? Math.round(hardwareBaseWithoutPkg / Math.max(0.01, (100 - bufferPct) / 100)) : hardwareBaseWithoutPkg;
-  const hardwareRounded = roundToNearest(hardwareContingency, roundingNearest) + iotEffectivePackagingPrice;
+  const hardwareRounded = roundToNearest(hardwareContingency + iotEffectivePackagingPrice, roundingNearest);
 
   const opexContingency = bufferPct > 0 ? Math.round(rawOpexBase / Math.max(0.01, (100 - bufferPct) / 100)) : rawOpexBase;
   const opexRounded = roundToNearest(opexContingency, roundingNearest);
@@ -395,61 +395,59 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
               )}
 
               {/* TOTAL 2: Packaging Charges Row (Fully Editable) */}
-              {(iotHardwareBasePrice > 0 || iotEffectivePackagingPrice > 0) && (
-                <tr className="bg-emerald-50/60 font-bold border-t border-emerald-200 text-xs text-slate-800">
-                  <td className="py-2.5 px-3 text-center text-emerald-800">★</td>
-                  <td className="py-2.5 px-4 font-extrabold text-emerald-950" colSpan={4}>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <div className="flex items-center gap-1 bg-emerald-200/90 text-emerald-950 rounded px-1.5 py-0.5 border border-emerald-300">
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          step={0.5}
-                          value={iotPackagingPct}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setIotPackagingPct?.(val);
-                            setIotPackagingManualCost?.(null);
-                            setIotPackagingManualPrice?.(null);
-                          }}
-                          className="w-9 text-center bg-white font-black text-emerald-950 rounded text-xs py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                        />
-                        <span className="font-black text-[10px] text-emerald-900">% Capex</span>
-                      </div>
-                      <span>Packaging Charges (Overall Hardware Selling Total × {iotPackagingPct}%)</span>
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-3 text-center font-bold text-slate-500">
-                    <div className="flex items-center justify-center gap-0.5 bg-white border border-slate-200 rounded px-1 py-0.5">
+              <tr className="bg-emerald-50/60 font-bold border-t border-emerald-200 text-xs text-slate-800">
+                <td className="py-2.5 px-3 text-center text-emerald-800">★</td>
+                <td className="py-2.5 px-4 font-extrabold text-emerald-950" colSpan={4}>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="flex items-center gap-1 bg-emerald-200/90 text-emerald-950 rounded px-1.5 py-0.5 border border-emerald-300">
                       <input
                         type="number"
                         min={0}
                         max={100}
-                        value={iotPackagingMarginPct}
-                        onChange={(e) => setIotPackagingMarginPct?.(Number(e.target.value) || 0)}
-                        className="w-7 text-center text-xs font-bold text-slate-700 focus:outline-none"
-                      />
-                      <span className="text-slate-400 text-[10px]">%</span>
-                    </div>
-                  </td>
-                  <td className="py-1 px-2 text-right font-extrabold text-emerald-800">
-                    <div className="flex items-center gap-0.5 bg-white border border-emerald-300 rounded px-1 py-0.5 shadow-2xs">
-                      <span className="text-emerald-700 text-[10px]">₹</span>
-                      <input
-                        type="number"
-                        value={iotPackagingManualPrice !== null ? iotPackagingManualPrice : iotEffectivePackagingPrice}
+                        step={0.5}
+                        value={iotPackagingPct}
                         onChange={(e) => {
-                          const val = e.target.value === '' ? null : Number(e.target.value);
-                          setIotPackagingManualPrice?.(val);
+                          const val = Number(e.target.value);
+                          setIotPackagingPct?.(val);
+                          setIotPackagingManualCost?.(null);
+                          setIotPackagingManualPrice?.(null);
                         }}
-                        className="w-full text-right text-xs font-black text-emerald-950 focus:outline-none"
+                        className="w-10 text-center bg-white font-black text-emerald-950 rounded text-xs py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
+                      <span className="font-black text-[10px] text-emerald-900">% Capex</span>
                     </div>
-                  </td>
-                  <td className="py-2.5 px-2 text-center text-emerald-600 font-bold">✓</td>
-                </tr>
-              )}
+                    <span>Packaging Charges (Overall Hardware Selling Total × {iotPackagingPct}%)</span>
+                  </div>
+                </td>
+                <td className="py-2.5 px-3 text-center font-bold text-slate-500">
+                  <div className="flex items-center justify-center gap-0.5 bg-white border border-slate-200 rounded px-1 py-0.5">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={iotPackagingMarginPct}
+                      onChange={(e) => setIotPackagingMarginPct?.(Number(e.target.value) || 0)}
+                      className="w-7 text-center text-xs font-bold text-slate-700 focus:outline-none"
+                    />
+                    <span className="text-slate-400 text-[10px]">%</span>
+                  </div>
+                </td>
+                <td className="py-1 px-2 text-right font-extrabold text-emerald-800">
+                  <div className="flex items-center gap-0.5 bg-white border border-emerald-300 rounded px-1 py-0.5 shadow-2xs">
+                    <span className="text-emerald-700 text-[10px]">₹</span>
+                    <input
+                      type="number"
+                      value={iotPackagingManualPrice !== null ? iotPackagingManualPrice : iotEffectivePackagingPrice}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? null : Number(e.target.value);
+                        setIotPackagingManualPrice?.(val);
+                      }}
+                      className="w-full text-right text-xs font-black text-emerald-950 focus:outline-none"
+                    />
+                  </div>
+                </td>
+                <td className="py-2.5 px-2 text-center text-emerald-600 font-bold">✓</td>
+              </tr>
             </tbody>
             <tfoot className="bg-slate-100 font-extrabold text-slate-900 border-t-2 border-slate-300">
               <tr>
@@ -776,11 +774,30 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
                     </tr>
                   );
                 })}
-                {iotEffectivePackagingPrice > 0 && (
+                {(iotPackagingPct > 0 || iotEffectivePackagingPrice > 0) && (
                   <tr className="bg-emerald-50/40 font-bold">
                     <td className="py-2 px-3 text-center font-bold text-emerald-800 border-r border-slate-200">★</td>
                     <td className="py-2 px-4 font-bold text-emerald-950 border-r border-slate-200">
-                      Packaging &amp; Forwarding Charges ({iotPackagingPct}% of Overall Hardware Capex)
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-1 bg-emerald-100 text-emerald-950 rounded px-1.5 py-0.5 border border-emerald-300">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={0.5}
+                            value={iotPackagingPct}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setIotPackagingPct?.(val);
+                              setIotPackagingManualCost?.(null);
+                              setIotPackagingManualPrice?.(null);
+                            }}
+                            className="w-10 text-center bg-white font-black text-emerald-950 rounded text-xs py-0.5 border border-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          <span className="font-black text-[10px] text-emerald-900">% Capex</span>
+                        </div>
+                        <span>Packaging &amp; Forwarding Charges ({iotPackagingPct}% of Overall Hardware Capex)</span>
+                      </div>
                     </td>
                     <td className="py-2 px-3 text-center font-bold text-slate-800 border-r border-slate-200">1</td>
                     <td className="py-2 px-4 text-right font-semibold text-slate-800 border-r border-slate-200">
