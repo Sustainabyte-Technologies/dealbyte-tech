@@ -147,6 +147,9 @@ export class CreateQuoteDto {
   @IsOptional()
   customContent?: any;
 
+  @IsOptional()
+  selectedAssetIds?: string[];
+
   @IsString()
   @IsOptional()
   scopeDetails?: string;
@@ -256,6 +259,9 @@ export class UpdateQuoteDto {
 
   @IsOptional()
   customContent?: any;
+
+  @IsOptional()
+  selectedAssetIds?: string[];
 
   @IsString()
   @IsOptional()

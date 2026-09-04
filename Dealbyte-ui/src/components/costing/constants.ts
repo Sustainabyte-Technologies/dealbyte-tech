@@ -27,7 +27,7 @@ export const DEFAULT_CLIENT_OPTIONS = [
   'Gestamp',
   'Gestamp India',
   'Flextronics',
-  'Solid Pro',
+  
   'Sags Apparels',
   'JN Machineries',
   'Velmurugan Industries',

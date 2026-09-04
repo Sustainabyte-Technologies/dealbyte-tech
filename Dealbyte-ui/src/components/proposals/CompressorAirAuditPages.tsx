@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ASSESSMENT_ASSETS } from '@/lib/constants/assessment-assets';
 
 interface CompressorAirAuditPagesProps {
   deal: any;
@@ -19,7 +20,26 @@ export function CompressorAirAuditPages({
   finalPrice,
   formatCurrency,
 }: CompressorAirAuditPagesProps) {
-  const totalPages = 12;
+  const selectedAssetIds: string[] =
+    proposal?.customContent?.selectedAssetIds ||
+    proposal?.selectedAssetIds ||
+    (proposal?.quote as any)?.customContent?.selectedAssetIds ||
+    (proposal?.quote as any)?.selectedAssetIds ||
+    (deal as any)?.customContent?.selectedAssetIds ||
+    [];
+
+  const selectedAssets = ASSESSMENT_ASSETS.filter((a) => selectedAssetIds.includes(a.id));
+  const assetChunks = React.useMemo(() => {
+    if (selectedAssets.length === 0) return [];
+    const chunks: (typeof selectedAssets)[] = [];
+    const chunkSize = 3;
+    for (let i = 0; i < selectedAssets.length; i += chunkSize) {
+      chunks.push(selectedAssets.slice(i, i + chunkSize));
+    }
+    return chunks;
+  }, [selectedAssets]);
+  const offset = assetChunks.length;
+  const totalPages = 12 + (offset > 0 ? offset - 1 : 0);
   const clientName = deal?.clientName || (proposal as any)?.clientName || 'Valued Client';
 
   const PageLogo = () => (
@@ -40,11 +60,11 @@ export function CompressorAirAuditPages({
           style={{ backgroundImage: "url('/watermark-transparent.png')", backgroundSize: 'contain' }}
           aria-hidden="true"
         />
-        <div className="relative z-10 flex-1 flex flex-col justify-between">
-          <div className="space-y-4 flex-1">
+        <div className="relative z-10 flex-1 flex flex-col justify-between h-full">
+          <div className="flex-1 flex flex-col justify-between">
             {children}
           </div>
-          <div className="text-center pt-3">
+          <div className="text-center pt-3 shrink-0">
             <span className="text-[12px] text-slate-500">{pageNum}</span>
           </div>
         </div>
@@ -57,7 +77,7 @@ export function CompressorAirAuditPages({
       {/* ── PAGE 1: COVER PAGE ── */}
       <PageShell pageNum={1}>
         <PageLogo />
-        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8">
+        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8 my-auto">
           <h1 className="text-[22px] font-bold text-black underline underline-offset-4 decoration-1 leading-relaxed">
             Techno Commercial Proposal for Compressed Air Audit
           </h1>
@@ -67,19 +87,21 @@ export function CompressorAirAuditPages({
               <img src={(proposal as any).clientLogo} alt={`${clientName} Logo`} className="max-h-[120px] w-auto object-contain mx-auto" />
             </div>
           )}
-          <div className="text-left text-[12px] text-black space-y-1">
+          <div className="text-center text-[12px] text-black space-y-1">
             <p>Quotation No: {proposalRef}</p>
             <p>Date: {proposalDate}</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-300 text-[10px] text-black leading-snug">
-          <div>
-            <p className="font-bold text-[11px] mb-1">COPYRIGHT</p>
-            <p>&copy; This Report is the copyright of <strong><u>Sustainabyte Technologies Pvt Ltd</u></strong>. Any unauthorised reproduction or usage by any person other than the addressee is strictly prohibited</p>
-          </div>
-          <div>
-            <p className="font-bold text-[11px] mb-1">CONFIDENTIAL</p>
-            <p>All reasonable precautionary methods in handling the document and the information contained herein should be taken to prevent any third party from obtaining access. No responsibility is taken by <u>Sustainabyte Technologies Pvt Ltd</u> for the use of this document by any third party.</p>
+        <div className="mt-auto shrink-0 pt-4">
+          <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-300 text-[10px] text-black leading-snug">
+            <div>
+              <p className="font-bold text-[11px] mb-1">COPYRIGHT</p>
+              <p>&copy; This Report is the copyright of <strong><u>Sustainabyte Technologies Pvt Ltd</u></strong>. Any unauthorised reproduction or usage by any person other than the addressee is strictly prohibited</p>
+            </div>
+            <div>
+              <p className="font-bold text-[11px] mb-1">CONFIDENTIAL</p>
+              <p>All reasonable precautionary methods in handling the document and the information contained herein should be taken to prevent any third party from obtaining access. No responsibility is taken by <u>Sustainabyte Technologies Pvt Ltd</u> for the use of this document by any third party.</p>
+            </div>
           </div>
         </div>
       </PageShell>
@@ -186,8 +208,42 @@ export function CompressorAirAuditPages({
         </div>
       </PageShell>
 
-      {/* ── PAGE 6: COMMERCIALS & SUPPORT REQUIRED ── */}
-      <PageShell pageNum={6}>
+      {/* ── SCOPE OF WORK: EQUIPMENT & ASSET ASSESSMENT SCOPE PAGE(S) ── */}
+      {assetChunks.map((chunk, cIdx) => (
+        <PageShell key={`ca-asset-page-${cIdx}`} pageNum={6 + cIdx}>
+          <PageLogo />
+          <div className="space-y-3 flex-1 flex flex-col justify-between">
+            <div>
+              <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1 mb-1">
+                Scope of Work — Equipment &amp; Asset Assessment Scope{assetChunks.length > 1 ? ` (Part ${cIdx + 1})` : ''}:
+              </h2>
+              <p className="text-[11px] text-black leading-relaxed">
+                The detailed scope of assessment activities for each designated equipment category is outlined below:
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              {chunk.map((asset) => (
+                <div key={asset.id} className="border border-slate-300 p-2.5 rounded-lg bg-slate-50/60">
+                  <p className="font-bold text-[11.5px] text-black mb-1">{asset.name}</p>
+                  <ul className="list-disc pl-4 text-[10px] text-slate-800 space-y-0.5 leading-relaxed">
+                    {asset.scopes.map((scope, sIdx) => (
+                      <li key={sIdx}>{scope}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-2 bg-slate-100 rounded text-[9.5px] text-slate-600 border border-slate-200">
+              * Assessment methodologies and scope criteria are conducted adhering to BEE, ISO 50001, and ASHRAE energy measurement standards.
+            </div>
+          </div>
+        </PageShell>
+      ))}
+
+      {/* ── COMMERCIALS & SUPPORT REQUIRED ── */}
+      <PageShell pageNum={6 + offset}>
         <PageLogo />
         <div className="space-y-4 flex-1">
           <div>
@@ -240,8 +296,8 @@ export function CompressorAirAuditPages({
         </div>
       </PageShell>
 
-      {/* ── PAGE 7: TERMS & PHASE-2 SCOPE ── */}
-      <PageShell pageNum={7}>
+      {/* ── TERMS & PHASE-2 SCOPE ── */}
+      <PageShell pageNum={7 + offset}>
         <PageLogo />
         <div className="space-y-4 flex-1">
           <div>
@@ -268,8 +324,8 @@ export function CompressorAirAuditPages({
         </div>
       </PageShell>
 
-      {/* ── PAGE 8: PHASE-3 VALIDATION ── */}
-      <PageShell pageNum={8}>
+      {/* ── PHASE-3 VALIDATION ── */}
+      <PageShell pageNum={8 + offset}>
         <PageLogo />
         <div className="space-y-4 flex-1">
           <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1">
@@ -285,8 +341,8 @@ export function CompressorAirAuditPages({
         </div>
       </PageShell>
 
-      {/* ── PAGE 9: AIR COMPRESSOR EFFICIENCY AUDIT ── */}
-      <PageShell pageNum={9}>
+      {/* ── AIR COMPRESSOR EFFICIENCY AUDIT ── */}
+      <PageShell pageNum={9 + offset}>
         <PageLogo />
         <div className="space-y-4 flex-1">
           <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1">
@@ -303,8 +359,8 @@ export function CompressorAirAuditPages({
         </div>
       </PageShell>
 
-      {/* ── PAGE 10: DEMAND FLOW MEASUREMENT ── */}
-      <PageShell pageNum={10}>
+      {/* ── DEMAND FLOW MEASUREMENT ── */}
+      <PageShell pageNum={10 + offset}>
         <PageLogo />
         <div className="space-y-4 flex-1">
           <h2 className="text-[16px] font-bold text-black underline underline-offset-4 decoration-1">
@@ -325,8 +381,8 @@ export function CompressorAirAuditPages({
         </div>
       </PageShell>
 
-      {/* ── PAGE 11: SUBMITTED BY & BANK DETAILS ── */}
-      <PageShell pageNum={11}>
+      {/* ── SUBMITTED BY & BANK DETAILS ── */}
+      <PageShell pageNum={11 + offset}>
         <PageLogo />
         <div className="space-y-6 flex-1">
           <div className="space-y-2">
@@ -356,8 +412,8 @@ export function CompressorAirAuditPages({
         </div>
       </PageShell>
 
-      {/* ── PAGE 12: THANK YOU ── */}
-      <PageShell pageNum={12}>
+      {/* ── THANK YOU ── */}
+      <PageShell pageNum={12 + offset}>
         <PageLogo />
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4">
           <p className="text-[28px] font-black uppercase tracking-widest text-black">

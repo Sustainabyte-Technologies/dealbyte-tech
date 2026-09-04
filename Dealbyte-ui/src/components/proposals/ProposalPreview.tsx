@@ -268,10 +268,14 @@ export default function ProposalPreview({
       lineItemsText.includes('ddc panel') ||
       lineItemsText.includes('central plant') ||
       Boolean((deal?.service as any)?.name?.toLowerCase()?.includes('cpm')) ||
+      Boolean((deal?.service as any)?.name?.toLowerCase()?.includes('chiller')) ||
       Boolean((deal?.service as any)?.category?.toLowerCase()?.includes('cpm')) ||
+      Boolean((deal?.service as any)?.category?.toLowerCase()?.includes('chiller')) ||
       Boolean((deal?.service as any)?.category?.toLowerCase()?.includes('chiller management')) ||
       Boolean((proposal as any)?.serviceName?.toLowerCase()?.includes('cpm')) ||
-      Boolean((proposal as any)?.subService?.toLowerCase()?.includes('cpm')));
+      Boolean((proposal as any)?.serviceName?.toLowerCase()?.includes('chiller')) ||
+      Boolean((proposal as any)?.subService?.toLowerCase()?.includes('cpm')) ||
+      Boolean((proposal as any)?.subService?.toLowerCase()?.includes('chiller')));
 
   const isWaterAutomation =
     subServiceTitle.includes('water automation') ||
@@ -535,6 +539,70 @@ export default function ProposalPreview({
     dbCostingSheet ||
     null;
 
+  const selectedAssetIds: string[] = React.useMemo(() => {
+    const raw =
+      (proposal as any)?.customContent?.selectedAssetIds ||
+      (proposal as any)?.selectedAssetIds ||
+      (proposal?.quote as any)?.customContent?.selectedAssetIds ||
+      (proposal?.quote as any)?.selectedAssetIds ||
+      (quote as any)?.customContent?.selectedAssetIds ||
+      (quote as any)?.selectedAssetIds ||
+      (deal as any)?.customContent?.selectedAssetIds ||
+      (deal as any)?.selectedAssetIds ||
+      [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {}
+    }
+    return [];
+  }, [proposal, quote, deal]);
+
+  const selectedAssessmentAssets = React.useMemo(() => {
+    let ids = [...selectedAssetIds];
+    if (ids.length === 0) {
+      const textScope =
+        (proposal as any)?.customContent?.scopeOfWork ||
+        (proposal as any)?.customContent?.step5Text ||
+        (proposal as any)?.scopeDetails ||
+        (quote as any)?.customContent?.scopeOfWork ||
+        (quote as any)?.customContent?.step5Text ||
+        (quote as any)?.scopeDetails ||
+        '';
+      if (textScope) {
+        ASSESSMENT_ASSETS.forEach((a) => {
+          const clean = a.name.replace(/^[0-9]+\.\s*/, '').toLowerCase();
+          if (textScope.toLowerCase().includes(clean)) {
+            ids.push(a.id);
+          }
+        });
+      }
+    }
+    if (ids.length === 0) return [];
+    const list: typeof ASSESSMENT_ASSETS = [];
+    ids.forEach((id) => {
+      const found = ASSESSMENT_ASSETS.find((a) => a.id === id);
+      if (found && !list.some((x) => x.id === found.id)) {
+        list.push(found);
+      }
+    });
+    return list;
+  }, [selectedAssetIds, proposal, quote]);
+
+  const assetChunks = React.useMemo(() => {
+    if (selectedAssessmentAssets.length === 0) return [];
+    const chunks: (typeof selectedAssessmentAssets)[] = [];
+    const chunkSize = 4;
+    for (let i = 0; i < selectedAssessmentAssets.length; i += chunkSize) {
+      chunks.push(selectedAssessmentAssets.slice(i, i + chunkSize));
+    }
+    return chunks;
+  }, [selectedAssessmentAssets]);
+
+  const extraScopePages = assetChunks.length > 1 ? assetChunks.length - 1 : 0;
+
   const flatIotItems = DEFAULT_IOT_CATEGORIES.flatMap((c) => c.items);
   const hasSavedLineItems = Boolean(quote?.lineItems && quote.lineItems.length > 0);
 
@@ -723,13 +791,14 @@ export default function ProposalPreview({
     );
   };
 
-  const totalPages = isCompressorAirLeakageAudit
+  const basePages = isCompressorAirLeakageAudit
     ? 6
     : isCompressorAirLeakageRectification
     ? 3
     : isEcFan
     ? 4
     : 5;
+  const totalPages = basePages + extraScopePages;
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
 
   const downloadFullPdf = async () => {
@@ -766,9 +835,11 @@ export default function ProposalPreview({
         const origMinHeight = pageEl.style.minHeight;
         const origMaxHeight = pageEl.style.maxHeight;
 
-        // Force exact A4 pixel dimensions (800 x 1131) during capture
+        // Capture pixel dimensions (width 800, height at least A4 standard 1131px or extended)
         const elWidth = 800;
-        const elHeight = Math.round(800 * (297 / 210)); // 1131px
+        const defaultA4Height = Math.round(800 * (297 / 210)); // 1131px
+        const elHeight = Math.max(defaultA4Height, pageEl.scrollHeight || 0);
+        const pageHeightMm = (elHeight / elWidth) * 210;
 
         pageEl.style.margin = '0';
         pageEl.style.borderRadius = '0';
@@ -802,11 +873,14 @@ export default function ProposalPreview({
           });
 
           if (i > 0) {
-            pdf.addPage('a4', 'p');
+            pdf.addPage([210, pageHeightMm], 'p');
+          } else if (pageHeightMm > 297) {
+            pdf.deletePage(1);
+            pdf.addPage([210, pageHeightMm], 'p');
           }
 
-          // Fill the entire A4 page edge-to-edge
-          pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
+          // Fill the page edge-to-edge
+          pdf.addImage(imgData, 'PNG', 0, 0, 210, pageHeightMm, undefined, 'FAST');
         } finally {
           // Restore original styles
           pageEl.style.margin = origMargin;
@@ -1135,7 +1209,7 @@ export default function ProposalPreview({
             className="proposal-page relative z-10 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xl w-full max-w-[800px] mx-auto text-slate-800 h-[1130px] min-h-[1130px] max-h-[1130px] flex flex-col justify-between overflow-hidden"
             style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
           >
-            <div className="border-2 border-slate-900 p-6 sm:p-8 flex-1 flex flex-col justify-between relative overflow-hidden">
+            <div className="border-2 border-slate-900 p-6 sm:p-8 h-full flex-1 flex flex-col justify-between relative overflow-hidden">
               <div
                 className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.14] bg-center bg-no-repeat"
                 style={{ backgroundImage: "url('/watermark-transparent.png')", backgroundSize: 'contain' }}
@@ -1143,7 +1217,7 @@ export default function ProposalPreview({
               />
 
               {/* Top Sustainabyte Logo */}
-              <div className="relative z-10 flex justify-end">
+              <div className="relative z-10 flex justify-end shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/Company-Logo-Light.png"
@@ -1186,26 +1260,28 @@ export default function ProposalPreview({
                 </div>
               </div>
 
-              {/* Bottom Copyright & Confidential Box */}
-              <div className="relative z-10 border-t border-slate-300 pt-4 grid grid-cols-2 gap-6 text-[10px] text-slate-800 leading-snug">
-                <div>
-                  <p className="font-bold text-[11px] uppercase tracking-wider text-slate-950 mb-1">COPYRIGHT</p>
-                  <p className="text-slate-700">
-                    &copy; This Report is the copyright of <strong><u>Sustainabyte Technologies Pvt Ltd</u></strong>. Any unauthorised reproduction or usage by any person other than the addressee is strictly prohibited
-                  </p>
+              {/* Bottom Copyright & Confidential Box and Page 1 Footer */}
+              <div className="relative z-10 shrink-0 mt-auto pt-4 space-y-3">
+                <div className="border-t border-slate-300 pt-4 grid grid-cols-2 gap-6 text-[10px] text-slate-800 leading-snug">
+                  <div>
+                    <p className="font-bold text-[11px] uppercase tracking-wider text-slate-950 mb-1">COPYRIGHT</p>
+                    <p className="text-slate-700">
+                      &copy; This Report is the copyright of <strong><u>Sustainabyte Technologies Pvt Ltd</u></strong>. Any unauthorised reproduction or usage by any person other than the addressee is strictly prohibited
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-[11px] uppercase tracking-wider text-slate-950 mb-1">CONFIDENTIAL</p>
+                    <p className="text-slate-700">
+                      All reasonable precautionary methods in handling the document and the information contained herein should be taken to prevent any third party from obtaining access. No responsibility is taken by <u>Sustainabyte Technologies Pvt Ltd</u> for the use of this document by any third party.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-[11px] uppercase tracking-wider text-slate-950 mb-1">CONFIDENTIAL</p>
-                  <p className="text-slate-700">
-                    All reasonable precautionary methods in handling the document and the information contained herein should be taken to prevent any third party from obtaining access. No responsibility is taken by <u>Sustainabyte Technologies Pvt Ltd</u> for the use of this document by any third party.
-                  </p>
-                </div>
-              </div>
 
-              <div className="relative z-10 border-t border-slate-200 pt-2.5 mt-3 flex items-center justify-between text-[10px] text-slate-400 font-medium">
-                <span>Ref: {proposalRef}</span>
-                <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
-                <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">Page 1 of {totalPages}</span>
+                <div className="border-t border-slate-200 pt-2.5 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                  <span>Ref: {proposalRef}</span>
+                  <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
+                  <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">Page 1 of {totalPages}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1584,7 +1660,9 @@ export default function ProposalPreview({
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-slate-200 pb-2.5 gap-4">
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Detailed Scope of Work &amp; Assessment Methodology</p>
-                      <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">{deal?.clientName} — Energy Audit</h2>
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+                        {clientName || deal?.clientName || 'Valued Client'} — {isAshraeLevel2 ? 'ASHRAE Level 2 Audit' : 'Energy Audit'}
+                      </h2>
                       <div className="text-[11px] font-mono text-slate-500 mt-0.5">
                         <span>Ref: <strong>{proposalRef}</strong></span>
                       </div>
@@ -1865,66 +1943,86 @@ export default function ProposalPreview({
                         </p>
                       </div>
 
-                      <div className="space-y-1">
-                        <div>
-                          <p className="font-bold text-slate-950">Data Collection and Review</p>
-                          <p className="text-slate-800">The audit team will collect the last 12 months of electricity bills and district cooling bills for detailed analysis.</p>
-                          <p className="text-slate-800">The team will gather building-related information such as total built-up area, occupancy pattern, and operating hours.</p>
-                          <p className="text-slate-800">The inventory of major equipment including AHUs, FCUs, pumps, heat exchangers, lighting systems, and transformers will be compiled.</p>
-                          <p className="text-slate-800">All available technical documents such as single line diagrams, HVAC schematics, and operation manuals will be reviewed to understand system configuration.</p>
+                      {assetChunks.length > 0 ? (
+                        <div className="space-y-2.5 pt-1 text-slate-800 leading-relaxed text-[10px]">
+                          {assetChunks[0].map((asset, idx) => {
+                            const cleanName = asset.name.replace(/^[0-9]+\.\s*/, '');
+                            return (
+                              <div key={asset.id} className="space-y-0.5">
+                                <p className="font-bold text-slate-950 text-[10px]">
+                                  {idx + 1}. {cleanName}
+                                </p>
+                                <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                                  {asset.scopes.map((scope, sIdx) => (
+                                    <li key={sIdx}>• {scope}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            );
+                          })}
                         </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <div>
+                            <p className="font-bold text-slate-950">Data Collection and Review</p>
+                            <p className="text-slate-800">The audit team will collect the last 12 months of electricity bills and district cooling bills for detailed analysis.</p>
+                            <p className="text-slate-800">The team will gather building-related information such as total built-up area, occupancy pattern, and operating hours.</p>
+                            <p className="text-slate-800">The inventory of major equipment including AHUs, FCUs, pumps, heat exchangers, lighting systems, and transformers will be compiled.</p>
+                            <p className="text-slate-800">All available technical documents such as single line diagrams, HVAC schematics, and operation manuals will be reviewed to understand system configuration.</p>
+                          </div>
 
-                        <div>
-                          <p className="font-bold text-slate-950">Electricity Bill Analysis</p>
-                          <p className="text-slate-800">The electricity bills will be analyzed to study monthly energy consumption, maximum demand, and power factor trends.</p>
-                          <p className="text-slate-800">The analysis will identify demand peaks, penalties, and opportunities for tariff optimization.</p>
-                        </div>
+                          <div>
+                            <p className="font-bold text-slate-950">Electricity Bill Analysis</p>
+                            <p className="text-slate-800">The electricity bills will be analyzed to study monthly energy consumption, maximum demand, and power factor trends.</p>
+                            <p className="text-slate-800">The analysis will identify demand peaks, penalties, and opportunities for tariff optimization.</p>
+                          </div>
 
-                        <div>
-                          <p className="font-bold text-slate-950">District Cooling Bill Analysis</p>
-                          <p className="text-slate-800">The district cooling billing structure will be reviewed to understand fixed and variable components of the bill.</p>
-                          <p className="text-slate-800">The study will analyze monthly TRh consumption trends and compare them with contracted TR capacity.</p>
-                          <p className="text-slate-800">The assessment will identify any over-contracting or underutilization of cooling capacity.</p>
-                          <p className="text-slate-800">The billed consumption will be validated against actual usage to identify discrepancies or overbilling issues.</p>
-                        </div>
+                          <div>
+                            <p className="font-bold text-slate-950">District Cooling Bill Analysis</p>
+                            <p className="text-slate-800">The district cooling billing structure will be reviewed to understand fixed and variable components of the bill.</p>
+                            <p className="text-slate-800">The study will analyze monthly TRh consumption trends and compare them with contracted TR capacity.</p>
+                            <p className="text-slate-800">The assessment will identify any over-contracting or underutilization of cooling capacity.</p>
+                            <p className="text-slate-800">The billed consumption will be validated against actual usage to identify discrepancies or overbilling issues.</p>
+                          </div>
 
-                        <div>
-                          <p className="font-bold text-slate-950">CDD-Based Consumption Analysis</p>
-                          <p className="text-slate-800">Cooling Degree Days will be used to normalize cooling consumption and eliminate the impact of weather variations.</p>
-                          <p className="text-slate-800">The study will establish correlation between CDD and cooling energy consumption to identify abnormal performance trends.</p>
-                        </div>
+                          <div>
+                            <p className="font-bold text-slate-950">CDD-Based Consumption Analysis</p>
+                            <p className="text-slate-800">Cooling Degree Days will be used to normalize cooling consumption and eliminate the impact of weather variations.</p>
+                            <p className="text-slate-800">The study will establish correlation between CDD and cooling energy consumption to identify abnormal performance trends.</p>
+                          </div>
 
-                        <div>
-                          <p className="font-bold text-slate-950">AHU Performance Assessment</p>
-                          <p className="text-slate-800">Air Handling Units will be evaluated on a sampling basis covering approximately 20% to 30% of total units. The selection of AHUs will be based on capacity, location, and operational diversity.</p>
-                          <p className="text-slate-800">Where measurement provision is available, airflow, temperature, humidity, and static pressure will be measured. The analysis will assess cooling coil performance, fan efficiency, and filter pressure drop.</p>
-                        </div>
+                          <div>
+                            <p className="font-bold text-slate-950">AHU Performance Assessment</p>
+                            <p className="text-slate-800">Air Handling Units will be evaluated on a sampling basis covering approximately 20% to 30% of total units. The selection of AHUs will be based on capacity, location, and operational diversity.</p>
+                            <p className="text-slate-800">Where measurement provision is available, airflow, temperature, humidity, and static pressure will be measured. The analysis will assess cooling coil performance, fan efficiency, and filter pressure drop.</p>
+                          </div>
 
-                        <div>
-                          <p className="font-bold text-slate-950">FCU and Terminal Equipment Assessment</p>
-                          <p className="text-slate-800">Fan Coil Units and other terminal equipment will be assessed to evaluate temperature control and valve operation. The study will identify issues such as overcooling, improper control, and inefficient operation.</p>
-                        </div>
+                          <div>
+                            <p className="font-bold text-slate-950">FCU and Terminal Equipment Assessment</p>
+                            <p className="text-slate-800">Fan Coil Units and other terminal equipment will be assessed to evaluate temperature control and valve operation. The study will identify issues such as overcooling, improper control, and inefficient operation.</p>
+                          </div>
 
-                        <div>
-                          <p className="font-bold text-slate-950">Pump Performance Study</p>
-                          <p className="text-slate-800">Pump systems will be analyzed on a sampling basis covering approximately 20% to 30% of total pumps. Flow rate, head, and power consumption will be measured to calculate pump efficiency. The analysis will identify inefficiencies such as oversizing, throttling losses, and potential for VFD implementation.</p>
-                        </div>
+                          <div>
+                            <p className="font-bold text-slate-950">Pump Performance Study</p>
+                            <p className="text-slate-800">Pump systems will be analyzed on a sampling basis covering approximately 20% to 30% of total pumps. Flow rate, head, and power consumption will be measured to calculate pump efficiency. The analysis will identify inefficiencies such as oversizing, throttling losses, and potential for VFD implementation.</p>
+                          </div>
 
-                        <div>
-                          <p className="font-bold text-slate-950">Heat Exchanger Efficiency Evaluation &amp; Heat Pump / Boiler Assessment</p>
-                          <p className="text-slate-800">Heat exchangers will be assessed by measuring inlet and outlet temperatures and flow rates to identify degradation due to fouling or scaling. Heat pump / boiler systems will be evaluated under operating conditions to identify optimization and waste heat recovery.</p>
-                        </div>
+                          <div>
+                            <p className="font-bold text-slate-950">Heat Exchanger Efficiency Evaluation &amp; Heat Pump / Boiler Assessment</p>
+                            <p className="text-slate-800">Heat exchangers will be assessed by measuring inlet and outlet temperatures and flow rates to identify degradation due to fouling or scaling. Heat pump / boiler systems will be evaluated under operating conditions to identify optimization and waste heat recovery.</p>
+                          </div>
 
-                        <div>
-                          <p className="font-bold text-slate-950">Lighting, Electrical System &amp; Power Quality Study</p>
-                          <p className="text-slate-800">Lux level measurements across retail spaces, corridors, and parking areas compared with standards for LED retrofits. Transformer performance and power quality harmonics, phase imbalance, and system losses.</p>
-                        </div>
+                          <div>
+                            <p className="font-bold text-slate-950">Lighting, Electrical System &amp; Power Quality Study</p>
+                            <p className="text-slate-800">Lux level measurements across retail spaces, corridors, and parking areas compared with standards for LED retrofits. Transformer performance and power quality harmonics, phase imbalance, and system losses.</p>
+                          </div>
 
-                        <div>
-                          <p className="font-bold text-slate-950">Measurement, Instrumentation, ECMs &amp; Deliverables</p>
-                          <p className="text-slate-800">Measurements via calibrated power analyzers, flow meters, anemometers, temperature sensors, and lux meters. Categorized low/medium/high cost ECMs with payback periods and benchmarking (kW/TR, TRh/m²). Detailed audit report along with district cooling analysis, graphical trends, CDD correlation, and executive summary.</p>
+                          <div>
+                            <p className="font-bold text-slate-950">Measurement, Instrumentation, ECMs &amp; Deliverables</p>
+                            <p className="text-slate-800">Measurements via calibrated power analyzers, flow meters, anemometers, temperature sensors, and lux meters. Categorized low/medium/high cost ECMs with payback periods and benchmarking (kW/TR, TRh/m²). Detailed audit report along with district cooling analysis, graphical trends, CDD correlation, and executive summary.</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1935,74 +2033,96 @@ export default function ProposalPreview({
                         1. Scope of Work &amp; Engineering Assessment:
                       </h3>
                       <p className="text-[10px] text-slate-800 leading-tight font-medium">
-                        The Energy Audit evaluates the overall energy performance of the plant across electrical, thermal, process, and utility systems to identify actionable cost reduction, performance improvement, and sustainability opportunities.
+                        {assetChunks.length > 0
+                          ? 'The comprehensive scope of assessment activities for all selected equipment categories is detailed below:'
+                          : 'The Energy Audit evaluates the overall energy performance of the plant across electrical, thermal, process, and utility systems to identify actionable cost reduction, performance improvement, and sustainability opportunities.'}
                       </p>
 
-                      <div className="space-y-1.5 pt-0.5 text-slate-800 text-[10px] leading-tight">
-                        {/* 1. Production and Process Systems */}
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-slate-950 text-[10.5px]">1. Production &amp; Process Systems</p>
-                          <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                            <li>• Specific energy consumption (kWh/unit of production), shift operations, and loading profiles.</li>
-                            <li>• Performance assessment of Induction Electrical Heaters, Heating Systems, and EOT Cranes to eliminate wastage.</li>
-                            <li>• Observation of idle run hours, no-load losses, and equipment scheduling optimization.</li>
-                          </ul>
+                      {assetChunks.length > 0 ? (
+                        <div className="space-y-3 pt-1 text-slate-800 leading-relaxed text-[10.5px]">
+                          {assetChunks[0].map((asset, idx) => {
+                            const cleanName = asset.name.replace(/^[0-9]+\.\s*/, '');
+                            return (
+                              <div key={asset.id} className="space-y-0.5">
+                                <p className="font-bold text-slate-950 text-[10.5px]">
+                                  {idx + 1}. {cleanName}
+                                </p>
+                                <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                                  {asset.scopes.map((scope, sIdx) => (
+                                    <li key={sIdx}>• {scope}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            );
+                          })}
                         </div>
+                      ) : (
+                        <div className="space-y-1.5 pt-0.5 text-slate-800 text-[10px] leading-tight">
+                          {/* 1. Production and Process Systems */}
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-slate-950 text-[10.5px]">1. Production &amp; Process Systems</p>
+                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                              <li>• Specific energy consumption (kWh/unit of production), shift operations, and loading profiles.</li>
+                              <li>• Performance assessment of Induction Electrical Heaters, Heating Systems, and EOT Cranes to eliminate wastage.</li>
+                              <li>• Observation of idle run hours, no-load losses, and equipment scheduling optimization.</li>
+                            </ul>
+                          </div>
 
-                        {/* 2. Electrical Energy Distribution System */}
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-slate-950 text-[10.5px]">2. Electrical Energy Distribution &amp; Power Quality</p>
-                          <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                            <li>• Transformer Performance: Loading patterns, power factor, voltage unbalance, and temperature rise.</li>
-                            <li>• Power Quality: Harmonics analysis, voltage imbalance, reactive power flow, and APFC capacitor bank adequacy.</li>
-                          </ul>
-                        </div>
+                          {/* 2. Electrical Energy Distribution System */}
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-slate-950 text-[10.5px]">2. Electrical Energy Distribution &amp; Power Quality</p>
+                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                              <li>• Transformer Performance: Loading patterns, power factor, voltage unbalance, and temperature rise.</li>
+                              <li>• Power Quality: Harmonics analysis, voltage imbalance, reactive power flow, and APFC capacitor bank adequacy.</li>
+                            </ul>
+                          </div>
 
-                        {/* 3. Compressed Air System */}
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-slate-950 text-[10.5px]">3. Compressed Air System &amp; Ultrasonic Leakage Survey</p>
-                          <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                            <li>• Free Air Delivery (FAD), discharge pressure, power consumption, operating efficiency, and header pressure drops.</li>
-                            <li>• Ultrasonic leak detection and quantification with physical unique ID tagging labels for structured rectification.</li>
-                          </ul>
-                        </div>
+                          {/* 3. Compressed Air System */}
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-slate-950 text-[10.5px]">3. Compressed Air System &amp; Ultrasonic Leakage Survey</p>
+                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                              <li>• Free Air Delivery (FAD), discharge pressure, power consumption, operating efficiency, and header pressure drops.</li>
+                              <li>• Ultrasonic leak detection and quantification with physical unique ID tagging labels for structured rectification.</li>
+                            </ul>
+                          </div>
 
-                        {/* 4. Lighting, DG & HVAC Systems */}
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-slate-950 text-[10.5px]">4. Lighting, DG &amp; HVAC Split Units</p>
-                          <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                            <li>• Lux survey vs IS standards, LED retrofits, DG specific fuel consumption (L/kWh) and exhaust heat recovery.</li>
-                            <li>• Split units cooling capacity, COP calculation, temperature setpoint optimization, and load balancing.</li>
-                          </ul>
-                        </div>
+                          {/* 4. Lighting, DG & HVAC Systems */}
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-slate-950 text-[10.5px]">4. Lighting, DG &amp; HVAC Split Units</p>
+                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                              <li>• Lux survey vs IS standards, LED retrofits, DG specific fuel consumption (L/kWh) and exhaust heat recovery.</li>
+                              <li>• Split units cooling capacity, COP calculation, temperature setpoint optimization, and load balancing.</li>
+                            </ul>
+                          </div>
 
-                        {/* 5. Pumps, Water Systems & Waste Heat Recovery */}
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-slate-950 text-[10.5px]">5. Pumps, Water Systems &amp; Waste Heat Recovery</p>
-                          <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                            <li>• Borewell, WTP, RO, and STP pump efficiency, throttling loss identification, and VFD integration potential.</li>
-                            <li>• Quantification of recoverable heat from DG exhaust, compressor after-coolers, and condensate return units.</li>
-                          </ul>
-                        </div>
+                          {/* 5. Pumps, Water Systems & Waste Heat Recovery */}
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-slate-950 text-[10.5px]">5. Pumps, Water Systems &amp; Waste Heat Recovery</p>
+                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                              <li>• Borewell, WTP, RO, and STP pump efficiency, throttling loss identification, and VFD integration potential.</li>
+                              <li>• Quantification of recoverable heat from DG exhaust, compressor after-coolers, and condensate return units.</li>
+                            </ul>
+                          </div>
 
-                        {/* 6. Comprehensive Water Audit Scope */}
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-slate-950 text-[10.5px]">6. Comprehensive Water Audit Scope</p>
-                          <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                            <li>• Ultrasonic mass balance, baseline water mapping for process &amp; domestic usage, pressure/quality measurements.</li>
-                            <li>• Water balance charts, wastewater treatment &amp; recycling strategies for high reuse and water neutrality.</li>
-                          </ul>
-                        </div>
+                          {/* 6. Comprehensive Water Audit Scope */}
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-slate-950 text-[10.5px]">6. Comprehensive Water Audit Scope</p>
+                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                              <li>• Ultrasonic mass balance, baseline water mapping for process &amp; domestic usage, pressure/quality measurements.</li>
+                              <li>• Water balance charts, wastewater treatment &amp; recycling strategies for high reuse and water neutrality.</li>
+                            </ul>
+                          </div>
 
-                        {/* 7. EnPIs, ENCON & Reporting */}
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-slate-950 text-[10.5px]">7. EnPIs, Benchmarking, Prioritized ENCON Measures &amp; Reporting</p>
-                          <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                            <li>• System-wise Energy Performance Indicators, industry benchmarking, and prioritized ECMs with ROI and payback period.</li>
-                            <li>• Comprehensive audit report, backup calculation sheets, measurement trends, and final executive presentation.</li>
-                          </ul>
+                          {/* 7. EnPIs, ENCON & Reporting */}
+                          <div className="space-y-0.5">
+                            <p className="font-bold text-slate-950 text-[10.5px]">7. EnPIs, Benchmarking, Prioritized ENCON Measures &amp; Reporting</p>
+                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                              <li>• System-wise Energy Performance Indicators, industry benchmarking, and prioritized ECMs with ROI and payback period.</li>
+                              <li>• Comprehensive audit report, backup calculation sheets, measurement trends, and final executive presentation.</li>
+                            </ul>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2015,6 +2135,77 @@ export default function ProposalPreview({
               </div>
             </div>
           )}
+
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* CONTINUATION PAGES: SCOPE OF WORK & ENGINEERING ASSESSMENT         */}
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {assetChunks.slice(1).map((chunk, cIdx) => {
+            const pageNum = 3 + cIdx;
+            const startAssetIndex = (cIdx + 1) * 4;
+            return (
+              <div
+                key={`scope-page-cont-${cIdx}`}
+                className="proposal-page relative z-10 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/90 shadow-2xl w-full max-w-[800px] mx-auto text-slate-800 h-[1130px] min-h-[1130px] max-h-[1130px] flex flex-col justify-between overflow-hidden"
+                style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}
+              >
+                <div className="border-2 border-slate-900 p-5 sm:p-7 flex-1 flex flex-col justify-between relative overflow-hidden">
+                  <div
+                    className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center opacity-[0.14] bg-center bg-no-repeat"
+                    style={{ backgroundImage: "url('/watermark-transparent.png')", backgroundSize: 'contain' }}
+                    aria-hidden="true"
+                  />
+
+                  <div className="relative z-10 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-slate-200 pb-2.5 gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Detailed Scope of Work &amp; Assessment Methodology (Continued)</p>
+                        <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+                          {clientName || deal?.clientName || 'Valued Client'} — {isAshraeLevel2 ? 'ASHRAE Level 2 Audit' : 'Energy Audit'}
+                        </h2>
+                        <div className="text-[11px] font-mono text-slate-500 mt-0.5">
+                          <span>Ref: <strong>{proposalRef}</strong></span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="/Company-Logo-Light.png"
+                          alt="Sustainabyte Technologies Logo"
+                          className="h-14 sm:h-16 w-auto object-contain"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 pt-1 text-slate-800 leading-relaxed text-[10.5px]">
+                      {chunk.map((asset, idx) => {
+                        const cleanName = asset.name.replace(/^[0-9]+\.\s*/, '');
+                        return (
+                          <div key={asset.id} className="space-y-0.5">
+                            <p className="font-bold text-slate-950 text-[10.5px]">
+                              {startAssetIndex + idx + 1}. {cleanName}
+                            </p>
+                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
+                              {asset.scopes.map((scope, sIdx) => (
+                                <li key={sIdx}>• {scope}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 border-t border-slate-200 pt-3 mt-4 flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                    <span>Ref: {proposalRef}</span>
+                    <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
+                    <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                      Page {pageNum} of {totalPages}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
 
           {/* ══════════════════════════════════════════════════════════════════ */}
           {/* DOCUMENT PAGE 3: IOT SCOPE ROADMAP OR ENERGY AUDIT TEAM EXPERTISE  */}
@@ -2636,7 +2827,7 @@ export default function ProposalPreview({
                   <span>Ref: {proposalRef}</span>
                   <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
                   <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                    Page 3 of {totalPages}
+                    Page {3 + extraScopePages} of {totalPages}
                   </span>
                 </div>
               </div>
@@ -2750,7 +2941,7 @@ export default function ProposalPreview({
                   <span>Ref: {proposalRef}</span>
                   <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
                   <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                    Page 4 of {totalPages}
+                    Page {4 + extraScopePages} of {totalPages}
                   </span>
                 </div>
               </div>
@@ -3551,7 +3742,7 @@ export default function ProposalPreview({
                   <span>Ref: {proposalRef}</span>
                   <span className="font-semibold text-slate-500">Confidential — Sustainabyte Technologies Pvt Ltd</span>
                   <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                    Page {isCompressorAirLeakageAudit ? '5' : '4'} of {totalPages}
+                    Page {isCompressorAirLeakageAudit ? 5 + extraScopePages : 4 + extraScopePages} of {totalPages}
                   </span>
                 </div>
               </div>

@@ -60,11 +60,11 @@ export function TemperatureSensorPages({
           style={{ backgroundImage: "url('/watermark-transparent.png')", backgroundSize: 'contain' }}
           aria-hidden="true"
         />
-        <div className="relative z-10 flex-1 flex flex-col justify-between">
-          <div className="space-y-4 flex-1">
+        <div className="relative z-10 flex-1 flex flex-col justify-between h-full">
+          <div className="flex-1 flex flex-col justify-between">
             {children}
           </div>
-          <div className="text-center pt-3">
+          <div className="text-center pt-3 shrink-0">
             <span className="text-[12px] text-slate-500">{pageNum}</span>
           </div>
         </div>
@@ -73,7 +73,7 @@ export function TemperatureSensorPages({
   );
 
   const PageLogo = () => (
-    <div className="flex justify-end pb-2">
+    <div className="flex justify-end pb-2 shrink-0">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/Company-Logo-Light.png" alt="Sustainabyte Technologies Pvt Ltd" className="h-14 w-auto object-contain" />
     </div>
@@ -87,7 +87,7 @@ export function TemperatureSensorPages({
       <PageShell pageNum={1}>
         <PageLogo />
 
-        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8">
+        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8 my-auto">
           <h1 className="text-[22px] font-bold text-black underline underline-offset-4 decoration-1 leading-relaxed max-w-xl">
             Techno Commercial Proposal for Cold Storage Temperature &amp; Humidity Monitoring Solution
           </h1>
@@ -99,20 +99,22 @@ export function TemperatureSensorPages({
             </div>
           )}
 
-          <div className="text-left text-[12px] text-black space-y-1">
+          <div className="text-center text-[12px] text-black space-y-1">
             <p>Quotation No: {proposalRef}</p>
             <p>Date: {proposalDate}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-300 text-[10px] text-black leading-snug">
-          <div>
-            <p className="font-bold text-[11px] mb-1">COPYRIGHT</p>
-            <p>&copy; This Report is the copyright of <strong><u>Sustainabyte Technologies Pvt Ltd</u></strong>. Any unauthorised reproduction or usage by any person other than the addressee is strictly prohibited</p>
-          </div>
-          <div>
-            <p className="font-bold text-[11px] mb-1">CONFIDENTIAL</p>
-            <p>All reasonable precautionary methods in handling the document and the information contained herein should be taken to prevent any third party from obtaining access. No responsibility is taken by <u>Sustainabyte Technologies Pvt Ltd</u> for the use of this document by any third party.</p>
+        <div className="mt-auto shrink-0 pt-4">
+          <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-300 text-[10px] text-black leading-snug">
+            <div>
+              <p className="font-bold text-[11px] mb-1">COPYRIGHT</p>
+              <p>&copy; This Report is the copyright of <strong><u>Sustainabyte Technologies Pvt Ltd</u></strong>. Any unauthorised reproduction or usage by any person other than the addressee is strictly prohibited</p>
+            </div>
+            <div>
+              <p className="font-bold text-[11px] mb-1">CONFIDENTIAL</p>
+              <p>All reasonable precautionary methods in handling the document and the information contained herein should be taken to prevent any third party from obtaining access. No responsibility is taken by <u>Sustainabyte Technologies Pvt Ltd</u> for the use of this document by any third party.</p>
+            </div>
           </div>
         </div>
       </PageShell>

@@ -116,14 +116,24 @@ export default function QuoteDetailPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => generateProposalMutation.mutate()}
-            disabled={generateProposalMutation.isPending || quote.status === 'REJECTED'}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-colors disabled:opacity-50"
-          >
-            <FileText className="h-4 w-4" />
-            {generateProposalMutation.isPending ? 'Generating Proposal...' : 'Generate Proposal Document'}
-          </button>
+          {(quote as any).proposals && (quote as any).proposals.length > 0 ? (
+            <button
+              onClick={() => router.push(`/proposals/${(quote as any).proposals[0].id}`)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
+            >
+              <FileText className="h-4 w-4" />
+              View Proposal Document
+            </button>
+          ) : (
+            <button
+              onClick={() => generateProposalMutation.mutate()}
+              disabled={generateProposalMutation.isPending || quote.status === 'REJECTED'}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <FileText className="h-4 w-4" />
+              {generateProposalMutation.isPending ? 'Generating Proposal...' : 'Generate Proposal Document'}
+            </button>
+          )}
         </div>
       </div>
 

@@ -33,8 +33,22 @@ export interface Proposal {
 }
 
 export const proposalsApi = {
-  generate: async (quoteId: string, templateId?: string): Promise<Proposal> => {
-    const res = await apiClient.post<Proposal>('/proposals/generate', { quoteId, templateId });
+  generate: async (
+    quoteId: string,
+    templateId?: string,
+    extra?: {
+      proposalNumber?: string;
+      proposalDate?: string;
+      clientLogo?: string;
+      customContent?: any;
+      scopeDetails?: string;
+    }
+  ): Promise<Proposal> => {
+    const res = await apiClient.post<Proposal>('/proposals/generate', {
+      quoteId,
+      templateId,
+      ...extra,
+    });
     return res.data;
   },
   getAll: async (): Promise<Proposal[]> => {
