@@ -122,7 +122,7 @@ export class ClientsService {
     });
 
     if (existing) {
-      if (dto.logo && !existing.logo) {
+      if (dto.logo !== undefined) {
         return this.prisma.client.update({
           where: { id: existing.id },
           data: { logo: dto.logo },

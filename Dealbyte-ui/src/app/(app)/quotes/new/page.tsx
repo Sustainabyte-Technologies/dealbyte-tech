@@ -1239,14 +1239,17 @@ PAN Number – ABNCS4869A`;
   // Automatically load company logo when selecting a mapped client, or clear if unmapped
   useEffect(() => {
     if (clientName) {
-      const presetLogo = getClientPresetLogo(clientName);
-      if (presetLogo) {
-        setClientLogo(presetLogo);
-      } else if (clientLogo && clientLogo.startsWith('/logo/')) {
+      const dbMatch = dbClients.find(
+        (c) => c.name.toLowerCase().trim() === clientName.toLowerCase().trim()
+      );
+      const resolved = dbMatch?.logo || getClientPresetLogo(clientName);
+      if (resolved) {
+        setClientLogo(resolved);
+      } else if (clientLogo && (clientLogo.startsWith('/logo/') || clientLogo.startsWith('data:'))) {
         setClientLogo(null);
       }
     }
-  }, [clientName]);
+  }, [clientName, dbClients]);
 
 
   // Selected Costing Sheet ID (if multiple sheets exist for this client)

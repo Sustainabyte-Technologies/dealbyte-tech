@@ -368,13 +368,13 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
           </thead>
           <tbody className="divide-y divide-slate-200 text-slate-800 font-medium">
             {/* STEP 1: MANPOWER ROWS */}
-            {manpowerRows.map((row) => {
+            {manpowerRows.map((row, idx) => {
               const rowCost =
                 Number(row.siteWorkCost || 0) * Number(row.siteWorkingDays || 0) +
                 Number(row.reportWorkCost || 0) * Number(row.reportWorkingDays || 0);
 
               return (
-                <tr key={row.id} className="hover:bg-indigo-50/20 transition-colors">
+                <tr key={row.id ? `manpower-${row.id}` : `manpower-idx-${idx}`} className="hover:bg-indigo-50/20 transition-colors">
                   <td className="p-2 px-4 border-r border-slate-200 font-bold text-slate-900">
                     <input
                       type="text"
@@ -597,16 +597,16 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
             </tr>
 
             {/* Section 2: Instrument Rental Rows */}
-            {instrumentRows.map((row) => {
+            {instrumentRows.map((row, idx) => {
               const sets = Number(row.sets || 0);
               const days = sets > 0 ? (Number(row.siteWorkingDays || 0) > 0 ? Number(row.siteWorkingDays) : (maxSiteWorkingDays || 1)) : 0;
               const rowCost = Number(row.rentalCost || 0) * sets * days;
 
               return (
-                <tr key={row.id} className="hover:bg-amber-50/30 transition-colors">
+                <tr key={row.id ? `instrument-${row.id}` : `instrument-idx-${idx}`} className="hover:bg-amber-50/30 transition-colors">
                   <td colSpan={2} className="p-2 px-4 border-r border-slate-200 font-bold text-slate-900">
                     <select
-                      value={row.name}
+                      value={row.name || ''}
                       onChange={(e) => {
                         const selectedName = e.target.value;
                         const found = STANDARD_INSTRUMENT_CATALOG.find((item) => item.name === selectedName);
@@ -624,11 +624,11 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                           {inst.name}
                         </option>
                       ))}
-                      {!STANDARD_INSTRUMENT_CATALOG.some((i) => i.name === row.name) && (
+                      {Boolean(row.name && !STANDARD_INSTRUMENT_CATALOG.some((i) => i.name === row.name)) && (
                         <option value={row.name}>{row.name}</option>
                       )}
                     </select>
-                    {(row.name.includes('Custom') || row.name.includes('Others')) && (
+                    {Boolean(row.name && (row.name.includes('Custom') || row.name.includes('Others'))) && (
                       <input
                         type="text"
                         placeholder="Type custom instrument name..."
@@ -1623,8 +1623,8 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
             )}
 
             {/* CUSTOM EXTRA EXPENSES LINES */}
-            {extraExpenses.map((expense) => (
-              <tr key={expense.id} className="border-t border-slate-200 font-semibold bg-amber-50/30">
+            {extraExpenses.map((expense, eIdx) => (
+              <tr key={expense.id ? `expense-${expense.id}` : `expense-idx-${eIdx}`} className="border-t border-slate-200 font-semibold bg-amber-50/30">
                 <td colSpan={4} className="p-2 px-6 border-r border-slate-200">
                   <textarea
                     rows={Math.max(1, Math.ceil((expense.description?.length || 1) / 40))}

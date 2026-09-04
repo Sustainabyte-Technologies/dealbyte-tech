@@ -3648,6 +3648,7 @@ function CostingSheetContent() {
         clientName={clientName}
         setClientName={setClientName}
         clientOptions={clientOptions}
+        dbClients={dbClients}
         activeProjectName={activeProjectName}
         activeServiceScope={activeServiceScope}
         mainCategoryService={mainCategoryService}
