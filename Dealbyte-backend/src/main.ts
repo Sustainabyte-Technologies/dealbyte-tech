@@ -20,14 +20,21 @@ async function bootstrap() {
     }),
   );
 
-  // CORS
+  // CORS configuration — handles array of comma-separated origins or true
+  const rawCors = process.env.CORS_ORIGIN;
+  const allowedOrigins = rawCors && rawCors !== '*'
+    ? rawCors.split(',').map((o) => o.trim())
+    : true;
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization, X-Requested-With',
   });
 
   const port = process.env.PORT ?? 4000;
   await app.listen(port);
-  console.log(`🚀 Dealbyte API running on http://localhost:${port}/api`);
+  console.log();
 }
 bootstrap();
