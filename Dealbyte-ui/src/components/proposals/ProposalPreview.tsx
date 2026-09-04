@@ -22,6 +22,18 @@ import {
   DEFAULT_IR_BLASTER_STEP5_TEXT,
   DEFAULT_WATER_MANAGEMENT_STEP5_TEXT,
   DEFAULT_ENERGY_AUDIT_STEP5_TEXT,
+  DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT,
+  DEFAULT_COMPRESSOR_AIR_LEAKAGE_RECTIFICATION_STEP5_TEXT,
+  DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP5_TEXT,
+  DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP5_TEXT,
+  DEFAULT_ASHRAE_LEVEL_2_STEP5_TEXT,
+  DEFAULT_HVAC_DESIGN_STEP5_TEXT,
+  DEFAULT_EC_FAN_STEP5_TEXT,
+  DEFAULT_ISO_50001_STEP5_TEXT,
+  DEFAULT_TEMPERATURE_SENSOR_STEP5_TEXT,
+  DEFAULT_DEW_POINT_STEP5_TEXT,
+  DEFAULT_FLANGES_STEP5_TEXT,
+  DEFAULT_IAQ_SENSOR_STEP5_TEXT,
 } from '@/components/costing/constants';
 import { Send, Printer, Download, Loader2, FileText, Edit3, X, Check, Save } from 'lucide-react';
 import { generateWordDocument } from './wordExport';
@@ -158,6 +170,10 @@ export default function ProposalPreview({
     (quote as any)?.service?.category ||
     (quote as any)?.serviceName ||
     (quote as any)?.category ||
+    (quote as any)?.customContent?.costingSheet?.subService ||
+    (quote as any)?.customContent?.costingSheet?.serviceCategory ||
+    (proposal as any)?.customContent?.costingSheet?.subService ||
+    (proposal as any)?.customContent?.costingSheet?.serviceCategory ||
     (proposal as any)?.serviceCategory ||
     (proposal as any)?.serviceName ||
     (proposal as any)?.category ||
@@ -169,6 +185,8 @@ export default function ProposalPreview({
     (proposal as any)?.serviceName ||
     (quote as any)?.serviceName ||
     (quote as any)?.subService ||
+    (quote as any)?.customContent?.costingSheet?.subService ||
+    (proposal as any)?.customContent?.costingSheet?.subService ||
     (deal as any)?.serviceName ||
     (deal as any)?.subService ||
     deal?.service?.name ||
@@ -446,7 +464,22 @@ export default function ProposalPreview({
     serviceTitle.includes('water') ||
     (quote?.lineItems && quote.lineItems.length > 2);
 
-  const isEnergyAudit = !isIotOrControls && !isBms;
+  const isEnergyAudit =
+    !isIotOrControls &&
+    !isBms &&
+    !isCompressorAirLeakage &&
+    !isCompressorAirLeakageAudit &&
+    !isCompressorAirLeakageRectification &&
+    !isNitrogenGasLeakageAudit &&
+    !isMixtureGasLeakageAudit &&
+    !isAshraeLevel2 &&
+    !isHvacDesign &&
+    !isEcFan &&
+    !isIso50001 &&
+    !isFlangesHardware &&
+    !isDewPointHardware &&
+    !isTemperatureSensor &&
+    !isIaqSensor;
 
   const clientName =
     deal?.clientName ||
@@ -564,13 +597,25 @@ export default function ProposalPreview({
     '';
 
   const getDefaultScopeText = () => {
+    if (isCompressorAirLeakageAudit) return DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT;
+    if (isCompressorAirLeakageRectification) return DEFAULT_COMPRESSOR_AIR_LEAKAGE_RECTIFICATION_STEP5_TEXT;
+    if (isNitrogenGasLeakageAudit) return DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP5_TEXT;
+    if (isMixtureGasLeakageAudit) return DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP5_TEXT;
+    if (isAshraeLevel2) return DEFAULT_ASHRAE_LEVEL_2_STEP5_TEXT;
+    if (isHvacDesign) return DEFAULT_HVAC_DESIGN_STEP5_TEXT;
+    if (isEcFan) return DEFAULT_EC_FAN_STEP5_TEXT;
+    if (isIso50001) return DEFAULT_ISO_50001_STEP5_TEXT;
+    if (isTemperatureSensor) return DEFAULT_TEMPERATURE_SENSOR_STEP5_TEXT;
+    if (isDewPointHardware) return DEFAULT_DEW_POINT_STEP5_TEXT;
+    if (isFlangesHardware) return DEFAULT_FLANGES_STEP5_TEXT;
+    if (isIaqSensor) return DEFAULT_IAQ_SENSOR_STEP5_TEXT;
     if (isWeldDataDigitalized) return DEFAULT_DIGIWELD_STEP5_TEXT;
     if (isWeldingIot) return DEFAULT_WELDING_STEP5_TEXT;
     if (isCpmChillerManagement) return DEFAULT_CPM_STEP5_TEXT;
     if (isIrBlaster) return DEFAULT_IR_BLASTER_STEP5_TEXT;
     if (isWaterManagement) return DEFAULT_WATER_MANAGEMENT_STEP5_TEXT;
     if (isEnergyAudit) return DEFAULT_ENERGY_AUDIT_STEP5_TEXT;
-    return DEFAULT_DIGIWELD_STEP5_TEXT;
+    return DEFAULT_ENERGY_AUDIT_STEP5_TEXT;
   };
 
   const updateProposalMutation = useMutation({
@@ -1990,9 +2035,15 @@ export default function ProposalPreview({
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b border-slate-200 pb-3 gap-4">
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        {isEnergyAudit ? 'Assessment Methodology & Technical Overview' : 'Detailed Scope of Work & Solution Deliverables'}
+                        {isCompressorAirLeakageAudit
+                          ? 'Scope of Assessment & Methodology — Compressor Air Leakage Audit'
+                          : isEnergyAudit
+                          ? 'Assessment Methodology & Technical Overview'
+                          : 'Detailed Scope of Work & Solution Deliverables'}
                       </p>
-                      <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">{deal?.clientName} — {deal?.service?.name}</h2>
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+                        {deal?.clientName || clientName} — {deal?.service?.name || (quote as any)?.serviceName || (proposal as any)?.serviceName || (proposal as any)?.subService || 'Compressor Air Leakage Audit'}
+                      </h2>
                       <div className="text-[11px] font-mono text-slate-500 mt-0.5">
                         <span>Ref: <strong>{proposalRef}</strong></span>
                       </div>
@@ -2613,7 +2664,9 @@ export default function ProposalPreview({
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         Other Audit Services &amp; Measurement Methodologies
                       </p>
-                      <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">{deal?.clientName} — {deal?.service?.name}</h2>
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+                        {deal?.clientName || clientName} — {deal?.service?.name || (quote as any)?.serviceName || (proposal as any)?.serviceName || (proposal as any)?.subService || 'Compressor Air Leakage Audit'}
+                      </h2>
                       <div className="text-[11px] font-mono text-slate-500 mt-0.5">
                         <span>Ref: <strong>{proposalRef}</strong></span>
                       </div>

@@ -233,7 +233,16 @@ export class QuotesService {
       },
     });
 
-    if (!quote) throw new NotFoundException(`Quote ${id} not found`);
+    if (!quote) {
+      const proposal = await this.prisma.proposal.findUnique({
+        where: { id },
+        select: { quoteId: true },
+      });
+      if (proposal && proposal.quoteId) {
+        return this.findOne(proposal.quoteId);
+      }
+      throw new NotFoundException(`Quote ${id} not found`);
+    }
     return quote;
   }
 

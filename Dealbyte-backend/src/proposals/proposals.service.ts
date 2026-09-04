@@ -128,7 +128,16 @@ export class ProposalsService {
     return this.prisma.proposal.findMany({
       orderBy: { generatedAt: 'desc' },
       include: {
-        quote: { select: { id: true, finalQuote: true, status: true, customContent: true, scopeDetails: true } },
+        quote: {
+          select: {
+            id: true,
+            finalQuote: true,
+            status: true,
+            customContent: true,
+            scopeDetails: true,
+            service: { select: { id: true, name: true } },
+          },
+        },
         deal: {
           include: {
             service: { select: { id: true, name: true } },

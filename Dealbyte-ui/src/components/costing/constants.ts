@@ -1895,91 +1895,59 @@ Branch – VELACHERY BRANCH
 GSTIN NO – 33ABNCS4869A1Z7
 PAN Number – ABNCS4869A`;
 
-export const DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT = `What is Compressed Air Audit?
-• A Compressed Air Audit is a systematic study of the compressed air system to identify:
-  - energy losses 
-  - Inefficiencies
-  - opportunities for cost savings
-• It involves analysing compressors, air distribution lines, storage tanks, valves, dryers, and end-use equipment. 
-• The main purpose is to measure air demand, detect leakages, check pressure drops, and evaluate operating patterns. 
-• By doing this, we can highlight unnecessary energy consumption, calculate the financial loss, and suggest corrective measures for improving system reliability and reducing operating costs. 
-• In short, a compressed air audit helps customers save energy, lower production costs, and ensure a more reliable and sustainable operation.
-• A Compressed Air Audit is like a health check-up for your compressed air system. It helps identify hidden leaks, pressure losses, and inefficient operations that quietly increase your power bills. 
-• With our audit, we can show you exactly where your system is wasting energy and how much money you can save by fixing it. 
-• Many industries reduce their compressor power cost by 20–30% after an audit, while also improving reliability and productivity. This is a fast-return investment that directly lowers your operating cost.
+export const DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT = `Methodology Overview:
+A comprehensive compressed air audit covers the complete lifecycle: Generation, Distribution, and End Use. Our engineers utilize precision acoustic imaging, mass flow measurement, and electrical telemetry to pinpoint inefficiencies across the facility.
+• Phase-1: Distribution Loss Assessment, Ultrasonic Leak Detection & Flow Measurement
+• Phase-2: Implementation & Rectification Support (Spares & Valve Replacements)
+• Phase-3: Implementation Validation & Savings Verification
 
-How the compressed air wasting your money?
-• Compressed air is often called the “fourth utility” in industries, but it is also one of the costliest utilities to generate. Every leak in the system is like leaving a tap open only worse, because producing compressed air costs 7–8 times more energy than water pumping.
-• For example:
-  - A single 3 mm leak can waste up to 30–35 CFM, which equals ₹2–3 lakhs per year in electricity cost (depending on power tariff).
-  - Leaks also force compressors to run longer, increasing maintenance cost and reducing equipment life.
-  - As more air leaks out, the system pressure drops, which can affect production quality and efficiency.
-• By repairing leaks and optimizing the air system, customers typically save 20–30% of their compressed air cost. That means direct profit without changing production.
-• Every hissing sound you hear in your plant is not just air — it’s your money leaking out. A small investment in leak detection and repair will save you lakhs of rupees every year.
-
-Benefits of Compressed Air Audit:
-• Reduce artificial air demand
-• Operate compressors at high efficiency
-• Reduce the losses in filters, dryers
-• Know the actual air delivered by the compressor against design value
-• Find out the volume of air leakage in the plant
-• Identification of air leakage spots in the plant
-• Compressed air cost is recovered through reduced system costs over a short period.
-
-Compressed Air Audit Includes:
-• Phase-1: Collecting data, Savings Calculation & Documentation
-• Phase-2: Implementing the scopes of identified in the Phase-1 (By Customer Preference)
-• Phase-3: Implementation Validation
-
-Phase-2 Implementing the scopes of identified in the Phase-1 (By Customer Preference):
-Correcting air leakages and addressing other compressed air optimization opportunities are among the most effective ways to prove tangible savings to customers. Once leaks are repaired, and improvements such as pressure optimization, proper compressor sequencing, or storage enhancement are implemented, the results can be validated through energy meters or flow data. By comparing the baseline measurements with post-implementation readings, the reduction in power consumption or compressed air demand becomes evident. This data-driven validation not only quantifies the savings achieved but also builds customer confidence, as the improvements are backed by measurable reductions in kW usage, flow demand, or operating hours, directly translating into cost savings and improved system reliability. Additionally, supplying the required materials and spares during implementation ensures timely execution, smooth operation, and sustainability of the optimization measures.
-
-Phase-3 Implementation Validation:
-Implementation Validation ensures that the recommended energy conservation measures and rectification works in the compressed air system are executed as planned and deliver the expected results. This process involves verifying the corrective actions, re-measuring the system parameters such as pressure, flow, and power consumption, and comparing them with the baseline data. Successful validation confirms that leak rectification, drain automation, and compressor optimization measures are effectively reducing losses and improving efficiency. Documented results provide transparency, build customer confidence, and prove the actual energy and cost savings achieved through the implementation.
-
-Other Audit Services:
-Compressor Efficiency (FAD):
-A Compressor Efficiency Study is as if an energy audit focused only on your air compressors. It helps you understand how efficiently your compressors are converting electricity into usable compressed air. In many plants, compressors consume up to 20–30% of total electricity, but often operate below optimal efficiency due to wrong sizing, poor controls, pressure drops, and leakages. During the study, we measure actual power consumption, flow (CFM), pressure levels, and operating patterns. From this data, we calculate the specific power (kW per CFM), which is the true indicator of compressor efficiency. By comparing this with industry benchmarks, we can show you how much extra energy (and money) your system is consuming.
-The outcome is a clear set of recommendations such as right-sizing compressors, optimizing load/unload cycles, reducing pressure band, and fixing leaks, which lead to lower energy bills, reduced maintenance, and more reliable compressed air supply.
-
-Demand Flow Measurement:
-Demand Flow Measurement is the process of accurately measuring how much compressed air is actually being consumed by the plant at different times of the day. It is done using a flow meter installed in the pipeline. This data helps identify the true air requirement of the plant, instead of relying only on compressor capacity.
-• Right-sizing compressors: Often, plants run oversized compressors, wasting electricity. Flow data shows the actual demand so you can optimize.
-• Leak detection: By measuring flow during non-production hours, leaks can be quantified in terms of CFM and cost.
-• Energy savings: With clear demand patterns, compressors can be operated efficiently, saving up to 20–30% of power cost.
-
-Scope of Work:
-Leakage Identification: 
-• Leakage identification and tagging is a systematic approach to controlling compressed air losses. 
-• During an audit, each leakage point is detected using ultrasonic detectors and then physically tagged with a unique identification label. 
-• This tagging ensures that every leak location is documented, prioritized, and can be easily tracked for repair. 
-• By tagging each leak point, plants gain a clear action plan for maintenance teams, enabling them to fix the leaks in a structured way instead of random patchwork. 
-• This process not only quantifies the cost of each leakage but also helps in monitoring recurring problem areas, ensuring long-term energy savings and reliable system performance.
+Leakage Identification & Tagging:
+Ultrasonic leak detection is performed across all generation, storage, distribution, and end-use points. Every identified leak is tagged with a physical identifier and logged into the comprehensive audit ledger.
+• Quantifies CFM loss and financial cost per individual leak point.
+• Enables maintenance teams to execute structured, prioritized repairs.
+• Prevents recurring compressed air energy losses.
 
 Our Leakage Detector Overview:
-• Leak Detection Principle – Identifies high-frequency ultrasonic sound waves generated when compressed air, gas, or vacuum escapes through small openings.
-• Frequency Range – Typically operates between 20 kHz to 100 kHz, beyond the range of human hearing.
-• Detection Capability – Can locate very small leaks (as small as 0.05 mm at ~7 bar) from several meters away.
-• Feedback System – Provides both audio (headphones) and visual (display or LED bar graph) indications to pinpoint leaks.
-• Sensitivity & Adjustability – Equipped with adjustable sensitivity to distinguish between background noise and actual leak sounds.
-• Portability & Power – Lightweight, handheld device powered by rechargeable or replaceable batteries with 6–10 hours’ runtime.
-• Applications – Used for compressed air systems, gas pipelines, vacuum systems, steam traps, and refrigerant leak detection without interrupting operations.`;
+• Principle: Ultrasonic high-frequency sound detection (20 kHz to 100 kHz).
+• Detection Capability: Identifies pinhole leaks down to 0.05 mm at 7 bar from several meters away.
+• Portability: Lightweight handheld unit with rechargeable battery providing 6–10 hours runtime.
+• Applications: Compressed air pipelines, gas lines, vacuum systems, steam traps, and valves without shutting down operations.
 
-export const DEFAULT_COMPRESSOR_AIR_AUDIT_STEP6_TEXT = `Commercials: Support required from the client:
-• SPOC (Single point of Contact) for support and coordination during the audit phase
+Phase-3 Implementation Validation:
+Implementation Validation ensures that recommended energy conservation measures and rectification works are executed as planned and deliver expected results by comparing post-implementation data against baseline.
+
+Air Compressor Efficiency Audit:
+An Air Compressor Efficiency Audit is an in-depth evaluation of your entire compressed air system. Its primary goal is to find ways to reduce energy consumption, improve system performance, and lower operating costs without disrupting production.
+• Measurement: Continuous monitoring of mass flow, power, and header pressure.
+• SEC Analysis: Establishes Specific Energy Consumption (kW/100 CFM or kWh/m³).
+• Actionable Recommendations: Right-sizing, load/unload optimization, pressure band reduction, and leak fixing.
+
+Demand Flow Measurement:
+Demand Flow Measurement accurately measures how much compressed air is consumed by the plant at different times of the day using inline mass flow meters.
+• Right-sizing: Prevents running oversized compressors, avoiding wasted electricity.
+• Off-Shift Flow: Measures non-production baseline to quantify total leakage loss.
+• Energy Savings: Delivers up to 20–30% in overall power cost savings.`;
+
+export const DEFAULT_COMPRESSOR_AIR_AUDIT_STEP6_TEXT = `Support required from the client:
+• SPOC (Single point of Contact) for support and coordination during the audit phase.
 • Accessibility to each area.
-• 1 person required from client side with knowledge on Compressed air line to reach out from the generation to end use for leakage identifications.
+• 1 person required from client side with knowledge on compressed air line to reach out from generation to end use.
 
 Terms and Conditions:
 • Payment schedule: 50% advance against the PO and remaining 50% against the report submission.
-• Applicable taxes and duties will be extra.
+• Applicable Taxes and duties will be extra.
 • Boarding and Travel Expenses are inclusive of the cost mentioned above.
 
+Phase-2 Implementation (By Customer Preference):
+• Correcting air leakages and addressing other compressed air optimization opportunities.
+• Once leaks are repaired, improvements are validated through energy meters or flow data.
+• Supplying required materials and spares during implementation ensures timely execution.
+
 Submitted By,
-Thanakarthik Kumar
+Mr. Thanakarthik Kumar K
 Founder & Managing Director
-+91-8377007638
-thanakarthik@sustainabyte.ai
+Call: 8377007638
+Mail: thanakarthik@sustainabyte.ai
 
 Bank Account details:
 Bank – Bank of Baroda

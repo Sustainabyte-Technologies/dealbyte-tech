@@ -132,7 +132,7 @@ export function CompressorAirAuditPages({
           </p>
           <div className="flex justify-center my-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/compred5.png" alt="Compressed Air System Overview" className="w-full h-auto max-h-[220px] object-contain border border-slate-300" />
+            <img src="/compresed air leakage audit.png" alt="Compressed Air System Overview" className="w-full h-auto max-h-[220px] object-contain border border-slate-300" />
           </div>
           <ul className="space-y-1.5 text-[12px] text-black list-disc pl-6 leading-relaxed">
             <li><strong>Phase-1:</strong> Distribution Loss Assessment, Ultrasonic Leak Detection &amp; Flow Measurement</li>
@@ -154,9 +154,9 @@ export function CompressorAirAuditPages({
           </p>
           <div className="grid grid-cols-2 gap-4 my-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/compress ai1.png" alt="Ultrasonic Acoustic Camera Display" className="w-full h-auto max-h-[160px] object-contain border border-slate-300" />
+            <img src="/compressed air leakage .png" alt="Ultrasonic Acoustic Camera Display" className="w-full h-auto max-h-[160px] object-contain border border-slate-300" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/compressrd air 2.png" alt="Physical Leak Tag on Line" className="w-full h-auto max-h-[160px] object-contain border border-slate-300" />
+            <img src="/compressed 3.png" alt="Physical Leak Tag on Line" className="w-full h-auto max-h-[160px] object-contain border border-slate-300" />
           </div>
           <ul className="space-y-1.5 text-[12px] text-black list-disc pl-6 leading-relaxed">
             <li>Quantifies CFM loss and financial cost per individual leak point.</li>
@@ -175,7 +175,7 @@ export function CompressorAirAuditPages({
           </h2>
           <div className="flex justify-center my-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/compressed 3.png" alt="Ultrasonic Leak Detector Device" className="w-full h-auto max-h-[160px] object-contain border border-slate-300" />
+            <img src="/compressrd air 2.png" alt="Ultrasonic Leak Detector Device" className="w-full h-auto max-h-[160px] object-contain border border-slate-300" />
           </div>
           <ul className="space-y-1.5 text-[12px] text-black list-disc pl-6 leading-relaxed">
             <li><strong>Principle:</strong> Ultrasonic high-frequency sound detection (20 kHz to 100 kHz).</li>

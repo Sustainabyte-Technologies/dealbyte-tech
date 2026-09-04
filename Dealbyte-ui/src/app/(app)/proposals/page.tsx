@@ -9,8 +9,6 @@ import {
   CheckCircle2,
   Plus,
   Search,
-  Eye,
-  Send,
   FileCheck,
   Edit,
   X,
@@ -77,7 +75,16 @@ export default function ProposalsPage() {
   const filteredProposals = proposals.filter((p) => {
     const matchesStatus = selectedStatus === 'ALL' || p.status === selectedStatus;
     const client = p.deal?.clientName?.toLowerCase() || '';
-    const sName = p.deal?.service?.name?.toLowerCase() || '';
+    const sName = (
+      p.deal?.service?.name ||
+      (p.quote as any)?.service?.name ||
+      (p.quote as any)?.serviceName ||
+      (p.quote?.customContent as any)?.costingSheet?.subService ||
+      (p.customContent as any)?.costingSheet?.subService ||
+      (p.deal as any)?.subService ||
+      (p.deal as any)?.serviceName ||
+      ''
+    ).toLowerCase();
     const isDigiweld =
       sName.includes('digiweld') ||
       sName.includes('weld data') ||
@@ -86,7 +93,7 @@ export default function ProposalsPage() {
         li.description?.toLowerCase().includes('digiweld')
       );
     const service = isDigiweld ? 'digiweld' : sName;
-    const owner = p.deal?.owner?.name?.toLowerCase() || '';
+    const owner = (p.deal?.owner?.name || (p.quote as any)?.createdBy?.name || '').toLowerCase();
     const ref = (p.proposalNumber || `stpl-${p.id.substring(0, 4)}`).toLowerCase();
     const query = searchTerm.toLowerCase();
 
@@ -221,7 +228,15 @@ export default function ProposalsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredProposals.map((p) => {
-                  const sName = p.deal?.service?.name || '';
+                  const sName =
+                    p.deal?.service?.name ||
+                    (p.quote as any)?.service?.name ||
+                    (p.quote as any)?.serviceName ||
+                    (p.quote?.customContent as any)?.costingSheet?.subService ||
+                    (p.customContent as any)?.costingSheet?.subService ||
+                    (p.deal as any)?.subService ||
+                    (p.deal as any)?.serviceName ||
+                    '';
                   const isDigiweld =
                     sName.toLowerCase().includes('digiweld') ||
                     sName.toLowerCase().includes('weld data') ||
@@ -233,6 +248,13 @@ export default function ProposalsPage() {
                       li.description?.toLowerCase().includes('dashboard report generation')
                     );
                   const displayServiceName = isDigiweld ? 'Digiweld' : (sName || 'Standard Service');
+                  const quoteValue =
+                    p.quote?.finalQuote ??
+                    (p.quote?.customContent as any)?.costingSheet?.finalQuote ??
+                    (p.customContent as any)?.costingSheet?.finalQuote ??
+                    (p.deal as any)?.value ??
+                    0;
+                  const ownerName = p.deal?.owner?.name || (p.quote as any)?.createdBy?.name || 'Admin';
 
                   return (
                     <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
@@ -246,50 +268,58 @@ export default function ProposalsPage() {
                         </div>
                       </td>
                       <td className="py-4 px-6 text-slate-700">
-                        {p.deal?.owner?.name || 'Sales Executive'}
+                        {ownerName}
                       </td>
-                    <td className="py-4 px-6 font-bold text-slate-900">
-                      {formatCurrency(p.quote?.finalQuote)}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          p.status === 'SENT'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : p.status === 'REVIEWED'
-                            ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
-                        }`}
-                      >
-                        {p.status === 'SENT' && <CheckCircle2 className="h-3 w-3" />}
-                        {p.status === 'REVIEWED' && <FileCheck className="h-3 w-3" />}
-                        {p.status === 'DRAFT' && <Clock className="h-3 w-3 text-slate-400" />}
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-xs text-slate-500">
-                      {formatDate(p.generatedAt)}
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/quotes/new?editQuoteId=${p.quoteId || p.quote?.id}`}
-                          className="text-xs text-amber-700 hover:text-amber-900 font-semibold inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200 transition-colors"
+                      <td className="py-4 px-6 font-bold text-slate-900">
+                        {formatCurrency(quoteValue)}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            p.status === 'SENT'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                              : p.status === 'REVIEWED'
+                              ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                              : 'bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}
                         >
-                          <Edit className="h-3.5 w-3.5" /> Edit
-                        </Link>
-                        <Link
-                          href={`/proposals/${p.id}`}
-                          className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold inline-flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          View &amp; Send <ArrowRight className="h-3.5 w-3.5" />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
+                          {p.status === 'SENT' && <CheckCircle2 className="h-3 w-3" />}
+                          {p.status === 'REVIEWED' && <FileCheck className="h-3 w-3" />}
+                          {p.status === 'DRAFT' && <Clock className="h-3 w-3 text-slate-400" />}
+                          {p.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-xs text-slate-500">
+                        {formatDate(p.generatedAt)}
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(p)}
+                            className="text-xs text-slate-700 hover:text-slate-900 font-semibold inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                            title="Quick Edit Status & Proposal Info"
+                          >
+                            <Tag className="h-3.5 w-3.5 text-slate-500" /> Status
+                          </button>
+                          <Link
+                            href={`/quotes/new?editQuoteId=${p.quoteId || p.quote?.id || p.id}`}
+                            className="text-xs text-amber-700 hover:text-amber-900 font-semibold inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200 transition-colors"
+                          >
+                            <Edit className="h-3.5 w-3.5" /> Edit Quote
+                          </Link>
+                          <Link
+                            href={`/proposals/${p.id}`}
+                            className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold inline-flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            View &amp; Send <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
             </table>
           </div>
         )}

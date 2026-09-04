@@ -340,12 +340,15 @@ function NewQuoteContent() {
   const [isSubServicesDropdownOpen, setIsSubServicesDropdownOpen] = useState(false);
   const subServicesDropdownRef = useRef<HTMLDivElement>(null);
 
+  const hasLoadedExistingQuoteRef = useRef(false);
+  const lastSubServiceRef = useRef<string>('');
+
   // Populate Existing Quote into Form State when editing
   useEffect(() => {
     if (existingQuote) {
       const qAny = existingQuote as any;
-      if (qAny.proposalNumber || qAny.proposal?.proposalNumber) {
-        setProposalNumber(qAny.proposalNumber || qAny.proposal?.proposalNumber);
+      if (qAny.proposalNumber || qAny.proposal?.proposalNumber || qAny.proposals?.[0]?.proposalNumber) {
+        setProposalNumber(qAny.proposalNumber || qAny.proposal?.proposalNumber || qAny.proposals?.[0]?.proposalNumber);
         setIsManualProposalNumber(true);
       }
       if (qAny.proposalDate) {
@@ -357,11 +360,29 @@ function NewQuoteContent() {
       if (qAny.clientLogo || qAny.deal?.clientLogo) {
         setClientLogo(qAny.clientLogo || qAny.deal?.clientLogo);
       }
-      if (qAny.service?.category) {
-        setSelectedCategories([qAny.service.category]);
+      const rawCat =
+        qAny.customContent?.costingSheet?.serviceCategory ||
+        qAny.customContent?.serviceCategory ||
+        qAny.category ||
+        qAny.service?.category ||
+        qAny.deal?.service?.category ||
+        qAny.deal?.category;
+      if (rawCat) {
+        setSelectedCategories([rawCat]);
       }
-      if (qAny.service?.name) {
-        setSelectedSubServiceOptions([qAny.service.name]);
+      const rawSub =
+        qAny.customContent?.costingSheet?.subService ||
+        qAny.customContent?.subService ||
+        qAny.proposals?.[0]?.customContent?.costingSheet?.subService ||
+        qAny.proposals?.[0]?.customContent?.subService ||
+        qAny.subService ||
+        qAny.serviceName ||
+        qAny.deal?.subService ||
+        qAny.deal?.serviceName ||
+        qAny.service?.name ||
+        qAny.deal?.service?.name;
+      if (rawSub) {
+        setSelectedSubServiceOptions([rawSub]);
       }
       if (qAny.marginPct !== undefined && qAny.marginPct !== null) {
         setMarginPct(Number(qAny.marginPct));
@@ -378,9 +399,76 @@ function NewQuoteContent() {
       if (qAny.travelKms !== undefined) {
         setTravelKms(Number(qAny.travelKms));
       }
+      if (qAny.travelRatePerKm !== undefined) {
+        setTravelRatePerKm(Number(qAny.travelRatePerKm));
+      }
+      if (qAny.foodRatePerPersonDay !== undefined) {
+        setFoodRatePerPersonDay(Number(qAny.foodRatePerPersonDay));
+      }
       if (qAny.foodTravelCost !== undefined) {
         setFoodTravelCost(Number(qAny.foodTravelCost));
       }
+      if (qAny.teamMembers && Array.isArray(qAny.teamMembers) && qAny.teamMembers.length > 0) {
+        setTeamMembers(qAny.teamMembers);
+      }
+      if (qAny.instruments && Array.isArray(qAny.instruments) && qAny.instruments.length > 0) {
+        setInstruments(qAny.instruments);
+      }
+      const isSubCompAudit =
+        (rawSub && rawSub.toLowerCase().includes('compressor air leakage audit')) ||
+        (qAny.deal?.subService && qAny.deal.subService.toLowerCase().includes('compressor air leakage audit'));
+      const savedStep5 =
+        qAny.customContent?.scopeOfWork ||
+        qAny.customContent?.step5Text ||
+        qAny.scopeDetails ||
+        qAny.proposals?.[0]?.customContent?.step5Text ||
+        qAny.proposals?.[0]?.scopeDetails;
+      if (savedStep5) {
+        if (isSubCompAudit && (savedStep5.includes('How the compressed air wasting your money') || !savedStep5.includes('Methodology Overview'))) {
+          setEmsStep5Text(DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT);
+        } else {
+          setEmsStep5Text(savedStep5);
+        }
+      } else if (isSubCompAudit) {
+        setEmsStep5Text(DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT);
+      }
+      const savedStep6 =
+        qAny.customContent?.step6Text ||
+        qAny.proposals?.[0]?.customContent?.step6Text;
+      if (savedStep6) {
+        if (isSubCompAudit && !savedStep6.includes('Support required from the client:')) {
+          setEmsStep6Text(DEFAULT_COMPRESSOR_AIR_AUDIT_STEP6_TEXT);
+        } else {
+          setEmsStep6Text(savedStep6);
+        }
+      } else if (isSubCompAudit) {
+        setEmsStep6Text(DEFAULT_COMPRESSOR_AIR_AUDIT_STEP6_TEXT);
+      }
+      const savedSubmittedBy =
+        qAny.customContent?.step7SubmittedBy ||
+        qAny.proposals?.[0]?.customContent?.step7SubmittedBy;
+      if (savedSubmittedBy) {
+        setStep7SubmittedBy(savedSubmittedBy);
+      }
+      const savedBankDetails =
+        qAny.customContent?.step7BankDetails ||
+        qAny.proposals?.[0]?.customContent?.step7BankDetails;
+      if (savedBankDetails) {
+        setStep7BankDetails(savedBankDetails);
+      }
+      const savedRoi =
+        qAny.customContent?.compressorRoiData ||
+        qAny.compressorRoiData;
+      if (savedRoi) {
+        setCompressorRoiData(savedRoi);
+      }
+      const savedAssets =
+        qAny.customContent?.selectedAssetIds ||
+        qAny.selectedAssetIds;
+      if (savedAssets && Array.isArray(savedAssets) && savedAssets.length > 0) {
+        setSelectedAssetIds(savedAssets);
+      }
+      hasLoadedExistingQuoteRef.current = true;
     }
   }, [existingQuote]);
 
@@ -585,17 +673,21 @@ function NewQuoteContent() {
   useEffect(() => {
     if (availableSubServices.length > 0) {
       const validSelections = selectedSubServiceOptions.filter((opt) =>
-        availableSubServices.includes(opt)
+        availableSubServices.some((a) => a.toLowerCase().trim() === opt.toLowerCase().trim())
       );
       if (validSelections.length > 0) {
-        if (validSelections.length !== selectedSubServiceOptions.length) {
-          setSelectedSubServiceOptions(validSelections);
+        const matched = validSelections.map((opt) => {
+          const found = availableSubServices.find((a) => a.toLowerCase().trim() === opt.toLowerCase().trim());
+          return found || opt;
+        });
+        if (matched.some((nm, i) => nm !== selectedSubServiceOptions[i]) || matched.length !== selectedSubServiceOptions.length) {
+          setSelectedSubServiceOptions(matched);
         }
-      } else {
+      } else if (!editQuoteId && !hasLoadedExistingQuoteRef.current) {
         setSelectedSubServiceOptions([availableSubServices[0]]);
       }
     }
-  }, [availableSubServices]);
+  }, [availableSubServices, editQuoteId]);
 
   // Sync serviceId with selected sub-services
   useEffect(() => {
@@ -1775,22 +1867,67 @@ PAN Number – ABNCS4869A`;
   }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
 
   const isEnergyAudit = React.useMemo(() => {
-    const combined = [
-      ...selectedCategories,
-      ...selectedSubServiceOptions,
-      activeCostingSheet?.serviceCategory || '',
-      activeCostingSheet?.subService || '',
-    ].map((s) => s.toLowerCase());
-    return combined.some(
-      (s) =>
-        s.includes('energy audit') ||
-        s === 'energy audit services' ||
-        (s.includes('audit') && !s.includes('air') && !s.includes('bms'))
+    if (
+      isCompressorAirLeakageAudit ||
+      isCompressorAirLeakageRectification ||
+      isNitrogenGasLeakageAudit ||
+      isMixtureGasLeakageAudit ||
+      isAshraeLevel2 ||
+      isHvacDesign ||
+      isEcFan ||
+      isIso50001 ||
+      isIotOrControls ||
+      isBms ||
+      isCpmChillerManagement ||
+      isHardwareSensorScope ||
+      isIaqSensor
+    ) {
+      return false;
+    }
+    const sub = (selectedSubServiceOptions[0] || activeCostingSheet?.subService || '').toLowerCase().trim();
+    return (
+      sub === 'energy audit' ||
+      sub === 'comprehensive energy audit' ||
+      sub === 'detailed energy audit' ||
+      (sub.includes('energy audit') && !sub.includes('air') && !sub.includes('gas') && !sub.includes('leak') && !sub.includes('rectification'))
     );
-  }, [selectedCategories, selectedSubServiceOptions, activeCostingSheet]);
+  }, [
+    isCompressorAirLeakageAudit,
+    isCompressorAirLeakageRectification,
+    isNitrogenGasLeakageAudit,
+    isMixtureGasLeakageAudit,
+    isAshraeLevel2,
+    isHvacDesign,
+    isEcFan,
+    isIso50001,
+    isIotOrControls,
+    isBms,
+    isCpmChillerManagement,
+    isHardwareSensorScope,
+    isIaqSensor,
+    selectedSubServiceOptions,
+    activeCostingSheet,
+  ]);
 
   // Auto-switch default texts when Weld Data Digitalized, Welding IoT, Water Management, BMS, EMS/IoT, Dew Point Hardware, Compressor Air Leakage Rectification / Audit, ASHRAE Level 2, HVAC Design, EC Fan, Mixture Gas Leakage Audit, Nitrogen Gas Leakage Audit, or Energy Audit mode changes
   useEffect(() => {
+    const currentSubKey = `${selectedCategories.join(',')}_${selectedSubServiceOptions.join(',')}`;
+    // If editing existing quote and this is the initial load with saved text, do not overwrite with default template
+    if (editQuoteId && existingQuote && hasLoadedExistingQuoteRef.current && lastSubServiceRef.current === '') {
+      lastSubServiceRef.current = currentSubKey;
+      const qAny = existingQuote as any;
+      const hasSavedText =
+        qAny.customContent?.scopeOfWork ||
+        qAny.customContent?.step5Text ||
+        qAny.scopeDetails ||
+        qAny.proposals?.[0]?.customContent?.step5Text ||
+        qAny.proposals?.[0]?.scopeDetails;
+      if (hasSavedText) {
+        return;
+      }
+    }
+    lastSubServiceRef.current = currentSubKey;
+
     if (isCompressedAirAutomation) {
       setEmsStep5Text(DEFAULT_COMPRESSED_AIR_AUTOMATION_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_COMPRESSED_AIR_AUTOMATION_STEP6_TEXT);
@@ -1882,7 +2019,7 @@ PAN Number – ABNCS4869A`;
       setEmsStep5Text(DEFAULT_ENERGY_AUDIT_STEP5_TEXT);
       setEmsStep6Text(DEFAULT_ENERGY_AUDIT_STEP6_TEXT);
     }
-  }, [isCompressedAirAutomation, isWeldDataDigitalized, isWeldingIot, isWaterManagement, isBms, isIotOrControls, isCpmChillerManagement, isFlangesHardware, isDewPointHardware, isNitrogenGasLeakageAudit, isMixtureGasLeakageAudit, isCompressorAirLeakageRectification, isCompressorAirLeakageAudit, isHvacDesign, isEcFan, isAshraeLevel2, isIso50001, isEnergyAudit]);
+  }, [isCompressedAirAutomation, isWeldDataDigitalized, isWeldingIot, isWaterManagement, isBms, isIotOrControls, isCpmChillerManagement, isFlangesHardware, isDewPointHardware, isNitrogenGasLeakageAudit, isMixtureGasLeakageAudit, isCompressorAirLeakageRectification, isCompressorAirLeakageAudit, isHvacDesign, isEcFan, isAshraeLevel2, isIso50001, isEnergyAudit, editQuoteId, existingQuote]);
 
   // Compressor Air Leakage ROI State & Phase Scope Details
   const [compressorRoiData, setCompressorRoiData] = useState<CompressorRoiData>(DEFAULT_COMPRESSOR_ROI_DATA);
@@ -4198,7 +4335,7 @@ PAN Number – ABNCS4869A`;
             )}
 
           {/* Step 4: Commercial Breakdown (Costing Sheet Sync / Energy Audit Scope) */}
-          {(activeCostingSheet || isEnergyAudit) && (
+          {(activeCostingSheet || isEnergyAuditServices || isEnergyAudit) && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                 <div className="flex items-center gap-2">
@@ -5118,12 +5255,26 @@ PAN Number – ABNCS4869A`;
           )}
 
           {/* Step 5: Scope of Work / Key Issues / Assessment Scope (Editable, Row-Wise, Black Text) */}
-          {(isIotOrControls || isBms || isEnergyAudit || isIaqSensor) && (
+          {(isIotOrControls || isBms || isEnergyAudit || isIaqSensor || isEnergyAuditServices || isCompressorAirLeakageAudit || isNitrogenGasLeakageAudit || isMixtureGasLeakageAudit || isAshraeLevel2 || isHvacDesign || isEcFan || isIso50001) && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">
-                    {isTemperatureSensor
+                    {isCompressorAirLeakageAudit
+                      ? 'Step 5: Objectives, Assessment Scope & Methodology — Compressor Air Leakage Audit'
+                      : isNitrogenGasLeakageAudit
+                      ? 'Step 5: Objectives, Scope & Methodology — Nitrogen Gas Leakage Audit'
+                      : isMixtureGasLeakageAudit
+                      ? 'Step 5: Objectives, Scope & Methodology — Mixture Gas Leakage Audit'
+                      : isAshraeLevel2
+                      ? 'Step 5: Scope of Work & Assessment Activities — ASHRAE Level 2'
+                      : isHvacDesign
+                      ? 'Step 5: Scope of Work & Technical Deliverables — HVAC Design'
+                      : isEcFan
+                      ? 'Step 5: Scope of Supply & Technical Overview — EC Fan Solution'
+                      : isIso50001
+                      ? 'Step 5: EnMS Framework & Scope of Work — ISO 50001'
+                      : isTemperatureSensor
                       ? 'Step 5: Objectives, Scope of Work & Deliverables — Temperature Sensor Solution'
                       : isDewPointHardware
                       ? 'Step 5: Scope of Supply, Terms & Conditions — Dew Point Hardware'
@@ -5148,7 +5299,21 @@ PAN Number – ABNCS4869A`;
                       : 'Step 5: Scope of Work & Platform Benefits — Energy Management Solution'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {isTemperatureSensor
+                    {isCompressorAirLeakageAudit
+                      ? 'Ultrasonic Leak Detection, Loss Quantification, FAD Test, System Optimization & Energy Recovery'
+                      : isNitrogenGasLeakageAudit
+                      ? 'Ultrasonic Gas Detection, Consumption Mapping, High-Loss Zone Identification & Savings Potential'
+                      : isMixtureGasLeakageAudit
+                      ? 'Ultrasonic Gas Mixture Auditing, Pipe Network Mapping, Valve/Flange Leak Tagging & Cost Recovery'
+                      : isAshraeLevel2
+                      ? 'Detailed Energy Breakdown, Sub-System Efficiency Analysis & Prioritized Energy Conservation Measures'
+                      : isHvacDesign
+                      ? 'Cooling Load Calculation, Equipment Sizing, Duct Layout & Energy-Efficient HVAC System Design'
+                      : isEcFan
+                      ? 'EC Fan Retrofit Scope, Motor Efficiency Upgrade & Smart Airflow Automation'
+                      : isIso50001
+                      ? 'Energy Management System (EnMS) Gap Analysis, Energy Baseline (EnB) & Performance Indicators (EnPI)'
+                      : isTemperatureSensor
                       ? 'Objectives, Site Survey, Sensor Deployment, Centralized Dashboard & Deliverables'
                       : isDewPointHardware
                       ? 'Dew Point Hardware Scope, Technical Requirements & Commercial Deliverables'
@@ -5176,7 +5341,21 @@ PAN Number – ABNCS4869A`;
                     type="button"
                     onClick={() => {
                       setEmsStep5Text(
-                        isTemperatureSensor
+                        isCompressorAirLeakageAudit
+                          ? DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT
+                          : isNitrogenGasLeakageAudit
+                          ? DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP5_TEXT
+                          : isMixtureGasLeakageAudit
+                          ? DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP5_TEXT
+                          : isAshraeLevel2
+                          ? DEFAULT_ASHRAE_LEVEL_2_STEP5_TEXT
+                          : isHvacDesign
+                          ? DEFAULT_HVAC_DESIGN_STEP5_TEXT
+                          : isEcFan
+                          ? DEFAULT_EC_FAN_STEP5_TEXT
+                          : isIso50001
+                          ? DEFAULT_ISO_50001_STEP5_TEXT
+                          : isTemperatureSensor
                           ? DEFAULT_TEMPERATURE_SENSOR_STEP5_TEXT
                           : isDewPointHardware
                           ? DEFAULT_DEW_POINT_STEP5_TEXT
@@ -5295,6 +5474,122 @@ PAN Number – ABNCS4869A`;
                               );
                             }
 
+                            if (isCompressorAirLeakageAudit && (trimmed.includes('Methodology Overview') || trimmed.includes('Basic Compressed Air Network'))) {
+                              return (
+                                <React.Fragment key={lIdx}>
+                                  <p className="font-extrabold text-slate-950 text-xs pt-1 uppercase tracking-wider text-indigo-900 bg-indigo-50/60 p-1.5 px-2.5 rounded-md border border-indigo-100 inline-block my-1">
+                                    {line}
+                                  </p>
+                                  <div className="my-3 p-3 bg-white border border-slate-200 rounded-xl flex flex-col items-center justify-center shadow-2xs">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src="/compresed sir leakage audit.png"
+                                      alt="Compressed Air System Overview"
+                                      className="w-full max-h-[220px] object-contain rounded-lg"
+                                    />
+                                    <p className="text-[10px] text-slate-500 mt-1.5 font-medium text-center">
+                                      Compressed Air Generation, Distribution &amp; End Use Lifecycle
+                                    </p>
+                                  </div>
+                                </React.Fragment>
+                              );
+                            }
+
+                            if (isCompressorAirLeakageAudit && (trimmed.includes('Leakage Identification & Tagging') || trimmed.includes('Leakage Identification:'))) {
+                              return (
+                                <React.Fragment key={lIdx}>
+                                  <p className="font-extrabold text-slate-950 text-xs pt-1 uppercase tracking-wider text-indigo-900 bg-indigo-50/60 p-1.5 px-2.5 rounded-md border border-indigo-100 inline-block my-1">
+                                    {line}
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-3 my-2">
+                                    <div className="rounded-xl border border-slate-200 bg-white p-2 flex flex-col items-center shadow-2xs">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src="/compressed air leakage .png"
+                                        alt="Ultrasonic Detection Screen"
+                                        className="w-full h-[130px] object-contain rounded"
+                                      />
+                                      <p className="text-[10px] font-semibold text-slate-600 mt-1 text-center">Ultrasonic Leak Screen Readout (dB / CFM Loss)</p>
+                                    </div>
+                                    <div className="rounded-xl border border-slate-200 bg-white p-2 flex flex-col items-center shadow-2xs">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src="/compressed 3.png"
+                                        alt="Physical Tagging Label"
+                                        className="w-full h-[130px] object-contain rounded"
+                                      />
+                                      <p className="text-[10px] font-semibold text-slate-600 mt-1 text-center">Physical Leak Tagging Label On Line</p>
+                                    </div>
+                                  </div>
+                                </React.Fragment>
+                              );
+                            }
+
+                            if (isCompressorAirLeakageAudit && (trimmed.includes('Our Leakage Detector Overview') || trimmed.includes('Leakage Detector'))) {
+                              return (
+                                <React.Fragment key={lIdx}>
+                                  <p className="font-extrabold text-slate-950 text-xs pt-1 uppercase tracking-wider text-indigo-900 bg-indigo-50/60 p-1.5 px-2.5 rounded-md border border-indigo-100 inline-block my-1">
+                                    {line}
+                                  </p>
+                                  <div className="my-2 p-2.5 bg-white rounded-xl border border-slate-200 flex flex-col items-center shadow-2xs">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src="/compressrd air 2.png"
+                                      alt="Ultrasonic Leak Detector Device in Operation"
+                                      className="w-full max-h-[160px] object-contain mx-auto rounded"
+                                    />
+                                    <p className="text-[10px] text-slate-500 mt-1.5 font-medium text-center">
+                                      Ultrasonic High-Frequency Leak Detector &amp; Headphone Acoustic Monitoring
+                                    </p>
+                                  </div>
+                                </React.Fragment>
+                              );
+                            }
+
+                            if (isCompressorAirLeakageAudit && (trimmed.toLowerCase().includes('phase-3 implementation validation') || trimmed.toLowerCase().includes('phase-3: implementation validation'))) {
+                              return (
+                                <React.Fragment key={lIdx}>
+                                  <p className="font-extrabold text-slate-950 text-xs pt-1 uppercase tracking-wider text-indigo-900 bg-indigo-50/60 p-1.5 px-2.5 rounded-md border border-indigo-100 inline-block my-1">
+                                    {line}
+                                  </p>
+                                  <div className="my-2 p-2 bg-slate-950 rounded-xl border border-slate-800 flex flex-col items-center shadow-2xs">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src="/compresd6.png"
+                                      alt="Ultrasonic Leakage Arresting Validation"
+                                      className="w-full max-h-[160px] object-contain mx-auto"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1 font-medium text-center">
+                                      Ultrasonic Acoustic Camera Validation &amp; Re-measurement
+                                    </p>
+                                  </div>
+                                </React.Fragment>
+                              );
+                            }
+
+                            if (isCompressorAirLeakageAudit && (trimmed.includes('Demand Flow Measurement') || trimmed.includes('Air Compressor Efficiency Audit'))) {
+                              return (
+                                <React.Fragment key={lIdx}>
+                                  <p className="font-extrabold text-slate-950 text-xs pt-1 uppercase tracking-wider text-indigo-900 bg-indigo-50/60 p-1.5 px-2.5 rounded-md border border-indigo-100 inline-block my-1">
+                                    {line}
+                                  </p>
+                                  {trimmed.includes('Demand Flow Measurement') && (
+                                    <div className="my-2 p-2.5 bg-white rounded-xl border border-slate-200 flex flex-col items-center shadow-2xs">
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src="/compresed4.png"
+                                        alt="Demand Flow Measurement Meter Position"
+                                        className="w-full max-h-[160px] object-contain mx-auto rounded"
+                                      />
+                                      <p className="text-[10px] text-slate-500 mt-1 font-medium text-center">
+                                        Inline Mass Flow Meter Demand Logging &amp; Baseline Profile
+                                      </p>
+                                    </div>
+                                  )}
+                                </React.Fragment>
+                              );
+                            }
+
                             if (isHeading) {
                               return (
                                 <p key={lIdx} className="font-extrabold text-slate-950 text-xs pt-1 uppercase tracking-wider text-indigo-900 bg-indigo-50/60 p-1.5 px-2.5 rounded-md border border-indigo-100 inline-block my-1">
@@ -5335,12 +5630,26 @@ PAN Number – ABNCS4869A`;
           )}
 
           {/* Step 6: Notes, Client Support & Terms and Conditions (Editable, Row-Wise, Black Text) */}
-          {(isIotOrControls || isBms || isEnergyAudit || isIaqSensor) && (
+          {(isIotOrControls || isBms || isEnergyAudit || isIaqSensor || isEnergyAuditServices || isCompressorAirLeakageAudit || isNitrogenGasLeakageAudit || isMixtureGasLeakageAudit || isAshraeLevel2 || isHvacDesign || isEcFan || isIso50001) && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">
-                    {isIaqSensor
+                    {isCompressorAirLeakageAudit
+                      ? 'Step 6: Commercial Terms, Client Inclusions & Notes — Compressor Air Leakage Audit'
+                      : isNitrogenGasLeakageAudit
+                      ? 'Step 6: Commercial Terms, Client Inclusions & Notes — Nitrogen Gas Leakage Audit'
+                      : isMixtureGasLeakageAudit
+                      ? 'Step 6: Commercial Terms, Client Inclusions & Notes — Mixture Gas Leakage Audit'
+                      : isAshraeLevel2
+                      ? 'Step 6: Commercial Terms & Payment Schedule — ASHRAE Level 2'
+                      : isHvacDesign
+                      ? 'Step 6: Terms, Inclusions & Engineering Scope Notes — HVAC Design'
+                      : isEcFan
+                      ? 'Step 6: Commercial Terms, Warranty & Payment Schedule — EC Fan Solution'
+                      : isIso50001
+                      ? 'Step 6: Terms, Consultancy Inclusions & Payment Schedule — ISO 50001'
+                      : isIaqSensor
                       ? 'Step 6: Commercial Terms, Warranty & Payment Schedule — IAQ Sensor'
                       : isIrBlaster
                       ? 'Step 6: Client Support, Terms and Conditions & Payment Schedule — IR Blaster'
@@ -5357,7 +5666,21 @@ PAN Number – ABNCS4869A`;
                       : 'Step 6: Notes, Client Support & Terms and Conditions'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {isIaqSensor
+                    {isCompressorAirLeakageAudit
+                      ? 'Plant Accessibility, Ultrasonic Testing Coordination, 100% On Submission Invoicing & Validity'
+                      : isNitrogenGasLeakageAudit
+                      ? 'Safety Clearances, High-Pressure Line Access, Report Delivery & Payment Milestones'
+                      : isMixtureGasLeakageAudit
+                      ? 'Hazardous Area Protocol, Gas Network Isolation, Report Submission & Payment Terms'
+                      : isAshraeLevel2
+                      ? 'Engineering Data Access, Sub-System Monitoring Clearances & Commercial Milestone Terms'
+                      : isHvacDesign
+                      ? 'Architectural Drawing Inputs, Design Review Cycles, BOQ Deliverables & Payment Milestones'
+                      : isEcFan
+                      ? 'Supply Lead Times, Installation Coordination, 12 Months Motor Warranty & Payment Terms'
+                      : isIso50001
+                      ? 'Management Review Coordination, Internal Audit Support, Certification Stage Terms & Milestone Invoicing'
+                      : isIaqSensor
                       ? '100% Upfront Hardware Payment, 5-6 Weeks Delivery, 12/18 Months Warranty & Support Terms'
                       : isIrBlaster
                       ? 'Client SPOC Support, Accessibility, 100% Upfront Hardware & 50/50 Installation Terms'
@@ -5377,7 +5700,21 @@ PAN Number – ABNCS4869A`;
                     type="button"
                     onClick={() => {
                       setEmsStep6Text(
-                        isIaqSensor
+                        isCompressorAirLeakageAudit
+                          ? DEFAULT_COMPRESSOR_AIR_AUDIT_STEP6_TEXT
+                          : isNitrogenGasLeakageAudit
+                          ? DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP6_TEXT
+                          : isMixtureGasLeakageAudit
+                          ? DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP6_TEXT
+                          : isAshraeLevel2
+                          ? DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT
+                          : isHvacDesign
+                          ? DEFAULT_HVAC_DESIGN_STEP6_TEXT
+                          : isEcFan
+                          ? DEFAULT_EC_FAN_STEP6_TEXT
+                          : isIso50001
+                          ? DEFAULT_ISO_50001_STEP6_TEXT
+                          : isIaqSensor
                           ? DEFAULT_IAQ_SENSOR_STEP6_TEXT
                           : isIrBlaster
                           ? DEFAULT_IR_BLASTER_STEP6_TEXT
