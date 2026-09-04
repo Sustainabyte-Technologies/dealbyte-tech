@@ -379,7 +379,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                     <input
                       type="text"
                       list="team-members-list"
-                      value={row.name}
+                      value={row.name || ''}
                       onChange={(e) => {
                         const newName = e.target.value;
                         const foundPreset = getActiveTeamMembers().find(
@@ -410,7 +410,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                   </td>
                   <td className="p-2 px-3 border-r border-slate-200 text-center bg-amber-50/20">
                     <select
-                      value={row.roleLevel}
+                      value={row.roleLevel || 'JUNIOR_ENERGY'}
                       onChange={(e) => updateManpowerRow(row.id, 'roleLevel', e.target.value as any)}
                       className="w-full bg-white border border-slate-300 rounded px-2 py-1 font-extrabold text-xs text-slate-900 shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
                     >
@@ -436,7 +436,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                       type="number"
                       min={0}
                       placeholder="0"
-                      value={row.siteWorkCost === 0 ? '' : row.siteWorkCost}
+                      value={row.siteWorkCost === 0 ? '' : (row.siteWorkCost ?? '')}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => updateManpowerRow(row.id, 'siteWorkCost', e.target.value === '' ? 0 : Number(e.target.value))}
                       className="w-24 text-right bg-slate-50 border border-slate-200 rounded px-2 py-1 font-semibold text-slate-900"
@@ -447,7 +447,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                       type="number"
                       min={0}
                       placeholder="0"
-                      value={row.reportWorkCost === 0 ? '' : row.reportWorkCost}
+                      value={row.reportWorkCost === 0 ? '' : (row.reportWorkCost ?? '')}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => updateManpowerRow(row.id, 'reportWorkCost', e.target.value === '' ? 0 : Number(e.target.value))}
                       className="w-24 text-right bg-slate-50 border border-slate-200 rounded px-2 py-1 font-semibold text-slate-900"
@@ -458,7 +458,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                       type="number"
                       min={0}
                       placeholder="0"
-                      value={row.siteWorkingDays === 0 ? '' : row.siteWorkingDays}
+                      value={row.siteWorkingDays === 0 ? '' : (row.siteWorkingDays ?? '')}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => updateManpowerRow(row.id, 'siteWorkingDays', e.target.value === '' ? 0 : Number(e.target.value))}
                       className="w-14 text-center font-bold text-indigo-700 bg-white border border-indigo-300 rounded px-2 py-1 shadow-2xs"
@@ -469,7 +469,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                       type="number"
                       min={0}
                       placeholder="0"
-                      value={row.reportWorkingDays === 0 ? '' : row.reportWorkingDays}
+                      value={row.reportWorkingDays === 0 ? '' : (row.reportWorkingDays ?? '')}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => updateManpowerRow(row.id, 'reportWorkingDays', e.target.value === '' ? 0 : Number(e.target.value))}
                       className="w-14 text-center bg-slate-50 border border-slate-200 rounded px-2 py-1 font-semibold text-slate-800"
@@ -642,7 +642,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                     <input
                       type="number"
                       min={0}
-                      value={row.rentalCost}
+                      value={row.rentalCost ?? ''}
                       onChange={(e) => updateInstrumentRow(row.id, 'rentalCost', Number(e.target.value))}
                       className="w-28 text-right bg-slate-50 border border-slate-200 rounded px-2 py-1 font-semibold text-slate-900"
                     />
@@ -651,7 +651,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                     <input
                       type="number"
                       min={0}
-                      value={row.sets}
+                      value={row.sets ?? ''}
                       onChange={(e) => updateInstrumentRow(row.id, 'sets', Number(e.target.value))}
                       className="w-16 text-center bg-slate-50 border border-slate-200 rounded px-2 py-1 font-semibold text-slate-900"
                     />
@@ -660,7 +660,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                     <input
                       type="number"
                       min={0}
-                      value={row.siteWorkingDays}
+                      value={row.siteWorkingDays ?? ''}
                       onChange={(e) =>
                         updateInstrumentRow(row.id, 'siteWorkingDays', Number(e.target.value))
                       }

@@ -249,6 +249,29 @@ export class CostingService {
     return Math.round(value * 100) / 100;
   }
 
+  /** Ensures row objects are stored as clean plain objects and never stripped by JSON.stringify */
+  private cleanRowObject(r: any): any {
+    if (!r) return null;
+    if (Array.isArray(r)) {
+      const obj: any = {};
+      for (const key of Object.keys(r)) {
+        if (!/^\d+$/.test(key)) {
+          obj[key] = r[key];
+        }
+      }
+      return Object.keys(obj).length > 0 ? obj : null;
+    }
+    if (typeof r === 'object') {
+      return { ...r };
+    }
+    return null;
+  }
+
+  private cleanRowArray(rows: any): any[] {
+    if (!rows || !Array.isArray(rows)) return [];
+    return rows.map((r) => this.cleanRowObject(r)).filter(Boolean);
+  }
+
   // ─── COSTING TEMPLATE CRUD ──────────────────────────────────────────────
 
   async saveTemplate(dto: any, userId?: string) {
@@ -264,26 +287,36 @@ export class CostingService {
       }
     }
 
-    const isWelding = dto.isWeldingIot || dto.serviceName?.toLowerCase().includes('welding') || dto.categoryName?.toLowerCase().includes('welding');
-    const isIotControls = dto.isIotControls || dto.serviceName?.toLowerCase().includes('controls') || dto.serviceName?.toLowerCase().includes('hardware') || dto.categoryName?.toLowerCase().includes('hardware');
+    const isWelding = dto.isWeldingIot || dto.serviceName?.toLowerCase().includes('welding') || dto.categoryName?.toLowerCase().includes('welding') || dto.serviceName?.toLowerCase().includes('digiweld') || dto.serviceName?.toLowerCase().includes('fusionbyte');
     const isCpm = dto.isCpm || dto.serviceName?.toLowerCase().includes('cpm') || dto.serviceName?.toLowerCase().includes('chiller') || dto.categoryName?.toLowerCase().includes('chiller');
-    const isEms = dto.isEms && !isCpm;
+    const isIotControls = (dto.isIotControls || dto.serviceName?.toLowerCase().includes('ir blaster') || dto.categoryName?.toLowerCase().includes('ir blaster')) && !isWelding && !isCpm;
+    const isEms = (dto.isEms || dto.serviceName?.toLowerCase().includes('ems') || dto.serviceName?.toLowerCase().includes('energy management') || dto.serviceName?.toLowerCase().includes('compressed air') || dto.serviceName?.toLowerCase().includes('water') || dto.categoryName?.toLowerCase().includes('hardware') || dto.categoryName?.toLowerCase().includes('iot')) && !isWelding && !isCpm && !isIotControls;
 
-    const manpowerPayload = isCpm
-      ? (dto.cpmCommissioningManpowerRows || [])
-      : (isEms || isIotControls) ? (dto.emsManpowerRows || dto.manpowerRows || []) : (dto.manpowerRows || []);
+    const manpowerPayload = this.cleanRowArray(
+      isCpm
+        ? (dto.cpmCommissioningManpowerRows || [])
+        : (isEms || isIotControls) ? (dto.emsManpowerRows || dto.manpowerRows || []) : (dto.manpowerRows || [])
+    );
     const instrumentPayload = isCpm
       ? {
           isCpm: true,
           stationType: dto.stationType,
           outstationStartLocation: dto.outstationStartLocation,
           outstationEndLocation: dto.outstationEndLocation,
-          cpmHardwareRows: dto.cpmHardwareRows || [],
-          cpmElectricalRows: dto.cpmElectricalRows || [],
-          cpmCommissioningManpowerRows: dto.cpmCommissioningManpowerRows || [],
-          cpmInstallationRows: dto.cpmInstallationRows || [],
-          cpmInstallationManpowerRows: dto.cpmInstallationManpowerRows || [],
-          cpmCloudRows: dto.cpmCloudRows || [],
+          cpmHardwareRows: this.cleanRowArray(dto.cpmHardwareRows),
+          cpmElectricalRows: this.cleanRowArray(dto.cpmElectricalRows),
+          cpmCommissioningManpowerRows: this.cleanRowArray(dto.cpmCommissioningManpowerRows),
+          cpmInstallationRows: this.cleanRowArray(dto.cpmInstallationRows),
+          cpmInstallationManpowerRows: this.cleanRowArray(dto.cpmInstallationManpowerRows),
+          cpmOnPremiseRows: this.cleanRowArray(dto.cpmOnPremiseRows),
+          cpmCloudChargeRows: this.cleanRowArray(dto.cpmCloudChargeRows),
+          cpmCloudRows: this.cleanRowArray(dto.cpmCloudRows),
+          totalHardwareCost: dto.totalHardwareCost || 0,
+          totalConsumablesCost: dto.totalConsumablesCost || 0,
+          totalCommissioningCost: dto.totalCommissioningCost || 0,
+          totalInstallationCost: dto.totalInstallationCost || 0,
+          totalOnPremiseCost: dto.totalOnPremiseCost || 0,
+          totalCloudCost: dto.totalCloudCost || 0,
           roundingNearest: dto.roundingNearest || 100,
         }
       : isIotControls
@@ -292,11 +325,18 @@ export class CostingService {
           stationType: dto.stationType,
           outstationStartLocation: dto.outstationStartLocation,
           outstationEndLocation: dto.outstationEndLocation,
-          iotControlsHardwareRows: dto.iotControlsHardwareRows || [],
-          iotControlsMandaysRows: dto.iotControlsMandaysRows || [],
-          iotControlsTravelRows: dto.iotControlsTravelRows || [],
-          iotControlsOpexRows: dto.iotControlsOpexRows || [],
+          iotControlsHardwareRows: this.cleanRowArray(dto.iotControlsHardwareRows),
+          iotControlsMandaysRows: this.cleanRowArray(dto.iotControlsMandaysRows),
+          iotControlsTravelRows: this.cleanRowArray(dto.iotControlsTravelRows),
+          iotControlsOpexRows: this.cleanRowArray(dto.iotControlsOpexRows),
           iotControlsRoiState: dto.iotControlsRoiState || {},
+          iotPackagingPct: dto.iotPackagingPct !== undefined ? dto.iotPackagingPct : 0,
+          iotPackagingMarginPct: dto.iotPackagingMarginPct !== undefined ? dto.iotPackagingMarginPct : 0,
+          iotPackagingManualCost: dto.iotPackagingManualCost ?? null,
+          iotPackagingManualPrice: dto.iotPackagingManualPrice ?? null,
+          extraExpenseRows: this.cleanRowArray(dto.extraExpenses || dto.extraExpenseRows),
+          emsManpowerRows: this.cleanRowArray(dto.emsManpowerRows),
+          roundingNearest: dto.roundingNearest || 100,
         }
       : isWelding
       ? {
@@ -304,10 +344,10 @@ export class CostingService {
           stationType: dto.stationType,
           outstationStartLocation: dto.outstationStartLocation,
           outstationEndLocation: dto.outstationEndLocation,
-          weldingHardwareRows: dto.weldingHardwareRows || [],
-          weldingSoftwareRows: dto.weldingSoftwareRows || [],
-          weldingCloudRows: dto.weldingCloudRows || [],
-          weldingInstallationRows: dto.weldingInstallationRows || [],
+          weldingHardwareRows: this.cleanRowArray(dto.weldingHardwareRows),
+          weldingSoftwareRows: this.cleanRowArray(dto.weldingSoftwareRows),
+          weldingCloudRows: this.cleanRowArray(dto.weldingCloudRows),
+          weldingInstallationRows: this.cleanRowArray(dto.weldingInstallationRows),
         }
       : isEms
       ? {
@@ -315,16 +355,17 @@ export class CostingService {
           stationType: dto.stationType,
           outstationStartLocation: dto.outstationStartLocation,
           outstationEndLocation: dto.outstationEndLocation,
-          emsHardwareRows: dto.emsHardwareRows || [],
-          emsGatewayHardwareRows: dto.emsGatewayHardwareRows || [],
-          emsElectricalHardwareRows: dto.emsElectricalHardwareRows || [],
-          emsManpowerRows: dto.emsManpowerRows || [],
-          caaAutoManpowerRows: dto.caaAutoManpowerRows || [],
-          caaInstManpowerRows: dto.caaInstManpowerRows || [],
-          emsPlatformRows: dto.emsPlatformRows || [],
-          emsRecurringRows: dto.emsRecurringRows || [],
+          emsHardwareRows: this.cleanRowArray(dto.emsHardwareRows),
+          emsGatewayHardwareRows: this.cleanRowArray(dto.emsGatewayHardwareRows),
+          emsElectricalHardwareRows: this.cleanRowArray(dto.emsElectricalHardwareRows),
+          emsManpowerRows: this.cleanRowArray(dto.emsManpowerRows),
+          caaAutoManpowerRows: this.cleanRowArray(dto.caaAutoManpowerRows),
+          caaInstManpowerRows: this.cleanRowArray(dto.caaInstManpowerRows),
+          emsPlatformRows: this.cleanRowArray(dto.emsPlatformRows),
+          emsRecurringRows: this.cleanRowArray(dto.emsRecurringRows),
+          roundingNearest: dto.roundingNearest || 100,
         }
-      : (dto.instrumentRows || []);
+      : this.cleanRowArray(dto.instrumentRows);
 
     // Upsert or create template
     const existing = await this.prisma.costingTemplate.findFirst({
@@ -344,7 +385,7 @@ export class CostingService {
           serviceId: serviceId || null,
           manpowerRows: manpowerPayload,
           instrumentRows: instrumentPayload as any,
-          extraExpenseRows: dto.extraExpenseRows || [],
+          extraExpenseRows: this.cleanRowArray(dto.extraExpenseRows || dto.extraExpenses || []),
           siteWorkingDays: dto.siteWorkingDays || 1,
           reportWorkingDays: dto.reportWorkingDays || 1,
           marginPct: dto.marginPct,
@@ -360,7 +401,7 @@ export class CostingService {
           serviceId: serviceId || null,
           manpowerRows: manpowerPayload,
           instrumentRows: instrumentPayload as any,
-          extraExpenseRows: dto.extraExpenseRows || [],
+          extraExpenseRows: this.cleanRowArray(dto.extraExpenseRows || dto.extraExpenses || []),
           siteWorkingDays: dto.siteWorkingDays || 1,
           reportWorkingDays: dto.reportWorkingDays || 1,
           marginPct: dto.marginPct,
@@ -405,75 +446,107 @@ export class CostingService {
       serviceCategory: item.serviceCategory || '',
       subService: item.subService || item.serviceName || '',
       projectName: item.projectName || '',
+      siteName: item.siteName || '',
       stationType: item.stationType || 'Local Station',
       outstationStartLocation: item.outstationStartLocation || '',
       outstationEndLocation: item.outstationEndLocation || '',
+      totalManpowerCost: item.totalManpowerCost !== undefined ? Number(item.totalManpowerCost) : 0,
+      totalInstrumentCost: item.totalInstrumentCost !== undefined ? Number(item.totalInstrumentCost) : 0,
+      totalExtraCost: item.totalExtraCost !== undefined ? Number(item.totalExtraCost) : 0,
+      subtotalCost: item.subtotalCost !== undefined ? Number(item.subtotalCost) : 0,
+      marginPct: item.marginPct !== undefined ? Number(item.marginPct) : 40,
+      marginAmount: item.marginAmount !== undefined ? Number(item.marginAmount) : 0,
+      bufferPct: item.bufferPct !== undefined ? Number(item.bufferPct) : 10,
+      bufferAmount: item.bufferAmount !== undefined ? Number(item.bufferAmount) : 0,
+      finalQuote: item.finalQuote !== undefined ? Number(item.finalQuote) : 0,
+      siteWorkingDays: item.siteWorkingDays !== undefined ? Number(item.siteWorkingDays) : 1,
+      reportWorkingDays: item.reportWorkingDays !== undefined ? Number(item.reportWorkingDays) : 1,
+      manpowerRows: this.cleanRowArray(item.manpowerRows),
+      instrumentRows: Array.isArray(item.instrumentRows)
+        ? this.cleanRowArray(item.instrumentRows)
+        : item.instrumentRows,
+      extraExpenseRows: this.cleanRowArray(item.extraExpenseRows || []),
     };
 
     if (item.instrumentRows && typeof item.instrumentRows === 'object' && !Array.isArray(item.instrumentRows)) {
-      if (item.instrumentRows.isIotControls) {
-        const icData = item.instrumentRows;
+      const instObj = item.instrumentRows;
+      if (instObj.isIotControls || item.subService?.toLowerCase().includes('ir blaster')) {
         return {
           ...baseResult,
           isIotControls: true,
-          stationType: item.stationType || icData.stationType || 'Local Station',
-          outstationStartLocation: item.outstationStartLocation || icData.outstationStartLocation || '',
-          outstationEndLocation: item.outstationEndLocation || icData.outstationEndLocation || '',
-          iotControlsHardwareRows: icData.iotControlsHardwareRows || [],
-          iotControlsMandaysRows: icData.iotControlsMandaysRows || [],
-          iotControlsTravelRows: icData.iotControlsTravelRows || [],
-          iotControlsOpexRows: icData.iotControlsOpexRows || [],
-          iotControlsRoiState: icData.iotControlsRoiState || {},
+          stationType: item.stationType || instObj.stationType || 'Local Station',
+          outstationStartLocation: item.outstationStartLocation || instObj.outstationStartLocation || '',
+          outstationEndLocation: item.outstationEndLocation || instObj.outstationEndLocation || '',
+          iotControlsHardwareRows: instObj.iotControlsHardwareRows || [],
+          iotControlsMandaysRows: instObj.iotControlsMandaysRows || [],
+          iotControlsTravelRows: instObj.iotControlsTravelRows || [],
+          iotControlsOpexRows: instObj.iotControlsOpexRows || [],
+          iotControlsRoiState: instObj.iotControlsRoiState || {},
+          iotPackagingPct: instObj.iotPackagingPct !== undefined ? Number(instObj.iotPackagingPct) : 0,
+          iotPackagingMarginPct: instObj.iotPackagingMarginPct !== undefined ? Number(instObj.iotPackagingMarginPct) : 0,
+          iotPackagingManualCost: instObj.iotPackagingManualCost ?? null,
+          iotPackagingManualPrice: instObj.iotPackagingManualPrice ?? null,
+          extraExpenseRows: item.extraExpenseRows || instObj.extraExpenseRows || [],
+          emsManpowerRows: item.manpowerRows || instObj.emsManpowerRows || [],
+          roundingNearest: instObj.roundingNearest ? Number(instObj.roundingNearest) : 100,
         };
       }
 
-      if (item.instrumentRows.isWeldingIot) {
-        const wData = item.instrumentRows;
+      if (instObj.isWeldingIot || item.subService?.toLowerCase().includes('welding') || item.subService?.toLowerCase().includes('digiweld') || item.subService?.toLowerCase().includes('fusionbyte')) {
         return {
           ...baseResult,
           isWeldingIot: true,
-          stationType: item.stationType || wData.stationType || 'Local Station',
-          outstationStartLocation: item.outstationStartLocation || wData.outstationStartLocation || '',
-          outstationEndLocation: item.outstationEndLocation || wData.outstationEndLocation || '',
-          weldingHardwareRows: wData.weldingHardwareRows || [],
-          weldingSoftwareRows: wData.weldingSoftwareRows || [],
-          weldingCloudRows: wData.weldingCloudRows || [],
-          weldingInstallationRows: wData.weldingInstallationRows || [],
+          stationType: item.stationType || instObj.stationType || 'Local Station',
+          outstationStartLocation: item.outstationStartLocation || instObj.outstationStartLocation || '',
+          outstationEndLocation: item.outstationEndLocation || instObj.outstationEndLocation || '',
+          weldingHardwareRows: instObj.weldingHardwareRows || [],
+          weldingSoftwareRows: instObj.weldingSoftwareRows || [],
+          weldingCloudRows: instObj.weldingCloudRows || [],
+          weldingInstallationRows: instObj.weldingInstallationRows || [],
         };
       }
 
-      if (item.instrumentRows.isCpm) {
-        const cpmData = item.instrumentRows;
+      if (instObj.isCpm || item.subService?.toLowerCase().includes('cpm') || item.subService?.toLowerCase().includes('chiller')) {
         return {
           ...baseResult,
           isCpm: true,
-          stationType: item.stationType || cpmData.stationType || 'Local Station',
-          outstationStartLocation: item.outstationStartLocation || cpmData.outstationStartLocation || '',
-          outstationEndLocation: item.outstationEndLocation || cpmData.outstationEndLocation || '',
-          cpmHardwareRows: cpmData.cpmHardwareRows || [],
-          cpmElectricalRows: cpmData.cpmElectricalRows || [],
-          cpmCommissioningManpowerRows: item.manpowerRows || cpmData.cpmCommissioningManpowerRows || [],
-          cpmInstallationRows: cpmData.cpmInstallationRows || [],
-          cpmInstallationManpowerRows: cpmData.cpmInstallationManpowerRows || [],
-          cpmCloudRows: cpmData.cpmCloudRows || [],
-          roundingNearest: cpmData.roundingNearest || 100,
+          stationType: item.stationType || instObj.stationType || 'Local Station',
+          outstationStartLocation: item.outstationStartLocation || instObj.outstationStartLocation || '',
+          outstationEndLocation: item.outstationEndLocation || instObj.outstationEndLocation || '',
+          cpmHardwareRows: instObj.cpmHardwareRows || [],
+          cpmElectricalRows: instObj.cpmElectricalRows || [],
+          cpmCommissioningManpowerRows: item.manpowerRows || instObj.cpmCommissioningManpowerRows || [],
+          cpmInstallationRows: instObj.cpmInstallationRows || [],
+          cpmInstallationManpowerRows: instObj.cpmInstallationManpowerRows || [],
+          cpmOnPremiseRows: instObj.cpmOnPremiseRows || [],
+          cpmCloudChargeRows: instObj.cpmCloudChargeRows || [],
+          cpmCloudRows: instObj.cpmCloudRows || [],
+          totalHardwareCost: Number(instObj.totalHardwareCost || 0),
+          totalConsumablesCost: Number(instObj.totalConsumablesCost || 0),
+          totalCommissioningCost: Number(instObj.totalCommissioningCost || 0),
+          totalInstallationCost: Number(instObj.totalInstallationCost || 0),
+          totalOnPremiseCost: Number(instObj.totalOnPremiseCost || 0),
+          totalCloudCost: Number(instObj.totalCloudCost || 0),
+          roundingNearest: instObj.roundingNearest ? Number(instObj.roundingNearest) : 100,
         };
       }
 
-      if (item.instrumentRows.isEms) {
-        const emsData = item.instrumentRows;
+      if (instObj.isEms || item.subService?.toLowerCase().includes('energy management') || item.subService?.toLowerCase().includes('compressed air') || item.subService?.toLowerCase().includes('water') || item.subService?.toLowerCase().includes('ems')) {
         return {
           ...baseResult,
           isEms: true,
-          stationType: item.stationType || emsData.stationType || 'Local Station',
-          outstationStartLocation: item.outstationStartLocation || emsData.outstationStartLocation || '',
-          outstationEndLocation: item.outstationEndLocation || emsData.outstationEndLocation || '',
-          emsGatewayHardwareRows: emsData.emsGatewayHardwareRows || [],
-          emsElectricalHardwareRows: emsData.emsElectricalHardwareRows || [],
-          emsHardwareRows: emsData.emsHardwareRows || [],
-          emsManpowerRows: item.manpowerRows || emsData.emsManpowerRows || [],
-          emsPlatformRows: emsData.emsPlatformRows || [],
-          emsRecurringRows: emsData.emsRecurringRows || [],
+          stationType: item.stationType || instObj.stationType || 'Local Station',
+          outstationStartLocation: item.outstationStartLocation || instObj.outstationStartLocation || '',
+          outstationEndLocation: item.outstationEndLocation || instObj.outstationEndLocation || '',
+          emsGatewayHardwareRows: instObj.emsGatewayHardwareRows || [],
+          emsElectricalHardwareRows: instObj.emsElectricalHardwareRows || [],
+          emsHardwareRows: instObj.emsHardwareRows || [],
+          emsManpowerRows: item.manpowerRows || instObj.emsManpowerRows || [],
+          caaAutoManpowerRows: instObj.caaAutoManpowerRows || [],
+          caaInstManpowerRows: instObj.caaInstManpowerRows || [],
+          emsPlatformRows: instObj.emsPlatformRows || [],
+          emsRecurringRows: instObj.emsRecurringRows || [],
+          roundingNearest: instObj.roundingNearest ? Number(instObj.roundingNearest) : 100,
         };
       }
     }
@@ -541,26 +614,36 @@ export class CostingService {
       }
     }
 
-    const isWelding = dto.isWeldingIot || dto.subService?.toLowerCase().includes('welding') || dto.serviceCategory?.toLowerCase().includes('welding');
-    const isIotControls = dto.isIotControls || dto.subService?.toLowerCase().includes('controls') || dto.subService?.toLowerCase().includes('hardware') || dto.serviceCategory?.toLowerCase().includes('hardware');
+    const isWelding = dto.isWeldingIot || dto.subService?.toLowerCase().includes('welding') || dto.serviceCategory?.toLowerCase().includes('welding') || dto.subService?.toLowerCase().includes('digiweld') || dto.subService?.toLowerCase().includes('fusionbyte');
     const isCpm = dto.isCpm || dto.subService?.toLowerCase().includes('cpm') || dto.subService?.toLowerCase().includes('chiller') || dto.serviceCategory?.toLowerCase().includes('chiller');
-    const isEms = dto.isEms && !isCpm;
+    const isIotControls = (dto.isIotControls || dto.subService?.toLowerCase().includes('ir blaster') || dto.serviceCategory?.toLowerCase().includes('ir blaster')) && !isWelding && !isCpm;
+    const isEms = (dto.isEms || dto.subService?.toLowerCase().includes('ems') || dto.subService?.toLowerCase().includes('energy management') || dto.subService?.toLowerCase().includes('compressed air') || dto.subService?.toLowerCase().includes('water') || dto.serviceCategory?.toLowerCase().includes('hardware') || dto.serviceCategory?.toLowerCase().includes('iot')) && !isWelding && !isCpm && !isIotControls;
 
-    const manpowerPayload = isCpm
-      ? (dto.cpmCommissioningManpowerRows || [])
-      : isEms ? (dto.emsManpowerRows || []) : (dto.manpowerRows || []);
+    const manpowerPayload = this.cleanRowArray(
+      isCpm
+        ? (dto.cpmCommissioningManpowerRows || [])
+        : (isEms || isIotControls) ? (dto.emsManpowerRows || dto.manpowerRows || []) : (dto.manpowerRows || [])
+    );
     const instrumentPayload = isCpm
       ? {
           isCpm: true,
           stationType: dto.stationType,
           outstationStartLocation: dto.outstationStartLocation,
           outstationEndLocation: dto.outstationEndLocation,
-          cpmHardwareRows: dto.cpmHardwareRows || [],
-          cpmElectricalRows: dto.cpmElectricalRows || [],
-          cpmCommissioningManpowerRows: dto.cpmCommissioningManpowerRows || [],
-          cpmInstallationRows: dto.cpmInstallationRows || [],
-          cpmInstallationManpowerRows: dto.cpmInstallationManpowerRows || [],
-          cpmCloudRows: dto.cpmCloudRows || [],
+          cpmHardwareRows: this.cleanRowArray(dto.cpmHardwareRows),
+          cpmElectricalRows: this.cleanRowArray(dto.cpmElectricalRows),
+          cpmCommissioningManpowerRows: this.cleanRowArray(dto.cpmCommissioningManpowerRows),
+          cpmInstallationRows: this.cleanRowArray(dto.cpmInstallationRows),
+          cpmInstallationManpowerRows: this.cleanRowArray(dto.cpmInstallationManpowerRows),
+          cpmOnPremiseRows: this.cleanRowArray(dto.cpmOnPremiseRows),
+          cpmCloudChargeRows: this.cleanRowArray(dto.cpmCloudChargeRows),
+          cpmCloudRows: this.cleanRowArray(dto.cpmCloudRows),
+          totalHardwareCost: dto.totalHardwareCost || 0,
+          totalConsumablesCost: dto.totalConsumablesCost || 0,
+          totalCommissioningCost: dto.totalCommissioningCost || 0,
+          totalInstallationCost: dto.totalInstallationCost || 0,
+          totalOnPremiseCost: dto.totalOnPremiseCost || 0,
+          totalCloudCost: dto.totalCloudCost || 0,
           roundingNearest: dto.roundingNearest || 100,
         }
       : isIotControls
@@ -569,11 +652,18 @@ export class CostingService {
           stationType: dto.stationType,
           outstationStartLocation: dto.outstationStartLocation,
           outstationEndLocation: dto.outstationEndLocation,
-          iotControlsHardwareRows: dto.iotControlsHardwareRows || [],
-          iotControlsMandaysRows: dto.iotControlsMandaysRows || [],
-          iotControlsTravelRows: dto.iotControlsTravelRows || [],
-          iotControlsOpexRows: dto.iotControlsOpexRows || [],
+          iotControlsHardwareRows: this.cleanRowArray(dto.iotControlsHardwareRows),
+          iotControlsMandaysRows: this.cleanRowArray(dto.iotControlsMandaysRows),
+          iotControlsTravelRows: this.cleanRowArray(dto.iotControlsTravelRows),
+          iotControlsOpexRows: this.cleanRowArray(dto.iotControlsOpexRows),
           iotControlsRoiState: dto.iotControlsRoiState || {},
+          iotPackagingPct: dto.iotPackagingPct !== undefined ? dto.iotPackagingPct : 0,
+          iotPackagingMarginPct: dto.iotPackagingMarginPct !== undefined ? dto.iotPackagingMarginPct : 0,
+          iotPackagingManualCost: dto.iotPackagingManualCost ?? null,
+          iotPackagingManualPrice: dto.iotPackagingManualPrice ?? null,
+          extraExpenseRows: this.cleanRowArray(dto.extraExpenses || dto.extraExpenseRows),
+          emsManpowerRows: this.cleanRowArray(dto.emsManpowerRows),
+          roundingNearest: dto.roundingNearest || 100,
         }
       : isWelding
       ? {
@@ -581,10 +671,10 @@ export class CostingService {
           stationType: dto.stationType,
           outstationStartLocation: dto.outstationStartLocation,
           outstationEndLocation: dto.outstationEndLocation,
-          weldingHardwareRows: dto.weldingHardwareRows || [],
-          weldingSoftwareRows: dto.weldingSoftwareRows || [],
-          weldingCloudRows: dto.weldingCloudRows || [],
-          weldingInstallationRows: dto.weldingInstallationRows || [],
+          weldingHardwareRows: this.cleanRowArray(dto.weldingHardwareRows),
+          weldingSoftwareRows: this.cleanRowArray(dto.weldingSoftwareRows),
+          weldingCloudRows: this.cleanRowArray(dto.weldingCloudRows),
+          weldingInstallationRows: this.cleanRowArray(dto.weldingInstallationRows),
         }
       : isEms
       ? {
@@ -592,17 +682,17 @@ export class CostingService {
           stationType: dto.stationType,
           outstationStartLocation: dto.outstationStartLocation,
           outstationEndLocation: dto.outstationEndLocation,
-          emsHardwareRows: dto.emsHardwareRows || [],
-          emsGatewayHardwareRows: dto.emsGatewayHardwareRows || [],
-          emsElectricalHardwareRows: dto.emsElectricalHardwareRows || [],
-          emsManpowerRows: dto.emsManpowerRows || [],
-          caaAutoManpowerRows: dto.caaAutoManpowerRows || [],
-          caaInstManpowerRows: dto.caaInstManpowerRows || [],
-          emsPlatformRows: dto.emsPlatformRows || [],
-          emsRecurringRows: dto.emsRecurringRows || [],
+          emsHardwareRows: this.cleanRowArray(dto.emsHardwareRows),
+          emsGatewayHardwareRows: this.cleanRowArray(dto.emsGatewayHardwareRows),
+          emsElectricalHardwareRows: this.cleanRowArray(dto.emsElectricalHardwareRows),
+          emsManpowerRows: this.cleanRowArray(dto.emsManpowerRows),
+          caaAutoManpowerRows: this.cleanRowArray(dto.caaAutoManpowerRows),
+          caaInstManpowerRows: this.cleanRowArray(dto.caaInstManpowerRows),
+          emsPlatformRows: this.cleanRowArray(dto.emsPlatformRows),
+          emsRecurringRows: this.cleanRowArray(dto.emsRecurringRows),
           roundingNearest: dto.roundingNearest || 100,
         }
-      : (dto.instrumentRows || []);
+      : this.cleanRowArray(dto.instrumentRows);
 
     const dataObj = {
       clientName: dto.clientName,
@@ -619,28 +709,139 @@ export class CostingService {
       scopeDetails: dto.scopeDetails || null,
       manpowerRows: manpowerPayload,
       instrumentRows: instrumentPayload as any,
-      extraExpenseRows: dto.extraExpenseRows || [],
-      siteWorkingDays: dto.siteWorkingDays || 1,
-      reportWorkingDays: dto.reportWorkingDays || 1,
-      totalManpowerCost: dto.totalManpowerCost || 0,
-      totalInstrumentCost: dto.totalInstrumentCost || 0,
-      totalExtraCost: dto.totalExtraCost || 0,
-      subtotalCost: dto.subtotalCost,
-      marginPct: dto.marginPct,
-      marginAmount: dto.marginAmount || 0,
-      bufferPct: dto.bufferPct,
-      bufferAmount: dto.bufferAmount || 0,
-      finalQuote: dto.finalQuote,
+      extraExpenseRows: this.cleanRowArray(dto.extraExpenseRows || dto.extraExpenses || []),
+      siteWorkingDays: dto.siteWorkingDays ? Number(dto.siteWorkingDays) : 1,
+      reportWorkingDays: dto.reportWorkingDays ? Number(dto.reportWorkingDays) : 1,
+      totalManpowerCost: dto.totalManpowerCost !== undefined ? Number(dto.totalManpowerCost) : 0,
+      totalInstrumentCost: dto.totalInstrumentCost !== undefined ? Number(dto.totalInstrumentCost) : 0,
+      totalExtraCost: dto.totalExtraCost !== undefined ? Number(dto.totalExtraCost) : 0,
+      subtotalCost: dto.subtotalCost !== undefined ? Number(dto.subtotalCost) : 0,
+      marginPct: dto.marginPct !== undefined ? Number(dto.marginPct) : 40,
+      marginAmount: dto.marginAmount !== undefined ? Number(dto.marginAmount) : 0,
+      bufferPct: dto.bufferPct !== undefined ? Number(dto.bufferPct) : 10,
+      bufferAmount: dto.bufferAmount !== undefined ? Number(dto.bufferAmount) : 0,
+      finalQuote: dto.finalQuote !== undefined ? Number(dto.finalQuote) : 0,
       status: dto.status || 'SAVED',
     };
 
-    let sheet;
+    let sheet: any;
     if (dto.id) {
-      sheet = await this.prisma.costingSheet.update({
-        where: { id: dto.id },
-        data: dataObj,
-        include: { service: true, client: true },
-      });
+      const existingInCosting = await this.prisma.costingSheet.findUnique({ where: { id: dto.id } });
+      if (existingInCosting) {
+        sheet = await this.prisma.costingSheet.update({
+          where: { id: dto.id },
+          data: dataObj,
+          include: { service: true, client: true },
+        });
+      } else {
+        const existingAir = await this.prisma.airAuditCostingSheet.findUnique({ where: { id: dto.id } });
+        if (existingAir) {
+          sheet = await this.prisma.airAuditCostingSheet.update({
+            where: { id: dto.id },
+            data: {
+              clientName: dto.clientName,
+              projectName: dto.projectName || null,
+              siteName: dto.siteName || null,
+              scopeDetails: dto.scopeDetails || null,
+              manpowerRows: manpowerPayload,
+              instrumentRows: instrumentPayload as any,
+              extraExpenseRows: this.cleanRowArray(dto.extraExpenseRows || dto.extraExpenses || []),
+              siteWorkingDays: dto.siteWorkingDays ? Number(dto.siteWorkingDays) : 1,
+              reportWorkingDays: dto.reportWorkingDays ? Number(dto.reportWorkingDays) : 1,
+              totalManpowerCost: dto.totalManpowerCost !== undefined ? Number(dto.totalManpowerCost) : 0,
+              totalInstrumentCost: dto.totalInstrumentCost !== undefined ? Number(dto.totalInstrumentCost) : 0,
+              totalExtraCost: dto.totalExtraCost !== undefined ? Number(dto.totalExtraCost) : 0,
+              subtotalCost: dto.subtotalCost !== undefined ? Number(dto.subtotalCost) : 0,
+              marginPct: dto.marginPct !== undefined ? Number(dto.marginPct) : 40,
+              marginAmount: dto.marginAmount !== undefined ? Number(dto.marginAmount) : 0,
+              bufferPct: dto.bufferPct !== undefined ? Number(dto.bufferPct) : 10,
+              bufferAmount: dto.bufferAmount !== undefined ? Number(dto.bufferAmount) : 0,
+              finalQuote: dto.finalQuote !== undefined ? Number(dto.finalQuote) : 0,
+            },
+          });
+          return {
+            ...sheet,
+            _id: sheet.id,
+            subService: dto.subService || 'Air Audit',
+            serviceCategory: dto.serviceCategory || 'Energy Audit Services',
+          };
+        }
+
+        const existingEnergy = await this.prisma.energyAuditCostingSheet.findUnique({ where: { id: dto.id } });
+        if (existingEnergy) {
+          sheet = await this.prisma.energyAuditCostingSheet.update({
+            where: { id: dto.id },
+            data: {
+              clientName: dto.clientName,
+              projectName: dto.projectName || null,
+              siteName: dto.siteName || null,
+              scopeDetails: dto.scopeDetails || null,
+              manpowerRows: manpowerPayload,
+              instrumentRows: instrumentPayload as any,
+              extraExpenseRows: this.cleanRowArray(dto.extraExpenseRows || dto.extraExpenses || []),
+              siteWorkingDays: dto.siteWorkingDays ? Number(dto.siteWorkingDays) : 1,
+              reportWorkingDays: dto.reportWorkingDays ? Number(dto.reportWorkingDays) : 1,
+              totalManpowerCost: dto.totalManpowerCost !== undefined ? Number(dto.totalManpowerCost) : 0,
+              totalInstrumentCost: dto.totalInstrumentCost !== undefined ? Number(dto.totalInstrumentCost) : 0,
+              totalExtraCost: dto.totalExtraCost !== undefined ? Number(dto.totalExtraCost) : 0,
+              subtotalCost: dto.subtotalCost !== undefined ? Number(dto.subtotalCost) : 0,
+              marginPct: dto.marginPct !== undefined ? Number(dto.marginPct) : 40,
+              marginAmount: dto.marginAmount !== undefined ? Number(dto.marginAmount) : 0,
+              bufferPct: dto.bufferPct !== undefined ? Number(dto.bufferPct) : 10,
+              bufferAmount: dto.bufferAmount !== undefined ? Number(dto.bufferAmount) : 0,
+              finalQuote: dto.finalQuote !== undefined ? Number(dto.finalQuote) : 0,
+            },
+          });
+          return {
+            ...sheet,
+            _id: sheet.id,
+            subService: dto.subService || 'Energy Audit',
+            serviceCategory: dto.serviceCategory || 'Energy Audit Services',
+          };
+        }
+
+        const existingRect = await this.prisma.airAuditRectificationCostingSheet.findUnique({ where: { id: dto.id } });
+        if (existingRect) {
+          sheet = await this.prisma.airAuditRectificationCostingSheet.update({
+            where: { id: dto.id },
+            data: {
+              clientName: dto.clientName,
+              projectName: dto.projectName || null,
+              siteName: dto.siteName || null,
+              scopeDetails: dto.scopeDetails || null,
+              manpowerRows: manpowerPayload,
+              instrumentRows: instrumentPayload as any,
+              extraExpenseRows: this.cleanRowArray(dto.extraExpenseRows || dto.extraExpenses || []),
+              siteWorkingDays: dto.siteWorkingDays ? Number(dto.siteWorkingDays) : 1,
+              reportWorkingDays: dto.reportWorkingDays ? Number(dto.reportWorkingDays) : 1,
+              totalManpowerCost: dto.totalManpowerCost !== undefined ? Number(dto.totalManpowerCost) : 0,
+              totalInstrumentCost: dto.totalInstrumentCost !== undefined ? Number(dto.totalInstrumentCost) : 0,
+              totalExtraCost: dto.totalExtraCost !== undefined ? Number(dto.totalExtraCost) : 0,
+              subtotalCost: dto.subtotalCost !== undefined ? Number(dto.subtotalCost) : 0,
+              marginPct: dto.marginPct !== undefined ? Number(dto.marginPct) : 40,
+              marginAmount: dto.marginAmount !== undefined ? Number(dto.marginAmount) : 0,
+              bufferPct: dto.bufferPct !== undefined ? Number(dto.bufferPct) : 10,
+              bufferAmount: dto.bufferAmount !== undefined ? Number(dto.bufferAmount) : 0,
+              finalQuote: dto.finalQuote !== undefined ? Number(dto.finalQuote) : 0,
+            },
+          });
+          return {
+            ...sheet,
+            _id: sheet.id,
+            subService: dto.subService || 'Air Audit Rectification',
+            serviceCategory: dto.serviceCategory || 'Energy Audit Services',
+          };
+        }
+
+        // If not found in any legacy table either, create it in costingSheet!
+        sheet = await this.prisma.costingSheet.create({
+          data: {
+            ...dataObj,
+            createdById: userId || null,
+          },
+          include: { service: true, client: true },
+        });
+      }
     } else {
       sheet = await this.prisma.costingSheet.create({
         data: {

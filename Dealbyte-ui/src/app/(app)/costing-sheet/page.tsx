@@ -106,10 +106,28 @@ function CostingSheetContent() {
     queryKey: ['edit-sheet-data', editId, subServiceParam],
     queryFn: async () => {
       if (!editId) return null;
-      if (subServiceParam === 'Air Audit') return costingApi.airAudit.getSheets().then((list: any[]) => list.find((s: any) => s.id === editId));
-      if (subServiceParam === 'Energy Audit') return costingApi.energyAudit.getSheets().then((list: any[]) => list.find((s: any) => s.id === editId));
-      if (subServiceParam === 'Air Audit Rectification') return costingApi.airAuditRectification.getSheets().then((list: any[]) => list.find((s: any) => s.id === editId));
-      return costingApi.getSheetById(editId);
+      try {
+        const direct = await costingApi.getSheetById(editId);
+        if (direct && (direct.id || direct._id)) return direct;
+      } catch (err) {
+        console.warn('costingApi.getSheetById error, falling back to subservice search:', err);
+      }
+      if (subServiceParam === 'Air Audit') {
+        const list = await costingApi.airAudit.getSheets().catch(() => []);
+        const found = list?.find((s: any) => s.id === editId || s._id === editId);
+        if (found) return found;
+      }
+      if (subServiceParam === 'Energy Audit') {
+        const list = await costingApi.energyAudit.getSheets().catch(() => []);
+        const found = list?.find((s: any) => s.id === editId || s._id === editId);
+        if (found) return found;
+      }
+      if (subServiceParam === 'Air Audit Rectification') {
+        const list = await costingApi.airAuditRectification.getSheets().catch(() => []);
+        const found = list?.find((s: any) => s.id === editId || s._id === editId);
+        if (found) return found;
+      }
+      return null;
     },
     enabled: !!editId,
   });
@@ -2987,10 +3005,9 @@ function CostingSheetContent() {
               siteName: selectedSites.join(', ') || undefined,
               stationType,
               outstationStartLocation,
-              outstationEndLocation,
-              manpowerRows,
-              instrumentRows,
-              extraExpenseRows: extraExpenses,
+              manpowerRows: manpowerRows.map((r) => ({ ...r })),
+              instrumentRows: instrumentRows.map((r) => ({ ...r })),
+              extraExpenseRows: extraExpenses.map((r) => ({ ...r })),
               siteWorkingDays: maxSiteWorkingDays || 1,
               reportWorkingDays: 1,
               totalManpowerCost: manWorkingCost,
@@ -3010,7 +3027,7 @@ function CostingSheetContent() {
       } else {
         await costingApi.saveSheet(payload as any);
       }
-      toast.success(`Costing sheet for "${clientName || 'General Client'}" saved to database!`);
+      toast.success(editId ? `Costing sheet #${editId} updated successfully!` : `Costing sheet for "${clientName || 'General Client'}" saved to database!`);
       refetchSavedSheets();
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message || 'Failed to save costing sheet');
@@ -3140,7 +3157,21 @@ function CostingSheetContent() {
     if (template.outstationStartLocation) setOutstationStartLocation(template.outstationStartLocation);
     if (template.outstationEndLocation) setOutstationEndLocation(template.outstationEndLocation);
 
-    if (template.isCpm || isCpmActive) {
+    const subLower = ((template.subService || template.serviceName || activeSubServiceName || '') as string).toLowerCase();
+    const catLower = ((template.serviceCategory || template.categoryName || activeCategoryName || '') as string).toLowerCase();
+
+    const isCpm = Boolean(template.isCpm || isCpmActive || subLower.includes('cpm') || subLower.includes('chiller') || catLower.includes('chiller'));
+    const isWelding = Boolean(template.isWeldingIot || isWeldingIotActive || subLower.includes('welding') || catLower.includes('welding') || subLower.includes('digiweld') || subLower.includes('fusionbyte'));
+    const isIotControls = Boolean((template.isIotControls || isIotControlsActive || subLower.includes('ir blaster') || catLower.includes('ir blaster')) && !isWelding);
+    const isEms = Boolean((template.isEms || isEmsActive ||
+      subLower.includes('ems') ||
+      subLower.includes('energy management') ||
+      subLower.includes('compressed air') ||
+      subLower.includes('water') ||
+      catLower.includes('hardware') ||
+      catLower.includes('iot')) && !isCpm && !isWelding && !isIotControls);
+
+    if (isCpm) {
       if (template.cpmHardwareRows && Array.isArray(template.cpmHardwareRows)) {
         setCpmHardwareRows(template.cpmHardwareRows);
       }
@@ -3165,12 +3196,12 @@ function CostingSheetContent() {
       if (template.cpmCloudRows && Array.isArray(template.cpmCloudRows)) {
         setCpmCloudRows(template.cpmCloudRows);
       }
-      if (template.roundingNearest !== undefined) {
+      if (template.roundingNearest !== undefined && template.roundingNearest !== null) {
         setRoundingNearest(Number(template.roundingNearest));
       }
     }
 
-    if (template.isIotControls || isIotControlsActive) {
+    if (isIotControls) {
       if (template.iotControlsHardwareRows && Array.isArray(template.iotControlsHardwareRows)) {
         setIotControlsHardwareRows(template.iotControlsHardwareRows);
       }
@@ -3186,10 +3217,10 @@ function CostingSheetContent() {
       if (template.iotControlsRoiState && typeof template.iotControlsRoiState === 'object') {
         setIotControlsRoiState(template.iotControlsRoiState);
       }
-      if (template.iotPackagingPct !== undefined) {
+      if (template.iotPackagingPct !== undefined && template.iotPackagingPct !== null) {
         setIotPackagingPct(Number(template.iotPackagingPct));
       }
-      if (template.iotPackagingMarginPct !== undefined) {
+      if (template.iotPackagingMarginPct !== undefined && template.iotPackagingMarginPct !== null) {
         setIotPackagingMarginPct(Number(template.iotPackagingMarginPct));
       }
       if (template.iotPackagingManualCost !== undefined) {
@@ -3198,9 +3229,20 @@ function CostingSheetContent() {
       if (template.iotPackagingManualPrice !== undefined) {
         setIotPackagingManualPrice(template.iotPackagingManualPrice);
       }
+      const emsMan = template.emsManpowerRows || template.manpowerRows;
+      if (emsMan && Array.isArray(emsMan)) {
+        setEmsManpowerRows(emsMan);
+      }
+      const extraRows = template.extraExpenseRows || template.extraExpenses;
+      if (extraRows && Array.isArray(extraRows)) {
+        setExtraExpenses(extraRows);
+      }
+      if (template.roundingNearest !== undefined && template.roundingNearest !== null) {
+        setRoundingNearest(Number(template.roundingNearest));
+      }
     }
 
-    if (template.isWeldingIot || isWeldingIotActive) {
+    if (isWelding) {
       if (template.weldingHardwareRows && Array.isArray(template.weldingHardwareRows)) {
         setWeldingHardwareRows(template.weldingHardwareRows);
       }
@@ -3215,59 +3257,123 @@ function CostingSheetContent() {
       }
     }
 
-    if (template.isEms || isEmsActive) {
+    if (isEms) {
       const instObj = template.instrumentRows && typeof template.instrumentRows === 'object' && !Array.isArray(template.instrumentRows)
         ? template.instrumentRows
         : {};
-      if (template.emsGatewayHardwareRows && Array.isArray(template.emsGatewayHardwareRows)) {
-        setEmsGatewayHardwareRows(template.emsGatewayHardwareRows);
-      } else if (instObj.emsGatewayHardwareRows && Array.isArray(instObj.emsGatewayHardwareRows)) {
-        setEmsGatewayHardwareRows(instObj.emsGatewayHardwareRows);
+      const gwRows = template.emsGatewayHardwareRows || instObj.emsGatewayHardwareRows;
+      if (gwRows && Array.isArray(gwRows)) {
+        setEmsGatewayHardwareRows(gwRows);
       }
-
-      if (template.emsElectricalHardwareRows && Array.isArray(template.emsElectricalHardwareRows)) {
-        setEmsElectricalHardwareRows(template.emsElectricalHardwareRows);
-      } else if (instObj.emsElectricalHardwareRows && Array.isArray(instObj.emsElectricalHardwareRows)) {
-        setEmsElectricalHardwareRows(instObj.emsElectricalHardwareRows);
+      const elRows = template.emsElectricalHardwareRows || instObj.emsElectricalHardwareRows;
+      if (elRows && Array.isArray(elRows)) {
+        setEmsElectricalHardwareRows(elRows);
       }
-
-      if (template.caaAutoManpowerRows && Array.isArray(template.caaAutoManpowerRows)) {
-        setCaaAutoManpowerRows(template.caaAutoManpowerRows);
-      } else if (instObj.caaAutoManpowerRows && Array.isArray(instObj.caaAutoManpowerRows)) {
-        setCaaAutoManpowerRows(instObj.caaAutoManpowerRows);
+      const caaAuto = template.caaAutoManpowerRows || instObj.caaAutoManpowerRows;
+      if (caaAuto && Array.isArray(caaAuto)) {
+        setCaaAutoManpowerRows(caaAuto);
       }
-
-      if (template.caaInstManpowerRows && Array.isArray(template.caaInstManpowerRows)) {
-        setCaaInstManpowerRows(template.caaInstManpowerRows);
-      } else if (instObj.caaInstManpowerRows && Array.isArray(instObj.caaInstManpowerRows)) {
-        setCaaInstManpowerRows(instObj.caaInstManpowerRows);
+      const caaInst = template.caaInstManpowerRows || instObj.caaInstManpowerRows;
+      if (caaInst && Array.isArray(caaInst)) {
+        setCaaInstManpowerRows(caaInst);
       }
-
-      if (template.emsManpowerRows && Array.isArray(template.emsManpowerRows)) {
-        setEmsManpowerRows(template.emsManpowerRows);
+      const emsMan = template.emsManpowerRows || instObj.emsManpowerRows || template.manpowerRows;
+      if (emsMan && Array.isArray(emsMan)) {
+        setEmsManpowerRows(emsMan);
       }
-      if (template.emsPlatformRows && Array.isArray(template.emsPlatformRows)) {
-        setEmsPlatformRows(template.emsPlatformRows);
-      } else if (instObj.emsPlatformRows && Array.isArray(instObj.emsPlatformRows)) {
-        setEmsPlatformRows(instObj.emsPlatformRows);
+      const platRows = template.emsPlatformRows || instObj.emsPlatformRows;
+      if (platRows && Array.isArray(platRows)) {
+        setEmsPlatformRows(platRows);
       }
-
-      if (template.emsRecurringRows && Array.isArray(template.emsRecurringRows)) {
-        setEmsRecurringRows(template.emsRecurringRows);
-      } else if (instObj.emsRecurringRows && Array.isArray(instObj.emsRecurringRows)) {
-        setEmsRecurringRows(instObj.emsRecurringRows);
+      const recRows = template.emsRecurringRows || instObj.emsRecurringRows;
+      if (recRows && Array.isArray(recRows)) {
+        setEmsRecurringRows(recRows);
       }
-
-      if (template.roundingNearest !== undefined) {
+      if (template.roundingNearest !== undefined && template.roundingNearest !== null) {
         setRoundingNearest(Number(template.roundingNearest));
       }
     }
-    if (template.manpowerRows && Array.isArray(template.manpowerRows)) setManpowerRows(template.manpowerRows);
-    if (template.instrumentRows && Array.isArray(template.instrumentRows)) setInstrumentRows(template.instrumentRows);
-    if (template.extraExpenseRows && Array.isArray(template.extraExpenseRows)) setExtraExpenses(template.extraExpenseRows);
-    if (template.marginPct !== undefined) setProfitPct(Number(template.marginPct));
-    if (template.bufferPct !== undefined) setBufferPct(Number(template.bufferPct));
-    toast.success(`Loaded "${template.name || activeSubServiceName}" template from database!`);
+
+    const parseRow = (r: any) => {
+      if (!r) return null;
+      if (Array.isArray(r)) {
+        const obj: any = {};
+        for (const k of Object.keys(r)) {
+          if (!/^\d+$/.test(k)) obj[k] = (r as any)[k];
+        }
+        return Object.keys(obj).length > 0 ? obj : null;
+      }
+      if (typeof r === 'object' && Object.keys(r).length > 0) return { ...r };
+      return null;
+    };
+
+    const loadedManpower = (Array.isArray(template.manpowerRows) ? template.manpowerRows : [])
+      .map(parseRow)
+      .filter(Boolean);
+
+    if (loadedManpower.length > 0) {
+      setManpowerRows(loadedManpower);
+    } else if (template.totalManpowerCost && Number(template.totalManpowerCost) > 0) {
+      setManualManpowerOverride(Number(template.totalManpowerCost));
+    }
+
+    const loadedInstruments = (Array.isArray(template.instrumentRows) ? template.instrumentRows : [])
+      .map(parseRow)
+      .filter(Boolean);
+
+    if (loadedInstruments.length > 0 && loadedInstruments.some((r: any) => r.name || r.rentalCost)) {
+      const merged = STANDARD_INSTRUMENT_CATALOG.map((cat, idx) => {
+        const found = loadedInstruments.find((r: any) => r.name === cat.name || r.id === `i${idx + 1}`);
+        if (found) {
+          return {
+            id: found.id || `i${idx + 1}`,
+            name: found.name || cat.name,
+            rentalCost: found.rentalCost !== undefined && found.rentalCost !== null && !isNaN(Number(found.rentalCost))
+              ? Number(found.rentalCost)
+              : cat.rentalCost,
+            sets: found.sets !== undefined && found.sets !== null && !isNaN(Number(found.sets))
+              ? Number(found.sets)
+              : 0,
+            siteWorkingDays: found.siteWorkingDays !== undefined && found.siteWorkingDays !== null && !isNaN(Number(found.siteWorkingDays))
+              ? Number(found.siteWorkingDays)
+              : 0,
+            customName: found.customName || '',
+          };
+        }
+        return {
+          id: `i${idx + 1}`,
+          name: cat.name,
+          rentalCost: cat.rentalCost,
+          sets: 0,
+          siteWorkingDays: 0,
+        };
+      });
+      const customOnly = loadedInstruments.filter(
+        (r: any) => !STANDARD_INSTRUMENT_CATALOG.some((c) => c.name === r.name)
+      );
+      setInstrumentRows([...merged, ...customOnly]);
+    } else {
+      setInstrumentRows(STANDARD_INSTRUMENT_CATALOG.map((cat, idx) => ({
+        id: `i${idx + 1}`,
+        name: cat.name,
+        rentalCost: cat.rentalCost,
+        sets: 0,
+        siteWorkingDays: 0,
+      })));
+    }
+
+    const extraRows = template.extraExpenseRows || template.extraExpenses;
+    const loadedExtra = (Array.isArray(extraRows) ? extraRows : []).map(parseRow).filter(Boolean);
+    if (loadedExtra.length > 0) {
+      setExtraExpenses(loadedExtra);
+    }
+    if (template.marginPct !== undefined && template.marginPct !== null) {
+      setProfitPct(Number(template.marginPct));
+    }
+    if (template.bufferPct !== undefined && template.bufferPct !== null) {
+      setBufferPct(Number(template.bufferPct));
+    }
+    toast.success(`Loaded "${template.name || template.subService || activeSubServiceName}" template from database!`);
   };
 
   // Shared Air Audit Manpower Engine Props
@@ -3643,6 +3749,32 @@ function CostingSheetContent() {
 
   return (
     <div className="space-y-8 pb-12">
+      {/* Edit Mode Notice Banner */}
+      {editId && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl shadow-xs">
+          <div className="flex items-center gap-3">
+            <span className="flex h-3 w-3 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+            </span>
+            <div>
+              <p className="text-sm font-bold text-amber-900">
+                Editing Costing Sheet #{editId}
+              </p>
+              <p className="text-xs text-amber-700 font-medium">
+                Client: <strong className="font-bold">{clientName}</strong> | Service: <strong className="font-bold">{activeSubServiceName}</strong>. Saving will update this record in the database.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/costing-sheet"
+            className="px-3.5 py-1.5 bg-white hover:bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-xl shadow-2xs transition-all shrink-0"
+          >
+            Create New Sheet Instead
+          </a>
+        </div>
+      )}
+
       {/* Header Section */}
       <CostingHeader
         clientName={clientName}
@@ -4104,6 +4236,8 @@ function CostingSheetContent() {
         isSavingTemplate={isSavingTemplate}
         handleSaveCostingSheetDB={handleSaveCostingSheetDB}
         isSavingSheet={isSavingSheet}
+        isEditing={Boolean(editId)}
+        editId={editId || undefined}
       />
     </div>
   );

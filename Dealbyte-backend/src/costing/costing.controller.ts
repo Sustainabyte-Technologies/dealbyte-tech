@@ -28,7 +28,7 @@ export class CostingController {
   // ─── COSTING TEMPLATE ENDPOINTS ─────────────────────────────────────────
 
   @Post('templates')
-  saveTemplate(@Body() dto: SaveCostingTemplateDto, @Req() req: any) {
+  saveTemplate(@Body() dto: any, @Req() req: any) {
     const userId = req.user?.id || req.user?.userId;
     return this.costingService.saveTemplate(dto, userId);
   }
@@ -51,7 +51,7 @@ export class CostingController {
   // ─── COSTING SHEET SUBMISSION ENDPOINTS ──────────────────────────────────
 
   @Post('sheets')
-  saveSheet(@Body() dto: SaveCostingSheetDto, @Req() req: any) {
+  saveSheet(@Body() dto: any, @Req() req: any) {
     const userId = req.user?.id || req.user?.userId;
     return this.costingService.saveSheet(dto, userId);
   }
@@ -229,13 +229,13 @@ export class CostingController {
   @Post('ems/sheets')
   saveEmsSheet(@Body() dto: any, @Req() req: any) {
     const userId = req.user?.id || req.user?.userId;
-    return this.costingService.saveSheet({ ...dto, isEms: true }, userId);
+    return this.costingService.saveSheet({ isEms: true, ...dto }, userId);
   }
 
   @Put('ems/sheets/:id')
   updateEmsSheet(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
     const userId = req.user?.id || req.user?.userId;
-    return this.costingService.saveSheet({ ...dto, id, isEms: true }, userId);
+    return this.costingService.saveSheet({ isEms: true, ...dto, id }, userId);
   }
 
   @Get('ems/sheets')
