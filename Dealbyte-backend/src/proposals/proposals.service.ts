@@ -34,9 +34,25 @@ export class ProposalsService {
 
     const proposalNumber = dto.proposalNumber || quote.proposalNumber || 'STPL-001';
     const proposalDate = dto.proposalDate ? new Date(dto.proposalDate) : quote.proposalDate || new Date();
-    const clientLogo = dto.clientLogo || quote.clientLogo || null;
+
+    const clientRecord = quote.deal?.clientName
+      ? await this.prisma.client.findFirst({
+          where: { name: { equals: quote.deal.clientName, mode: 'insensitive' } },
+        }).catch(() => null)
+      : null;
+
+    const clientLogo = dto.clientLogo || quote.clientLogo || quote.deal?.clientLogo || clientRecord?.logo || null;
     const customContent = dto.customContent !== undefined ? dto.customContent : quote.customContent;
     const scopeDetails = dto.scopeDetails !== undefined ? dto.scopeDetails : quote.scopeDetails;
+
+    if (clientLogo) {
+      if (!quote.clientLogo) {
+        await this.prisma.quote.update({ where: { id: quote.id }, data: { clientLogo } }).catch(() => {});
+      }
+      if (quote.deal && !quote.deal.clientLogo) {
+        await this.prisma.deal.update({ where: { id: quote.deal.id }, data: { clientLogo } }).catch(() => {});
+      }
+    }
 
     const existing = await this.prisma.proposal.findFirst({
       where: { quoteId: dto.quoteId },
@@ -100,6 +116,16 @@ export class ProposalsService {
     });
 
     if (!proposal) throw new NotFoundException(`Proposal ${id} not found`);
+
+    if (!proposal.clientLogo && proposal.deal?.clientName) {
+      const clientRecord = await this.prisma.client.findFirst({
+        where: { name: { equals: proposal.deal.clientName, mode: 'insensitive' } },
+      }).catch(() => null);
+      if (clientRecord?.logo) {
+        proposal.clientLogo = clientRecord.logo;
+      }
+    }
+
     return proposal;
   }
 
@@ -206,12 +232,35 @@ export class ProposalsService {
       });
     }
 
-    // Sync clientName on the Deal model if passed
-    if (dto.clientName && proposal.dealId) {
+    // Sync clientName & clientLogo on the Deal model if passed
+    if (proposal.dealId && (dto.clientName || dto.clientLogo !== undefined)) {
       await this.prisma.deal.update({
         where: { id: proposal.dealId },
-        data: { clientName: dto.clientName },
+        data: {
+          ...(dto.clientName ? { clientName: dto.clientName } : {}),
+          ...(dto.clientLogo !== undefined ? { clientLogo: dto.clientLogo } : {}),
+        },
       });
+    }
+
+    // Also sync logo to the Client table if client exists
+    if (dto.clientLogo) {
+      const targetClientName = dto.clientName || proposal.deal?.clientName;
+      if (targetClientName) {
+        try {
+          const clientRec = await this.prisma.client.findFirst({
+            where: { name: { equals: targetClientName.trim(), mode: 'insensitive' } },
+          });
+          if (clientRec) {
+            await this.prisma.client.update({
+              where: { id: clientRec.id },
+              data: { logo: dto.clientLogo },
+            });
+          }
+        } catch (e) {
+          // ignore lookup failure
+        }
+      }
     }
 
     // Record Audit Log for editing Proposal

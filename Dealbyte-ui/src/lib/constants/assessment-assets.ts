@@ -365,4 +365,15 @@ export const ASSESSMENT_ASSETS: AssetScopeConfig[] = [
       'Identify process optimization and energy-saving opportunities.',
     ],
   },
+  {
+    id: 'air_balancing',
+    name: '32. Air Balancing',
+    scopes: [
+      'Pre-Balancing Inspection – Inspect AHU/FCU, ducting, dampers, diffusers and grilles to verify the existing system condition.',
+      'Airflow Measurement – Measure supply, return, fresh-air and exhaust-air quantities at respective terminals using calibrated instruments.',
+      'Airflow Balancing – Adjust VCDs, balancing dampers and terminal dampers to achieve the required/design airflow for each room or zone.',
+      'Final Verification – Re-measure the airflow after adjustment and verify the system is operating within the agreed design tolerance.',
+      'Air Balancing Report – Submit a report containing design vs. actual airflow, pressure/temperature readings, adjustments carried out, observations and recommendations.',
+    ],
+  },
 ];

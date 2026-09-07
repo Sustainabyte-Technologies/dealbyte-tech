@@ -69,8 +69,18 @@ export class QuotesService {
       ? await this.prisma.deal.findUnique({ where: { id: dealId } })
       : null;
 
+    const clientName = dto.clientName || 'General Client';
+
+    // Check if client has a logo in Client table if not passed in dto
+    let effectiveLogo = dto.clientLogo || null;
+    if (!effectiveLogo && clientName) {
+      const clientRecord = await this.prisma.client.findFirst({
+        where: { name: { equals: clientName, mode: 'insensitive' } },
+      }).catch(() => null);
+      effectiveLogo = clientRecord?.logo || null;
+    }
+
     if (!deal) {
-      const clientName = dto.clientName || 'General Client';
       deal = await this.prisma.deal.findFirst({
         where: { clientName, serviceId: validServiceId },
       });
@@ -81,11 +91,19 @@ export class QuotesService {
             serviceId: validServiceId,
             ownerId: activeUserId,
             stage: 'ENQUIRY',
-            clientLogo: dto.clientLogo || null,
+            clientLogo: effectiveLogo,
           },
         });
       }
     }
+
+    if (deal && effectiveLogo && !deal.clientLogo) {
+      await this.prisma.deal.update({
+        where: { id: deal.id },
+        data: { clientLogo: effectiveLogo },
+      }).catch(() => {});
+    }
+
     const resolvedDealId: string = deal.id;
 
     // Load default margin/buffer from system config
@@ -111,7 +129,7 @@ export class QuotesService {
           serviceId: validServiceId,
           proposalNumber: effectiveProposalNumber,
           proposalDate: parsedDate,
-          clientLogo: dto.clientLogo || null,
+          clientLogo: effectiveLogo,
           siteDays: dto.siteDays,
           reportDays: dto.reportDays,
           manpowerCost: result.manpowerCost,

@@ -151,6 +151,21 @@ function CostingSheetContent() {
           if (lower === 'kone' || lower === 'kone elevator' || lower === 'kone elevators') {
             return 'KONE Elevators India';
           }
+          if (lower === 'apollo tyres ltd' || lower === 'apollo tyres ltd.' || lower === 'apollo tyres') {
+            return 'Apollo Tyres';
+          }
+          if (lower === 'denali' || lower === 'denali india') {
+            return 'Denali';
+          }
+          if (lower === 'pmel' || lower === 'pmel india' || lower === 'pmel india pvt ltd' || lower === 'pmel india pvt. ltd.' || lower === 'pmel india pvt ltd.') {
+            return 'PMEL India Pvt Ltd';
+          }
+          if (lower === 'polyhose') {
+            return 'Polyhose';
+          }
+          if (lower === 'srm glowguard') {
+            return 'SRM Glowguard';
+          }
           return name.trim();
         })
     )
@@ -333,7 +348,7 @@ function CostingSheetContent() {
   }, [activeSubServiceName, activeCategoryName, isWeldingIotActive, isIotControlsActive, isCpmActive]);
 
   // Standard Audit State
-  const [clientName, setClientName] = useState<string>('Apollo Tyres Ltd');
+  const [clientName, setClientName] = useState<string>('Apollo Tyres');
   const selectedClientId = useMemo(() => {
     return dbClients.find((c) => c.name === clientName)?.id;
   }, [dbClients, clientName]);

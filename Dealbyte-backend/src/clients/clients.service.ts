@@ -56,7 +56,7 @@ export const DEFAULT_CLIENTS = [
   'Piramal Pharma',
   'PMEL India Pvt Ltd',
   'Pneumsys',
-  'Polyhose ',
+  'Polyhose',
   'Purple Star',
   'RK Industries',
   'Rockwool',
@@ -66,7 +66,7 @@ export const DEFAULT_CLIENTS = [
   'SFL Wind unit',
   'Sharda Motors',
   'Solidpro',
-  'SRM Glowguard ',
+  'SRM Glowguard',
   'SRM IST College Campus',
   'SRM IST Valliammai Campus',
   'Star Engineering Kaeser Dealer',
@@ -95,11 +95,55 @@ export class ClientsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
-    // Delete duplicate variations of KONE from DB
+    // Helper to merge duplicate client variations into canonical client
+    const mergeDuplicate = async (canonicalName: string, duplicateNames: string[]) => {
+      const canonical = await this.prisma.client.findFirst({ where: { name: canonicalName } }).catch(() => null);
+      const duplicates = await this.prisma.client.findMany({ where: { name: { in: duplicateNames } } }).catch(() => []);
+      for (const dup of duplicates) {
+        if (canonical) {
+          await this.prisma.costingSheet
+            .updateMany({
+              where: { clientId: dup.id },
+              data: { clientId: canonical.id, clientName: canonical.name },
+            })
+            .catch(() => {});
+        }
+        await this.prisma.costingSheet
+          .updateMany({
+            where: { clientName: dup.name },
+            data: { clientName: canonicalName },
+          })
+          .catch(() => {});
+        await this.prisma.client.delete({ where: { id: dup.id } }).catch(() => {});
+      }
+    };
+
+    await mergeDuplicate('Apollo Tyres', ['Apollo Tyres Ltd', 'Apollo Tyres Ltd.', 'apollo tyres ltd']);
+    await mergeDuplicate('PMEL India Pvt Ltd', ['PMEL', 'pmel', 'PMEL India', 'pmel india']);
+    await mergeDuplicate('Denali', ['Denali India', 'denali india']);
+    await mergeDuplicate('Polyhose', ['Polyhose ']);
+    await mergeDuplicate('SRM Glowguard', ['SRM Glowguard ']);
+
+    // Delete duplicate variations of KONE and others from DB
     await this.prisma.client
       .deleteMany({
         where: {
-          name: { in: ['KONE Elevator', 'Kone elevators', 'Kone elevator', 'KONE Elevators'] },
+          name: {
+            in: [
+              'Apollo Tyres Ltd',
+              'Apollo Tyres Ltd.',
+              'apollo tyres ltd',
+              'PMEL',
+              'pmel',
+              'Denali India',
+              'Polyhose ',
+              'SRM Glowguard ',
+              'KONE Elevator',
+              'Kone elevators',
+              'Kone elevator',
+              'KONE Elevators',
+            ],
+          },
         },
       })
       .catch(() => {});

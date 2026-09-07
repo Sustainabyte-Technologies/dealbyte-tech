@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ASSESSMENT_ASSETS } from '@/lib/constants/assessment-assets';
+import { getClientPresetLogo } from '@/components/costing/constants';
 
 interface CompressorAirAuditPagesProps {
   deal: any;
@@ -10,6 +11,8 @@ interface CompressorAirAuditPagesProps {
   proposalDate: string;
   finalPrice: number;
   formatCurrency: (amount: number) => string;
+  clientLogo?: string | null;
+  clientName?: string;
 }
 
 export function CompressorAirAuditPages({
@@ -19,6 +22,8 @@ export function CompressorAirAuditPages({
   proposalDate,
   finalPrice,
   formatCurrency,
+  clientLogo,
+  clientName: passedClientName,
 }: CompressorAirAuditPagesProps) {
   const selectedAssetIds: string[] =
     proposal?.customContent?.selectedAssetIds ||
@@ -40,7 +45,14 @@ export function CompressorAirAuditPages({
   }, [selectedAssets]);
   const offset = assetChunks.length;
   const totalPages = 12 + (offset > 0 ? offset - 1 : 0);
-  const clientName = deal?.clientName || (proposal as any)?.clientName || 'Valued Client';
+  const clientName = passedClientName || deal?.clientName || (proposal as any)?.clientName || 'Valued Client';
+  const resolvedClientLogo =
+    clientLogo ||
+    (proposal as any)?.clientLogo ||
+    (proposal as any)?.deal?.clientLogo ||
+    (deal as any)?.clientLogo ||
+    (proposal?.quote as any)?.clientLogo ||
+    getClientPresetLogo(clientName);
 
   const PageLogo = () => (
     <div className="flex justify-end pb-2">
@@ -77,16 +89,26 @@ export function CompressorAirAuditPages({
       {/* ── PAGE 1: COVER PAGE ── */}
       <PageShell pageNum={1}>
         <PageLogo />
-        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8 my-auto">
+        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6 my-auto">
           <h1 className="text-[22px] font-bold text-black underline underline-offset-4 decoration-1 leading-relaxed">
             Techno Commercial Proposal for Compressed Air Audit
           </h1>
-          {(proposal as any)?.clientLogo && (
-            <div className="py-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={(proposal as any).clientLogo} alt={`${clientName} Logo`} className="max-h-[120px] w-auto object-contain mx-auto" />
+          <div className="py-2 flex flex-col items-center justify-center space-y-3">
+            {resolvedClientLogo ? (
+              <div className="py-2 max-w-[280px] max-h-[130px] flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={resolvedClientLogo}
+                  alt={`${clientName} Logo`}
+                  className="max-h-[120px] max-w-full object-contain mx-auto"
+                />
+              </div>
+            ) : null}
+            <div className="text-center">
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Prepared for</p>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">{clientName}</h2>
             </div>
-          )}
+          </div>
           <div className="text-center text-[12px] text-black space-y-1">
             <p>Quotation No: {proposalRef}</p>
             <p>Date: {proposalDate}</p>

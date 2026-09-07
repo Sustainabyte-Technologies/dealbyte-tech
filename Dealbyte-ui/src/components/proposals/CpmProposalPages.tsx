@@ -8,6 +8,7 @@ import {
   INITIAL_CPM_ELECTRICAL_ROWS,
   INITIAL_CPM_ON_PREMISE_ROWS,
   INITIAL_CPM_CLOUD_CHARGE_ROWS,
+  getClientPresetLogo,
 } from '@/components/costing/constants';
 
 interface CpmProposalPagesProps {
@@ -18,6 +19,8 @@ interface CpmProposalPagesProps {
   finalPrice: number;
   formatCurrency: (amount: number) => string;
   costingSheet?: any;
+  clientLogo?: string | null;
+  clientName?: string;
 }
 
 export function CpmProposalPages(props: CpmProposalPagesProps) {
@@ -28,7 +31,18 @@ export function CpmProposalPages(props: CpmProposalPagesProps) {
     proposalDate,
     finalPrice,
     formatCurrency,
+    clientLogo,
+    clientName: passedClientName,
   } = props;
+
+  const clientName = passedClientName || deal?.clientName || (proposal as any)?.clientName || 'Valued Customer';
+  const resolvedClientLogo =
+    clientLogo ||
+    (proposal as any)?.clientLogo ||
+    (proposal as any)?.deal?.clientLogo ||
+    (deal as any)?.clientLogo ||
+    (proposal?.quote as any)?.clientLogo ||
+    getClientPresetLogo(clientName);
 
   const PageLogo = () => (
     <div className="flex justify-end pb-1 shrink-0">
@@ -123,8 +137,6 @@ export function CpmProposalPages(props: CpmProposalPagesProps) {
     'Vashi Integrated Solution Limited',
     'Ahlstrom Fiber composite Pvt Ltd',
   ];
-
-  const clientName = deal?.clientName || (proposal as any)?.clientName || proposal?.quote?.deal?.clientName;
 
   const { data: dbCostingSheet } = useQuery({
     queryKey: ['cpm-proposal-costing-sheet', clientName],
@@ -294,15 +306,24 @@ export function CpmProposalPages(props: CpmProposalPagesProps) {
             </p>
           </div>
 
-          {(proposal as any)?.clientLogo && (
-            <div className="py-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={(proposal as any).clientLogo} alt={`${deal?.clientName || 'Client'} Logo`} className="max-h-[110px] w-auto object-contain mx-auto" />
+          <div className="py-2 flex flex-col items-center justify-center space-y-3">
+            {resolvedClientLogo ? (
+              <div className="py-2 max-w-[280px] max-h-[130px] flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={resolvedClientLogo}
+                  alt={`${clientName} Logo`}
+                  className="max-h-[110px] max-w-full object-contain mx-auto"
+                />
+              </div>
+            ) : null}
+            <div className="text-center">
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Prepared for</p>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">{clientName}</h2>
             </div>
-          )}
+          </div>
 
           <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 text-center text-[12px] text-slate-800 space-y-1.5 w-full max-w-[400px]">
-            <p className="font-semibold text-slate-900 text-[13px]">{clientName || 'Valued Customer'}</p>
             <p><span className="text-slate-500">Quotation No:</span> <span className="font-bold text-slate-900">{proposalRef || 'STPL-26-83/v1'}</span></p>
             <p><span className="text-slate-500">Date :</span> <span className="font-bold text-slate-900">{proposalDate || '10th August 2026'}</span></p>
           </div>

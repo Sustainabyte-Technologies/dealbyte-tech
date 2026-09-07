@@ -67,6 +67,7 @@ import {
   DEFAULT_ENERGY_AUDIT_STEP6_TEXT,
   DEFAULT_ASHRAE_LEVEL_2_STEP5_TEXT,
   DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT,
+  DEFAULT_AIR_BALANCING_TERMS,
   DEFAULT_HVAC_DESIGN_STEP5_TEXT,
   DEFAULT_HVAC_DESIGN_STEP6_TEXT,
   DEFAULT_EC_FAN_STEP5_TEXT,
@@ -192,7 +193,7 @@ const DEFAULT_CLIENTS = [
   'Piramal Pharma',
   'PMEL India Pvt Ltd',
   'Pneumsys',
-  'Polyhose ',
+  'Polyhose',
   'Purple Star',
   'RK Industries',
   'Rockwool',
@@ -202,7 +203,7 @@ const DEFAULT_CLIENTS = [
   'SFL Wind unit',
   'Sharda Motors',
   'Solidpro',
-  'SRM Glowguard ',
+  'SRM Glowguard',
   'SRM IST College Campus',
   'SRM IST Valliammai Campus',
   'Star Engineering Kaeser Dealer',
@@ -499,7 +500,7 @@ function NewQuoteContent() {
     }
   }, [clientName, allProposals, editQuoteId, isManualProposalNumber]);
 
-  // Assets & Scope of Assessment State (31 Categories)
+  // Assets & Scope of Assessment State (32 Categories)
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [assetSearchQuery, setAssetSearchQuery] = useState('');
   const [isAssetsDropdownOpen, setIsAssetsDropdownOpen] = useState(false);
@@ -836,10 +837,7 @@ The assessment will provide a clear understanding of the current system conditio
 
 30 days from the date of invoice and invoice will be raised after the work completion at site.
 Applicable taxes and duties shall be charged extra, as applicable.
-All lodging, boarding and accommodation are inclusive.
-
-Other Terms and Conditions:
-Customer shall arrange a skilled individual (Authorized technicians) for the entire duration of the audit period for local co-ordination with site team for seeking approval or work permits and installation of energy auditing equipment with proper safety measures.`;
+All lodging, boarding and accommodation are inclusive.`;
 
   const [emsStep5Text, setEmsStep5Text] = useState(DEFAULT_EMS_STEP5_TEXT);
   const [isEditingEmsStep5Text, setIsEditingEmsStep5Text] = useState(false);
@@ -876,6 +874,22 @@ Customer shall arrange a skilled individual (Authorized technicians) for the ent
       }
       return `${prev.trim()}\n\n${formattedText}`;
     });
+
+    if (selectedAssetIds.includes('air_balancing')) {
+      const airBalancingMarker = 'during the air-balancing activity';
+      setEmsStep6Text((prev) => {
+        if (!prev || prev.includes(airBalancingMarker)) return prev;
+        const airBalancingBullets = DEFAULT_AIR_BALANCING_TERMS.map((t) => `• ${t}`).join('\n');
+        if (prev.includes('Other Terms and Conditions:')) {
+          return prev.replace(
+            'Other Terms and Conditions:',
+            `Other Terms and Conditions:\n${airBalancingBullets}`
+          );
+        }
+        return `${prev.trim()}\n\nOther Terms and Conditions:\n${airBalancingBullets}`;
+      });
+    }
+
     toast.success(`Synced ${selectedAssetIds.length} assets and scopes into Step 5 Scope of Work!`);
   };
 
@@ -1031,7 +1045,22 @@ PAN Number – ABNCS4869A`;
       if (lower === 'kone' || lower === 'kone elevator' || lower === 'kone elevators') {
         return 'KONE Elevators India';
       }
-      return name;
+      if (lower === 'apollo tyres ltd' || lower === 'apollo tyres ltd.' || lower === 'apollo tyres') {
+        return 'Apollo Tyres';
+      }
+      if (lower === 'denali' || lower === 'denali india') {
+        return 'Denali';
+      }
+      if (lower === 'pmel' || lower === 'pmel india' || lower === 'pmel india pvt ltd' || lower === 'pmel india pvt. ltd.' || lower === 'pmel india pvt ltd.') {
+        return 'PMEL India Pvt Ltd';
+      }
+      if (lower === 'polyhose') {
+        return 'Polyhose';
+      }
+      if (lower === 'srm glowguard') {
+        return 'SRM Glowguard';
+      }
+      return name.trim();
     };
 
     DEFAULT_CLIENT_OPTIONS.forEach((name) => {
@@ -1101,8 +1130,19 @@ PAN Number – ABNCS4869A`;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setClientLogo(reader.result as string);
+        const base64 = reader.result as string;
+        setClientLogo(base64);
         toast.success('Client logo uploaded');
+
+        // Automatically persist logo to DB for this client so it reflects everywhere
+        if (clientName && clientName.trim()) {
+          const matched = dbClients.find(
+            (c) => c.name.toLowerCase().trim() === clientName.toLowerCase().trim()
+          );
+          if (matched?.id) {
+            updateClientMutation.mutate({ id: matched.id, name: matched.name });
+          }
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -1312,7 +1352,8 @@ PAN Number – ABNCS4869A`;
       const resolved = dbMatch?.logo || getClientPresetLogo(clientName);
       if (resolved) {
         setClientLogo(resolved);
-      } else if (clientLogo && (clientLogo.startsWith('/logo/') || clientLogo.startsWith('data:'))) {
+      } else if (clientLogo && clientLogo.startsWith('/logo/')) {
+        // Only clear old preset logo from a previous client; NEVER clear uploaded base64 data: or external URLs!
         setClientLogo(null);
       }
     }
@@ -2132,6 +2173,36 @@ PAN Number – ABNCS4869A`;
       setEmsStep6Text(DEFAULT_ENERGY_AUDIT_STEP6_TEXT);
     }
   }, [isCompressedAirAutomation, isWeldDataDigitalized, isWeldingIot, isWaterManagement, isBms, isIotOrControls, isCpmChillerManagement, isFlangesHardware, isDewPointHardware, isNitrogenGasLeakageAudit, isMixtureGasLeakageAudit, isCompressorAirLeakageRectification, isCompressorAirLeakageAudit, isHvacDesign, isEcFan, isAshraeLevel2, isIso50001, isEnergyAudit, editQuoteId, existingQuote]);
+
+  // When air_balancing asset is selected, ensure Air Balancing terms are added to Step 6 Other Terms and Conditions
+  useEffect(() => {
+    const airBalancingMarker = 'during the air-balancing activity';
+    const hasAirBalancing = selectedAssetIds.includes('air_balancing');
+
+    if (hasAirBalancing) {
+      setEmsStep6Text((prev) => {
+        if (!prev || prev.includes(airBalancingMarker)) return prev;
+        const airBalancingBullets = DEFAULT_AIR_BALANCING_TERMS.map((t) => `• ${t}`).join('\n');
+
+        if (prev.includes('Other Terms and Conditions:')) {
+          return prev.replace(
+            'Other Terms and Conditions:',
+            `Other Terms and Conditions:\n${airBalancingBullets}`
+          );
+        }
+        return `${prev.trim()}\n\nOther Terms and Conditions:\n${airBalancingBullets}`;
+      });
+    } else {
+      setEmsStep6Text((prev) => {
+        if (!prev || !prev.includes(airBalancingMarker)) return prev;
+        let updated = prev;
+        DEFAULT_AIR_BALANCING_TERMS.forEach((term) => {
+          updated = updated.replace(`• ${term}\n`, '').replace(`• ${term}`, '');
+        });
+        return updated.trim();
+      });
+    }
+  }, [selectedAssetIds]);
 
   // Compressor Air Leakage ROI State & Phase Scope Details
   const [compressorRoiData, setCompressorRoiData] = useState<CompressorRoiData>(DEFAULT_COMPRESSOR_ROI_DATA);
@@ -3278,6 +3349,7 @@ PAN Number – ABNCS4869A`;
         customContent: {
           scopeOfWork: effectiveStep5Text,
           step5Text: effectiveStep5Text,
+          step6Text: emsStep6Text,
           costingSheet: activeCostingSheet || undefined,
           selectedAssetIds: isEnergyAuditCategory && selectedAssetIds && selectedAssetIds.length > 0 ? selectedAssetIds : undefined,
         },
@@ -4141,6 +4213,14 @@ PAN Number – ABNCS4869A`;
                             if (logoUrl) {
                               setClientLogo(logoUrl);
                               toast.success('Logo URL set!');
+                              if (clientName && clientName.trim()) {
+                                const matched = dbClients.find(
+                                  (c) => c.name.toLowerCase().trim() === clientName.toLowerCase().trim()
+                                );
+                                if (matched?.id) {
+                                  updateClientMutation.mutate({ id: matched.id, name: matched.name });
+                                }
+                              }
                             }
                           }}
                           className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl"

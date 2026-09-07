@@ -50,7 +50,7 @@ export const DEFAULT_CLIENT_OPTIONS = [
   'Casagrand',
   'HT Bharani Clothing',
   'Knauf',
-  'Apollo Tyres Ltd',
+  'Apollo Tyres',
   'Vishnu Cars',
   'ABT Maruti',
   'Adam Compressors',
@@ -66,7 +66,7 @@ export const DEFAULT_CLIENT_OPTIONS = [
   'Chloride Metals Limited',
   'Coburg Engineering',
   'Danfoss Industries Ltd',
-  'Denali India',
+  'Denali',
   'Hyundai Motor India',
   'Royal Enfield',
   'Saint-Gobain Glass',
@@ -1679,6 +1679,21 @@ export const DEFAULT_ENERGY_AUDIT_STEP6_TEXT = `Payment Terms:
 • Applicable taxes and duties will be extra
 • Boarding and Travel Expenses are exclusive`;
 
+export const DEFAULT_AIR_BALANCING_TERMS = [
+  'The customer shall provide one technical person/site representative during the air-balancing activity for coordination and assistance.',
+  'The customer shall arrange the required ladder/scaffolding or access equipment for reaching ceiling-mounted diffusers, grilles and dampers.',
+  'The customer shall provide the necessary damper adjustment tools required for accessing and adjusting the existing dampers.',
+  'The HVAC system shall be made available in normal operating condition during the scheduled balancing activity.',
+  'Any major modification, duct alteration, additional damper installation, or replacement of defective components identified during balancing shall be outside the scope and charged separately, if required.',
+];
+
+export const AIR_BALANCING_TERMS_TEXT = `Air Balancing Terms and Conditions:
+• The customer shall provide one technical person/site representative during the air-balancing activity for coordination and assistance.
+• The customer shall arrange the required ladder/scaffolding or access equipment for reaching ceiling-mounted diffusers, grilles and dampers.
+• The customer shall provide the necessary damper adjustment tools required for accessing and adjusting the existing dampers.
+• The HVAC system shall be made available in normal operating condition during the scheduled balancing activity.
+• Any major modification, duct alteration, additional damper installation, or replacement of defective components identified during balancing shall be outside the scope and charged separately, if required.`;
+
 export const DEFAULT_ENERGY_AUDIT_SCOPE_CARDS = [
   {
     id: 'ea-1',
@@ -2178,8 +2193,7 @@ export const DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT = `Payment Terms:
 • Payment within 15 days from the date of invoice
 
 Other Terms and Conditions:
-• The customer shall be responsible for facilitating work visa applications and issuance, including managing all required documentation and bearing the associated application fees, as well as handling customs clearance of instruments.
-• Customer shall arrange a skilled individual (Authorized technicians) for the entire duration of the audit period for local co-ordination with site team for seeking approval or work permits and installation of energy auditing equipment with proper safety measures.`;
+• The customer shall be responsible for facilitating work visa applications and issuance, including managing all required documentation and bearing the associated application fees, as well as handling customs clearance of instruments.`;
 
 export const DEFAULT_HVAC_DESIGN_STEP5_TEXT = `Objective:
 The objective of this study is to evaluate and design a system to replace the existing chilled water supply (18°C) to the Temperature Control Units (TCUs) serving Zones 1–3 of Mixers 11, 12, 13, 14, and 16, with cooling tower water at 30–31°C.

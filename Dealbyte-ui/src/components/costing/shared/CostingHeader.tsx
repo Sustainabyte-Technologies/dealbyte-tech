@@ -754,7 +754,7 @@ export const CostingHeader: React.FC<CostingHeaderProps> = ({
                     type="text"
                     value={modalClientName}
                     onChange={(e) => setModalClientName(e.target.value)}
-                    placeholder="e.g. Apollo Tyres Ltd, Bosch India, Tata Motors..."
+                    placeholder="e.g. Apollo Tyres, Bosch India, Tata Motors..."
                     disabled={isSubmittingClient || clientModalMode === 'upload-logo'}
                     className="w-full pl-9 pr-3.5 py-2 text-xs font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-75 disabled:bg-slate-100"
                     autoFocus={clientModalMode === 'add'}

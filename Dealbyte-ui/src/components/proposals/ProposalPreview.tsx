@@ -34,8 +34,11 @@ import {
   DEFAULT_DEW_POINT_STEP5_TEXT,
   DEFAULT_FLANGES_STEP5_TEXT,
   DEFAULT_IAQ_SENSOR_STEP5_TEXT,
+  DEFAULT_AIR_BALANCING_TERMS,
+  getClientPresetLogo,
 } from '@/components/costing/constants';
-import { Send, Printer, Download, Loader2, FileText, Edit3, X, Check, Save } from 'lucide-react';
+import { clientsApi } from '@/lib/api/clients';
+import { Send, Printer, Download, Loader2, FileText, Edit3, X, Check, Save, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
 import { generateWordDocument } from './wordExport';
 import FullPageWatermark from '@/components/common/FullPageWatermark';
 import { toast } from 'sonner';
@@ -493,6 +496,28 @@ export default function ProposalPreview({
     (quote as any)?.clientName ||
     '';
 
+  const { data: dbClients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => clientsApi.getAll(),
+    staleTime: 60000,
+  });
+
+  const matchedDbClient = React.useMemo(() => {
+    if (!clientName || !dbClients.length) return null;
+    const clean = clientName.toLowerCase().trim();
+    return dbClients.find((c: any) => c.name?.toLowerCase()?.trim() === clean) || null;
+  }, [clientName, dbClients]);
+
+  const effectiveClientLogo =
+    (proposal as any)?.clientLogo ||
+    (proposal as any)?.deal?.clientLogo ||
+    (deal as any)?.clientLogo ||
+    (proposal?.quote as any)?.clientLogo ||
+    (proposal?.quote as any)?.deal?.clientLogo ||
+    matchedDbClient?.logo ||
+    getClientPresetLogo(clientName) ||
+    '';
+
   const { data: dbCostingSheet } = useQuery({
     queryKey: ['proposal-costing-sheet', clientName, subServiceTitle, serviceTitle],
     queryFn: async () => {
@@ -591,6 +616,26 @@ export default function ProposalPreview({
     return list;
   }, [selectedAssetIds, proposal, quote]);
 
+  const isAirBalancingSelected = React.useMemo(() => {
+    if (selectedAssetIds.includes('air_balancing')) return true;
+    if (selectedAssessmentAssets.some((a) => a.id === 'air_balancing')) return true;
+    const textScope =
+      (proposal as any)?.customContent?.scopeOfWork ||
+      (proposal as any)?.customContent?.step5Text ||
+      (proposal as any)?.scopeDetails ||
+      (quote as any)?.customContent?.scopeOfWork ||
+      (quote as any)?.customContent?.step5Text ||
+      (quote as any)?.scopeDetails ||
+      '';
+    if (textScope.toLowerCase().includes('air balancing')) return true;
+    const textStep6 =
+      (proposal as any)?.customContent?.step6Text ||
+      (quote as any)?.customContent?.step6Text ||
+      '';
+    if (textStep6.toLowerCase().includes('air-balancing') || textStep6.toLowerCase().includes('air balancing')) return true;
+    return false;
+  }, [selectedAssetIds, selectedAssessmentAssets, proposal, quote]);
+
   const assetChunks = React.useMemo(() => {
     if (selectedAssessmentAssets.length === 0) return [];
     const chunks: (typeof selectedAssessmentAssets)[] = [];
@@ -653,6 +698,25 @@ export default function ProposalPreview({
   const [editedProposalDate, setEditedProposalDate] = React.useState(
     proposal.proposalDate ? new Date(proposal.proposalDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
   );
+  const [editedClientName, setEditedClientName] = React.useState(clientName || deal?.clientName || '');
+  const [editedClientLogo, setEditedClientLogo] = React.useState(effectiveClientLogo || '');
+
+  const handleLogoUploadInModal = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Logo image size should be less than 5MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setEditedClientLogo(base64);
+        toast.success('Client logo selected');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const savedScopeOfWork =
     proposal?.customContent?.scopeOfWork ||
@@ -692,6 +756,7 @@ export default function ProposalPreview({
       queryClient.invalidateQueries({ queryKey: ['proposal', proposal.id] });
       queryClient.invalidateQueries({ queryKey: ['proposals'] });
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       setIsEditModalOpen(false);
       toast.success('Proposal updated & saved to Database successfully!');
     },
@@ -705,10 +770,14 @@ export default function ProposalPreview({
     updateProposalMutation.mutate({
       proposalNumber: editedProposalNumber,
       proposalDate: editedProposalDate,
+      clientName: editedClientName,
+      clientLogo: editedClientLogo,
       customContent: {
         ...(proposal.customContent || {}),
         scopeOfWork: editedScopeText,
         step5Text: editedScopeText,
+        clientName: editedClientName,
+        clientLogo: editedClientLogo,
       },
       scopeDetails: editedScopeText,
     });
@@ -945,8 +1014,8 @@ export default function ProposalPreview({
       const wordHtml = generateWordDocument({
         proposalRef,
         proposalDate,
-        clientName: deal?.clientName || 'Valued Client',
-        clientLogo: (proposal as any)?.clientLogo || (proposal as any)?.deal?.clientLogo || '',
+        clientName: clientName || deal?.clientName || 'Valued Client',
+        clientLogo: effectiveClientLogo || '',
         serviceName: isWeldDataDigitalized
           ? 'Digiweld (Weld Data Digitalization)'
           : isWeldingIot
@@ -965,7 +1034,7 @@ export default function ProposalPreview({
         totalPages,
       });
 
-      const sanitizedClient = (deal?.clientName || 'Client').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const sanitizedClient = (clientName || deal?.clientName || 'Client').replace(/[^a-zA-Z0-9_-]/g, '_');
       const filename = `Proposal_${proposalRef}_${sanitizedClient}.doc`;
 
       const blob = new Blob(['\ufeff', wordHtml], { type: 'application/msword;charset=utf-8' });
@@ -1050,6 +1119,8 @@ export default function ProposalPreview({
                   ? new Date(proposal.proposalDate).toISOString().split('T')[0]
                   : new Date().toISOString().split('T')[0]
               );
+              setEditedClientName(clientName || deal?.clientName || '');
+              setEditedClientLogo(effectiveClientLogo || '');
               setIsEditModalOpen(true);
             }}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-indigo-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border border-indigo-200 shadow-2xs"
@@ -1095,6 +1166,8 @@ export default function ProposalPreview({
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
           costingSheet={(proposal as any)?.costingSheet || (proposal as any)?.costing_sheet || (proposal as any)?.costingData || (proposal as any)?.quote?.costingSheet || (deal as any)?.costingSheet || (deal as any)?.quote?.costingSheet}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isCompressedAirAutomation ? (
         <CompressedAirAutomationPages
@@ -1105,6 +1178,8 @@ export default function ProposalPreview({
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
           costingSheet={(proposal as any)?.costingSheet || (proposal as any)?.costing_sheet || (proposal as any)?.costingData || (proposal as any)?.quote?.costingSheet || (deal as any)?.costingSheet || (deal as any)?.quote?.costingSheet}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isIrBlaster ? (
         <IrBlasterPages
@@ -1115,6 +1190,8 @@ export default function ProposalPreview({
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
           costingSheet={(proposal as any)?.costingSheet || (proposal as any)?.costing_sheet || (proposal as any)?.costingData || (proposal as any)?.quote?.costingSheet || (deal as any)?.costingSheet || (deal as any)?.quote?.costingSheet}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isCpmChillerManagement ? (
         <CpmProposalPages
@@ -1125,6 +1202,8 @@ export default function ProposalPreview({
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
           costingSheet={(proposal as any)?.costingSheet || (proposal as any)?.costing_sheet || (proposal as any)?.costingData || (proposal as any)?.quote?.costingSheet || (deal as any)?.costingSheet || (deal as any)?.quote?.costingSheet}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isIaqSensor ? (
         <IaqSensorPages
@@ -1135,6 +1214,8 @@ export default function ProposalPreview({
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
           costingSheet={(proposal as any)?.costingSheet || (proposal as any)?.costing_sheet || (proposal as any)?.costingData || (proposal as any)?.quote?.costingSheet || (deal as any)?.costingSheet || (deal as any)?.quote?.costingSheet}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isFlangesHardware ? (
         <FlangesHardwarePages
@@ -1144,6 +1225,8 @@ export default function ProposalPreview({
           proposalDate={proposalDate}
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isDewPointHardware ? (
         <DewPointHardwarePages
@@ -1153,6 +1236,8 @@ export default function ProposalPreview({
           proposalDate={proposalDate}
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isTemperatureSensor ? (
         <TemperatureSensorPages
@@ -1163,6 +1248,8 @@ export default function ProposalPreview({
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
           costingSheet={(proposal as any)?.costingSheet || (proposal as any)?.costing_sheet || (proposal as any)?.costingData || (proposal as any)?.quote?.costingSheet || (deal as any)?.costingSheet || (deal as any)?.quote?.costingSheet}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isNitrogenGasLeakageAudit ? (
         <NitrogenGasLeakageAuditPages
@@ -1172,6 +1259,8 @@ export default function ProposalPreview({
           proposalDate={proposalDate}
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isMixtureGasLeakageAudit ? (
         <MixtureGasLeakageAuditPages
@@ -1181,6 +1270,8 @@ export default function ProposalPreview({
           proposalDate={proposalDate}
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isCompressorAirLeakageAudit ? (
         <CompressorAirAuditPages
@@ -1190,6 +1281,8 @@ export default function ProposalPreview({
           proposalDate={proposalDate}
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : isIso50001 ? (
         <Iso50001Pages
@@ -1199,6 +1292,8 @@ export default function ProposalPreview({
           proposalDate={proposalDate}
           finalPrice={finalPrice}
           formatCurrency={formatCurrency}
+          clientLogo={effectiveClientLogo}
+          clientName={clientName}
         />
       ) : (
         <>
@@ -1227,7 +1322,7 @@ export default function ProposalPreview({
               </div>
 
               {/* Center Title, Client Logo & Quotation Info */}
-              <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center space-y-8 my-auto">
+              <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center space-y-6 my-auto">
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 underline underline-offset-8 decoration-1 leading-relaxed max-w-xl">
                   Techno Commercial Proposal for{' '}
                   {isWeldDataDigitalized
@@ -1239,20 +1334,22 @@ export default function ProposalPreview({
                     : deal?.service?.name || 'Energy Management Solution'}
                 </h1>
 
-                {((proposal as any)?.clientLogo || (proposal as any)?.deal?.clientLogo) ? (
-                  <div className="py-4 max-w-[280px] max-h-[140px] flex items-center justify-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={(proposal as any)?.clientLogo || (proposal as any)?.deal?.clientLogo}
-                      alt={`${deal?.clientName || 'Client'} Logo`}
-                      className="max-h-[130px] max-w-full object-contain mx-auto"
-                    />
+                <div className="py-2 flex flex-col items-center justify-center space-y-3">
+                  {effectiveClientLogo ? (
+                    <div className="py-2 max-w-[280px] max-h-[130px] flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={effectiveClientLogo}
+                        alt={`${clientName || 'Client'} Logo`}
+                        className="max-h-[120px] max-w-full object-contain mx-auto"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="text-center">
+                    <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Prepared for</p>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight">{clientName || deal?.clientName || 'Valued Client'}</h2>
                   </div>
-                ) : (
-                  <div className="py-3 px-6 bg-slate-50 border border-slate-200 rounded-xl">
-                    <h2 className="text-lg font-black text-slate-900 tracking-tight">{deal?.clientName || 'Valued Client'}</h2>
-                  </div>
-                )}
+                </div>
 
                 <div className="text-center text-xs text-slate-800 space-y-1.5 font-medium">
                   <p>Quotation No: <strong className="font-mono text-slate-900">{proposalRef}</strong></p>
@@ -4073,7 +4170,10 @@ export default function ProposalPreview({
                       </div>
                     </div>
                   ) : isAshraeLevel2 ? (
-                    <div className="space-y-2.5 text-slate-800 font-normal text-left" style={{ fontSize: '11px', lineHeight: '1.55' }}>
+                    <div
+                      className="space-y-2 text-slate-800 font-normal text-left"
+                      style={{ fontSize: isAirBalancingSelected ? '9.5px' : '11px', lineHeight: isAirBalancingSelected ? '1.4' : '1.55' }}
+                    >
                       <div className="space-y-0.5">
                         <p className="font-bold text-slate-950 text-xs">Payment Terms:</p>
                         <ul className="space-y-0.5 pl-4">
@@ -4092,12 +4192,18 @@ export default function ProposalPreview({
                         <p className="font-bold text-slate-950 text-xs">Other Terms and Conditions:</p>
                         <ul className="space-y-0.5 pl-4 text-slate-800">
                           <li>• The customer shall be responsible for facilitating work visa applications and issuance, including managing all required documentation and bearing the associated application fees, as well as handling customs clearance of instruments.</li>
-                          <li>• Customer shall arrange a skilled individual (Authorized technicians) for the entire duration of the audit period for local co-ordination with site team for seeking approval or work permits and installation of energy auditing equipment with proper safety measures.</li>
+                          {isAirBalancingSelected &&
+                            DEFAULT_AIR_BALANCING_TERMS.map((term, tIdx) => (
+                              <li key={`ab-term-${tIdx}`}>• {term}</li>
+                            ))}
                         </ul>
                       </div>
                     </div>
                   ) : isEnergyAudit ? (
-                    <div className="space-y-3 text-slate-800 font-normal text-left" style={{ fontSize: '12px', lineHeight: '1.65' }}>
+                    <div
+                      className="space-y-2.5 text-slate-800 font-normal text-left"
+                      style={{ fontSize: isAirBalancingSelected ? '10px' : '12px', lineHeight: isAirBalancingSelected ? '1.45' : '1.65' }}
+                    >
                       <div className="space-y-1">
                         <p className="font-bold text-slate-950 text-sm">Payment Terms:</p>
                         <ul className="space-y-1 pl-4">
@@ -4108,12 +4214,16 @@ export default function ProposalPreview({
                         </ul>
                       </div>
 
-                      <div className="space-y-1 pt-2 border-t border-slate-100">
-                        <p className="font-bold text-slate-950 text-sm">Other Terms and Conditions:</p>
-                        <p className="text-slate-800 pl-1">
-                          Customer shall arrange a skilled individual (Authorized technicians) for the entire duration of the audit period for local co-ordination with site team for seeking approval or work permits and installation of energy auditing equipment with proper safety measures.
-                        </p>
-                      </div>
+                      {isAirBalancingSelected && (
+                        <div className="space-y-1 pt-2 border-t border-slate-100">
+                          <p className="font-bold text-slate-950 text-sm">Other Terms and Conditions:</p>
+                          <ul className="space-y-1 pl-4 text-slate-800">
+                            {DEFAULT_AIR_BALANCING_TERMS.map((term, tIdx) => (
+                              <li key={`ab-term-ea-${tIdx}`}>• {term}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   ) : isWaterManagement ? (
                     <div
@@ -4173,13 +4283,6 @@ export default function ProposalPreview({
                         </p>
                         <p className="text-slate-700">
                           All lodging, boarding and accommodation are inclusive.
-                        </p>
-                      </div>
-
-                      <div className="space-y-1 pt-1.5 border-t border-slate-100">
-                        <p className="font-bold text-slate-950">Other Terms and Conditions:</p>
-                        <p className="text-slate-700 pl-1">
-                          Customer shall arrange a skilled individual (Authorized technicians) for the entire duration of the audit period for local co-ordination with site team for seeking approval or work permits and installation of energy auditing equipment with proper safety measures.
                         </p>
                       </div>
                     </div>
@@ -4309,7 +4412,7 @@ export default function ProposalPreview({
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">Edit Proposal Content</h3>
-                  <p className="text-xs text-slate-500">Edit Scope of Work, Deliverables, Ref # and Date (Saved via PUT API)</p>
+                  <p className="text-xs text-slate-500">Edit Client Name, Logo, Scope of Work, Deliverables, Ref # and Date (Saved via PUT API)</p>
                 </div>
               </div>
               <button
@@ -4322,6 +4425,63 @@ export default function ProposalPreview({
 
             {/* Modal Body Form */}
             <form onSubmit={handleSaveProposalEdits} className="p-6 overflow-y-auto space-y-4 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Client Company Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editedClientName}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setEditedClientName(val);
+                      if (!editedClientLogo) {
+                        const preset = getClientPresetLogo(val);
+                        if (preset) setEditedClientLogo(preset);
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
+                    placeholder="e.g. MES or Acme Corp"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Client Logo
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg cursor-pointer border border-slate-300 transition-colors">
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>{editedClientLogo ? 'Replace Logo' : 'Upload Logo'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUploadInModal}
+                        className="hidden"
+                      />
+                    </label>
+                    {editedClientLogo ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-14 border border-slate-200 rounded p-1 bg-slate-50 flex items-center justify-center overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={editedClientLogo} alt="Logo preview" className="max-h-full max-w-full object-contain" />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditedClientLogo('')}
+                          className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                          title="Remove Logo"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">No logo selected</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">

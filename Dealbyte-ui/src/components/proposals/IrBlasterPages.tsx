@@ -3,6 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { costingApi } from '@/lib/api/costing';
+import { getClientPresetLogo } from '@/components/costing/constants';
 
 interface IrBlasterPagesProps {
   deal: any;
@@ -12,6 +13,8 @@ interface IrBlasterPagesProps {
   finalPrice: number;
   formatCurrency: (amount: number) => string;
   costingSheet?: any;
+  clientLogo?: string | null;
+  clientName?: string;
 }
 
 export function IrBlasterPages(props: IrBlasterPagesProps) {
@@ -22,10 +25,19 @@ export function IrBlasterPages(props: IrBlasterPagesProps) {
     proposalDate,
     finalPrice,
     formatCurrency,
+    clientLogo,
+    clientName: passedClientName,
   } = props;
   const totalPages = 5;
 
-  const clientName = deal?.clientName || (proposal as any)?.clientName || proposal?.quote?.deal?.clientName || 'Valued Client';
+  const clientName = passedClientName || deal?.clientName || (proposal as any)?.clientName || proposal?.quote?.deal?.clientName || 'Valued Client';
+  const resolvedClientLogo =
+    clientLogo ||
+    (proposal as any)?.clientLogo ||
+    (proposal as any)?.deal?.clientLogo ||
+    (deal as any)?.clientLogo ||
+    (proposal?.quote as any)?.clientLogo ||
+    getClientPresetLogo(clientName);
   const projectName = deal?.projectName || (deal as any)?.projectName || 'Plant 1';
 
   // Dynamic Costing Sheet Resolution from DB or payload
@@ -153,16 +165,28 @@ export function IrBlasterPages(props: IrBlasterPagesProps) {
       {/* ── PAGE 1: COVER PAGE ── */}
       <PageShell pageNum={1}>
         <PageLogo />
-        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8 my-auto">
+        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6 my-auto">
           <h1 className="text-[22px] font-bold text-black underline underline-offset-4 decoration-1 leading-relaxed">
             Techno Commercial Proposal for IR Blaster – AC Energy Automation
           </h1>
-          {(proposal as any)?.clientLogo && (
-            <div className="py-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={(proposal as any).clientLogo} alt={`${clientName} Logo`} className="max-h-[120px] w-auto object-contain mx-auto" />
+
+          <div className="py-2 flex flex-col items-center justify-center space-y-3">
+            {resolvedClientLogo ? (
+              <div className="py-2 max-w-[280px] max-h-[130px] flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={resolvedClientLogo}
+                  alt={`${clientName} Logo`}
+                  className="max-h-[120px] max-w-full object-contain mx-auto"
+                />
+              </div>
+            ) : null}
+            <div className="text-center">
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Prepared for</p>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">{clientName}</h2>
             </div>
-          )}
+          </div>
+
           <div className="text-center text-[12px] text-black space-y-1">
             <p>Quotation No: {proposalRef}</p>
             <p>Date: {proposalDate}</p>
