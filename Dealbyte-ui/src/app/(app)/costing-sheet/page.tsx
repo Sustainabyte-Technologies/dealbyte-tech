@@ -1588,11 +1588,12 @@ function CostingSheetContent() {
     ? Math.round((costTotal / 0.6) - costTotal)
     : Math.round((costTotal / (Math.max(10, 100 - profitPct) / 100)) - costTotal);
   const basePrice = costTotal + profitAmount;
-  const rawQuoteAmount = bufferPct === 0
+  const rawQuoteAmount = (bufferPct === 0)
     ? basePrice
-    : (bufferPct === 10 || bufferPct === undefined || bufferPct === null)
+    : (bufferPct === undefined || bufferPct === null)
       ? Math.round(basePrice / 0.9)
       : Math.round(basePrice / (Math.max(1, 100 - bufferPct) / 100));
+  const bufferAmount = bufferPct === 0 ? 0 : (rawQuoteAmount - basePrice);
   const ourQuoteAmount = isEnergyAuditCosting
     ? roundToNearest(rawQuoteAmount, roundingNearest)
     : rawQuoteAmount;
@@ -1801,35 +1802,52 @@ function CostingSheetContent() {
   const emsSteps1To4TotalCost = emsHardwareTotalCost + emsEffectiveManpowerTotalCost + emsPlatformTotalCost + emsRecurringYearlyTotalCost;
   const emsSteps1To4TotalPrice = emsHardwareTotalPrice + emsEffectiveManpowerTotalPrice + emsPlatformTotalPrice + emsRecurringYearlyTotalPrice;
 
+  const effectiveEmsBufferPct = bufferPct !== undefined && bufferPct !== null ? Number(bufferPct) : 10;
   const emsItem1a = emsGatewayHardwareRows[0];
   const emsItem1Price = emsItem1a ? emsItem1a.qty * calcPriceFromCost(emsItem1a.unitCost, emsItem1a.marginPct) : 0;
-  const emsItem1Cust = roundToNearest(emsItem1Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+  const emsItem1Cust = effectiveEmsBufferPct === 0
+    ? roundToNearest(emsItem1Price, roundingNearest)
+    : roundToNearest(emsItem1Price / Math.max(0.01, (100 - effectiveEmsBufferPct) / 100), roundingNearest);
 
   const emsItem1bRows = emsGatewayHardwareRows.slice(1);
   const emsItem2Price = emsItem1bRows.reduce((sum, r) => sum + r.qty * calcPriceFromCost(r.unitCost, r.marginPct), 0);
-  const emsItem2Cust = roundToNearest(emsItem2Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+  const emsItem2Cust = effectiveEmsBufferPct === 0
+    ? roundToNearest(emsItem2Price, roundingNearest)
+    : roundToNearest(emsItem2Price / Math.max(0.01, (100 - effectiveEmsBufferPct) / 100), roundingNearest);
 
   const emsItem3Price = emsElectricalHardwareTotalPrice;
-  const emsItem3Cust = roundToNearest(emsItem3Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+  const emsItem3Cust = effectiveEmsBufferPct === 0
+    ? roundToNearest(emsItem3Price, roundingNearest)
+    : roundToNearest(emsItem3Price / Math.max(0.01, (100 - effectiveEmsBufferPct) / 100), roundingNearest);
 
   // Packaging charges: DO NOT add contingency buffer
   const emsPkgPrice = emsEffectivePackagingPrice;
   const emsPkgCust = roundToNearest(emsPkgPrice, roundingNearest);
 
   const emsItem4Price = isCompressedAirAutomationActive ? caaAutoManpowerTotalPrice : emsManpowerTotalPrice;
-  const emsItem4Cust = roundToNearest(emsItem4Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+  const emsItem4Cust = effectiveEmsBufferPct === 0
+    ? roundToNearest(emsItem4Price, roundingNearest)
+    : roundToNearest(emsItem4Price / Math.max(0.01, (100 - effectiveEmsBufferPct) / 100), roundingNearest);
 
   const emsItem4bPrice = isCompressedAirAutomationActive ? caaInstManpowerTotalPrice : 0;
-  const emsItem4bCust = isCompressedAirAutomationActive ? roundToNearest(emsItem4bPrice / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest) : 0;
+  const emsItem4bCust = isCompressedAirAutomationActive
+    ? (effectiveEmsBufferPct === 0
+        ? roundToNearest(emsItem4bPrice, roundingNearest)
+        : roundToNearest(emsItem4bPrice / Math.max(0.01, (100 - effectiveEmsBufferPct) / 100), roundingNearest))
+    : 0;
 
   const emsItem5Price = emsPlatformTotalPrice;
-  const emsItem5Cust = roundToNearest(emsItem5Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+  const emsItem5Cust = effectiveEmsBufferPct === 0
+    ? roundToNearest(emsItem5Price, roundingNearest)
+    : roundToNearest(emsItem5Price / Math.max(0.01, (100 - effectiveEmsBufferPct) / 100), roundingNearest);
 
   const emsItem6Price = emsRecurringYearlyTotalPrice;
-  const emsItem6Cust = roundToNearest(emsItem6Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100), roundingNearest);
+  const emsItem6Cust = effectiveEmsBufferPct === 0
+    ? roundToNearest(emsItem6Price, roundingNearest)
+    : roundToNearest(emsItem6Price / Math.max(0.01, (100 - effectiveEmsBufferPct) / 100), roundingNearest);
 
   const emsTotalStep5CustomerPrice = emsItem1Cust + emsItem2Cust + emsItem3Cust + (emsPkgPrice > 0 ? emsPkgCust : 0) + emsItem4Cust + emsItem4bCust + emsItem5Cust + emsItem6Cust;
-  const emsBufferAmount = emsTotalStep5CustomerPrice - emsSteps1To4TotalPrice;
+  const emsBufferAmount = effectiveEmsBufferPct === 0 ? 0 : Math.max(0, emsTotalStep5CustomerPrice - emsSteps1To4TotalPrice);
   const emsPriceWithBuffer = emsTotalStep5CustomerPrice;
   const emsRoundedCustomerCost = emsTotalStep5CustomerPrice;
 
@@ -2143,14 +2161,15 @@ function CostingSheetContent() {
   }, [iotControlsOpexRows, profitPct]);
 
   const isIrBlasterCosting = (activeSubServiceName || '').toLowerCase().includes('ir blaster');
+  const effectiveIotBufferPct = bufferPct !== undefined && bufferPct !== null ? Number(bufferPct) : 10;
   const iotHardwareBaseWithoutPkg = iotHardwareBasePrice;
-  const iotHardwareContingency = bufferPct > 0 ? Math.round(iotHardwareBaseWithoutPkg / Math.max(0.01, (100 - bufferPct) / 100)) : iotHardwareBaseWithoutPkg;
+  const iotHardwareContingency = effectiveIotBufferPct > 0 ? Math.round(iotHardwareBaseWithoutPkg / Math.max(0.01, (100 - effectiveIotBufferPct) / 100)) : iotHardwareBaseWithoutPkg;
   const iotHardwareRounded = roundToNearest(iotHardwareContingency + iotEffectivePackagingPrice, roundingNearest);
-  const iotOpexContingency = bufferPct > 0 ? Math.round(iotOpexTotalYearly / Math.max(0.01, (100 - bufferPct) / 100)) : iotOpexTotalYearly;
+  const iotOpexContingency = effectiveIotBufferPct > 0 ? Math.round(iotOpexTotalYearly / Math.max(0.01, (100 - effectiveIotBufferPct) / 100)) : iotOpexTotalYearly;
   const iotOpexRounded = roundToNearest(iotOpexContingency, roundingNearest);
   const iotFinalQuote = iotHardwareRounded + (isIrBlasterCosting ? iotOpexRounded : 0);
   const iotRawTotalBase = iotHardwareTotalPrice + (isIrBlasterCosting ? iotOpexTotalYearly : emsManpowerTotalPrice);
-  const iotBufferAmount = iotFinalQuote - iotRawTotalBase;
+  const iotBufferAmount = effectiveIotBufferPct === 0 ? 0 : Math.max(0, iotFinalQuote - iotRawTotalBase);
   const iotTotalProjectCost = iotHardwareBaseCost + iotEffectivePackagingCost + (isIrBlasterCosting ? iotOpexTotalYearlyCost : emsManpowerTotalCost);
 
   // ROI Projections
@@ -3034,7 +3053,7 @@ function CostingSheetContent() {
               marginPct: profitPct,
               marginAmount: profitAmount,
               bufferPct: bufferPct,
-              bufferAmount: ourQuoteAmount - basePrice,
+              bufferAmount: bufferAmount,
               finalQuote: ourQuoteAmount,
             };
 
@@ -4233,6 +4252,7 @@ function CostingSheetContent() {
           basePrice={basePrice}
           bufferPct={bufferPct}
           setBufferPct={setBufferPct}
+          bufferAmount={bufferAmount}
           ourQuoteAmount={ourQuoteAmount}
           negotiationMarginPct={negotiationMarginPct}
           setNegotiationMarginPct={setNegotiationMarginPct}

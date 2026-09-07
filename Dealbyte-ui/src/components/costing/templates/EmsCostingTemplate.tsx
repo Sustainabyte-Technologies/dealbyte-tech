@@ -178,18 +178,20 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
       (activeSubServiceName || '').toLowerCase().includes('air monitoring')
     );
 
+  const effectiveBufferPct = bufferPct !== undefined && bufferPct !== null ? Number(bufferPct) : 10;
+
   // 1. Gateway Hardware (1a)
   const item1a = emsGatewayHardwareRows[0];
   const item1Cost = item1a ? item1a.qty * item1a.unitCost : 0;
   const item1Price = item1a ? item1a.qty * calcPriceFromCost(item1a.unitCost, item1a.marginPct) : 0;
-  const item1Contingency = Math.round(item1Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item1Contingency = effectiveBufferPct === 0 ? item1Price : Math.round(item1Price / Math.max(0.01, (100 - effectiveBufferPct) / 100));
   const item1Rounded = roundToNearest(item1Contingency, roundingNearest);
 
   // 2. Meters & Additional Hardware (1b, 1c...)
   const item1bRows = emsGatewayHardwareRows.slice(1);
   const item2Cost = item1bRows.reduce((sum, r) => sum + r.qty * r.unitCost, 0);
   const item2Price = item1bRows.reduce((sum, r) => sum + r.qty * calcPriceFromCost(r.unitCost, r.marginPct), 0);
-  const item2Contingency = Math.round(item2Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item2Contingency = effectiveBufferPct === 0 ? item2Price : Math.round(item2Price / Math.max(0.01, (100 - effectiveBufferPct) / 100));
   const item2Rounded = roundToNearest(item2Contingency, roundingNearest);
   const item2Description = item1bRows.length > 0
     ? item1bRows.map((r) => r.description).join('; ')
@@ -200,7 +202,7 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
   // 3. Electrical Accessories Total (2a, 2b, 2c...)
   const item3Cost = emsElectricalHardwareTotalCost;
   const item3Price = emsElectricalHardwareTotalPrice;
-  const item3Contingency = Math.round(item3Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item3Contingency = effectiveBufferPct === 0 ? item3Price : Math.round(item3Price / Math.max(0.01, (100 - effectiveBufferPct) / 100));
   const item3Rounded = roundToNearest(item3Contingency, roundingNearest);
   const item3Description = 'Supply of electrical consumables such as flexible hose, cable ties and all other accessories';
   const item3Qty = emsElectricalHardwareRows.reduce((sum, r) => sum + (r.qty || 0), 0) || 1;
@@ -209,7 +211,7 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
   // 4. Man Days / Installation & Commissioning
   const item4Cost = props.emsManpowerTotalCost;
   const item4Price = props.emsManpowerTotalPrice;
-  const item4Contingency = Math.round(item4Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item4Contingency = effectiveBufferPct === 0 ? item4Price : Math.round(item4Price / Math.max(0.01, (100 - effectiveBufferPct) / 100));
   const item4Rounded = roundToNearest(item4Contingency, roundingNearest);
   const item4Description =
     'Installation and commissioning of IoT devices, gateways, modems, and associated electrical/control components including startup, testing, and functional verification. Communication cable laying and routing through conduits, cable trays, and raceways with proper dressing, tagging, and termination. Conduit pipe laying for electrical and communication cabling as per site layout. Modem configuration, network setup, data mapping, testing, troubleshooting, and data validation';
@@ -219,18 +221,18 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
   // Compressed Air Automation specific Automation vs Installation Mandays
   const autoCost = props.airAutoManpowerTotalCost !== undefined ? props.airAutoManpowerTotalCost : props.emsManpowerTotalCost;
   const autoPrice = props.airAutoManpowerTotalPrice !== undefined ? props.airAutoManpowerTotalPrice : props.emsManpowerTotalPrice;
-  const autoContingency = Math.round(autoPrice / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const autoContingency = effectiveBufferPct === 0 ? autoPrice : Math.round(autoPrice / Math.max(0.01, (100 - effectiveBufferPct) / 100));
   const autoRounded = roundToNearest(autoContingency, roundingNearest);
 
   const instCost = props.airInstManpowerTotalCost !== undefined ? props.airInstManpowerTotalCost : props.emsManpowerTotalCost;
   const instPrice = props.airInstManpowerTotalPrice !== undefined ? props.airInstManpowerTotalPrice : props.emsManpowerTotalPrice;
-  const instContingency = Math.round(instPrice / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const instContingency = effectiveBufferPct === 0 ? instPrice : Math.round(instPrice / Math.max(0.01, (100 - effectiveBufferPct) / 100));
   const instRounded = roundToNearest(instContingency, roundingNearest);
 
   // 5. Platform Setup Costing
   const item5Cost = emsPlatformTotalCost;
   const item5Price = emsPlatformTotalPrice;
-  const item5Contingency = Math.round(item5Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item5Contingency = effectiveBufferPct === 0 ? item5Price : Math.round(item5Price / Math.max(0.01, (100 - effectiveBufferPct) / 100));
   const item5Rounded = roundToNearest(item5Contingency, roundingNearest);
   const item5Description = emsPlatformRows.length > 0
     ? emsPlatformRows.map((r) => r.description).join('. ')
@@ -241,7 +243,7 @@ export const EmsCostingTemplate: React.FC<EmsCostingTemplateProps> = (props) => 
   // 6. Recurring Cloud Charges
   const item6Cost = emsRecurringYearlyTotalCost;
   const item6Price = emsRecurringYearlyTotalPrice;
-  const item6Contingency = Math.round(item6Price / Math.max(0.01, (100 - (bufferPct || 10)) / 100));
+  const item6Contingency = effectiveBufferPct === 0 ? item6Price : Math.round(item6Price / Math.max(0.01, (100 - effectiveBufferPct) / 100));
   const item6Rounded = roundToNearest(item6Contingency, roundingNearest);
   const item6Description =
     'OptiByte Dashboard, Intelligent reporting, Group and machine level reporting, Email on any threshold value breach, Alert on Mobile(via SMS), Auto detection of anomalies, water flow rate, water capacity. We will check with the pH and TDS meter, if we can integrate it with our dashboard';

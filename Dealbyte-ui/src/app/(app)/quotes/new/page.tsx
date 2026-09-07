@@ -1387,7 +1387,7 @@ PAN Number – ABNCS4869A`;
         subtotalCost: Number(s.subtotalCost || 0),
         marginPct: Number(s.marginPct || 40),
         marginAmount: Number(s.marginAmount || 0),
-        bufferPct: Number(s.bufferPct || 10),
+        bufferPct: s.bufferPct !== undefined && s.bufferPct !== null ? Number(s.bufferPct) : 10,
         bufferAmount: Number(s.bufferAmount || 0),
         finalQuote: Number(s.finalQuote || s.totalCustomerPrice || 0),
       }));
@@ -1403,7 +1403,7 @@ PAN Number – ABNCS4869A`;
         subtotalCost: Number(s.subtotalCost || 0),
         marginPct: Number(s.marginPct || 40),
         marginAmount: Number(s.marginAmount || 0),
-        bufferPct: Number(s.bufferPct || 10),
+        bufferPct: s.bufferPct !== undefined && s.bufferPct !== null ? Number(s.bufferPct) : 10,
         bufferAmount: Number(s.bufferAmount || 0),
         finalQuote: Number(s.finalQuote || s.totalCustomerPrice || 0),
       }));
@@ -1419,7 +1419,7 @@ PAN Number – ABNCS4869A`;
         subtotalCost: Number(s.subtotalCost || 0),
         marginPct: Number(s.marginPct || 40),
         marginAmount: Number(s.marginAmount || 0),
-        bufferPct: Number(s.bufferPct || 10),
+        bufferPct: s.bufferPct !== undefined && s.bufferPct !== null ? Number(s.bufferPct) : 10,
         bufferAmount: Number(s.bufferAmount || 0),
         finalQuote: Number(s.finalQuote || s.totalCustomerPrice || 0),
       }));
@@ -1435,7 +1435,7 @@ PAN Number – ABNCS4869A`;
         subtotalCost: Number(s.subtotalCost || 0),
         marginPct: Number(s.marginPct || 40),
         marginAmount: Number(s.marginAmount || 0),
-        bufferPct: Number(s.bufferPct || 10),
+        bufferPct: s.bufferPct !== undefined && s.bufferPct !== null ? Number(s.bufferPct) : 10,
         bufferAmount: Number(s.bufferAmount || 0),
         finalQuote: Number(s.finalQuote || s.emsTotalStep5CustomerPrice || s.totalCustomerPrice || 0),
       }));
@@ -3010,7 +3010,7 @@ PAN Number – ABNCS4869A`;
           return Math.ceil(val / step) * step;
         };
 
-        const buffer = Number(sheetAny.bufferPct || 10);
+        const buffer = sheetAny.bufferPct !== undefined && sheetAny.bufferPct !== null ? Number(sheetAny.bufferPct) : 10;
         const margin = Number(sheetAny.marginPct || 40);
         
         let nearest = Number(sheetAny.roundingNearest || sheetAny.instrumentRows?.roundingNearest || 0);
@@ -3031,20 +3031,20 @@ PAN Number – ABNCS4869A`;
         // 1. Gateway Hardware (1a)
         const row1a = gwRows[0];
         const price1 = row1a ? Number(row1a.qty || 1) * calcPriceFromCost(Number(row1a.unitCost || 7000), row1a.marginPct ?? margin) : calcPriceFromCost(14000, margin);
-        const cust1 = roundToNearest(price1 / Math.max(0.01, (100 - buffer) / 100), nearest);
+        const cust1 = buffer > 0 ? roundToNearest(price1 / Math.max(0.01, (100 - buffer) / 100), nearest) : roundToNearest(price1, nearest);
 
         // 2. Meters & Additional Hardware (1b, 1c...)
         const row1bList = gwRows.slice(1);
         const price2 = row1bList.length > 0
           ? row1bList.reduce((sum: number, r: any) => sum + Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), r.marginPct ?? margin), 0)
           : calcPriceFromCost(34000, margin);
-        const cust2 = roundToNearest(price2 / Math.max(0.01, (100 - buffer) / 100), nearest);
+        const cust2 = buffer > 0 ? roundToNearest(price2 / Math.max(0.01, (100 - buffer) / 100), nearest) : roundToNearest(price2, nearest);
 
         // 3. Electrical Accessories Total
         const price3 = ehwRows.length > 0
           ? ehwRows.reduce((sum: number, r: any) => sum + Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), r.marginPct ?? margin), 0)
           : calcPriceFromCost(10000, margin);
-        const cust3 = roundToNearest(price3 / Math.max(0.01, (100 - buffer) / 100), nearest);
+        const cust3 = buffer > 0 ? roundToNearest(price3 / Math.max(0.01, (100 - buffer) / 100), nearest) : roundToNearest(price3, nearest);
 
         // 4. Man Days / Installation & Commissioning Total
         let mpCost = Number(sheetAny.totalManpowerCost) || 0;
@@ -3060,19 +3060,19 @@ PAN Number – ABNCS4869A`;
           mpCost = (baseCost > 0 ? baseCost : 9600) + extraCost;
         }
         const price4 = Math.round(calcPriceFromCost(mpCost, margin));
-        let cust4 = roundToNearest(price4 / Math.max(0.01, (100 - buffer) / 100), nearest);
+        let cust4 = buffer > 0 ? roundToNearest(price4 / Math.max(0.01, (100 - buffer) / 100), nearest) : roundToNearest(price4, nearest);
 
         // 5. Platform Setup Costing Total
         const price5 = pfRows.length > 0
           ? pfRows.reduce((sum: number, r: any) => sum + Number(r.qty || 0) * calcPriceFromCost(Number(r.unitCost || 0), r.marginPct ?? margin), 0)
           : calcPriceFromCost(5000, margin);
-        const cust5 = roundToNearest(price5 / Math.max(0.01, (100 - buffer) / 100), nearest);
+        const cust5 = buffer > 0 ? roundToNearest(price5 / Math.max(0.01, (100 - buffer) / 100), nearest) : roundToNearest(price5, nearest);
 
         // 6. Recurring Cloud Charges Total
         const price6 = rcRows.length > 0
           ? rcRows.reduce((sum: number, r: any) => sum + Math.round(calcPriceFromCost(Number(r.unitCostPerMonth || 0), r.marginPct ?? margin) * Number(r.qty || 0)), 0) * 12
           : calcPriceFromCost(9000, margin);
-        const cust6 = roundToNearest(price6 / Math.max(0.01, (100 - buffer) / 100), nearest);
+        const cust6 = buffer > 0 ? roundToNearest(price6 / Math.max(0.01, (100 - buffer) / 100), nearest) : roundToNearest(price6, nearest);
 
         // Alignment with sheetAny.finalQuote if available
         const currentSum = cust1 + cust2 + cust3 + cust4 + cust5 + cust6;

@@ -147,6 +147,7 @@ export interface StandardAuditTemplateProps {
   basePrice: number;
   bufferPct: number;
   setBufferPct: (val: number) => void;
+  bufferAmount?: number;
   ourQuoteAmount: number;
   negotiationMarginPct: number;
   setNegotiationMarginPct: (val: number) => void;
@@ -278,6 +279,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
   basePrice,
   bufferPct,
   setBufferPct,
+  bufferAmount,
   ourQuoteAmount,
   negotiationMarginPct,
   setNegotiationMarginPct,
@@ -288,6 +290,10 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
   setRoundingNearest,
 }) => {
   const siteExpensesTotal = totalFoodCost + totalTravelCost + finalAccommodationCost + customExpensesTotal;
+  const effectiveBufferAmount = bufferAmount !== undefined
+    ? bufferAmount
+    : (bufferPct === 0 ? 0 : Math.round(basePrice / (Math.max(1, 100 - bufferPct) / 100)) - basePrice);
+  const roundOffAmount = Math.max(0, ourQuoteAmount - (basePrice + effectiveBufferAmount));
 
   const juniorCount = manpowerRows.filter((r) => r.roleLevel === 'JUNIOR_ENERGY' && Number(r.siteWorkingDays || 0) > 0).length;
   const seniorCount = manpowerRows.filter((r) => r.roleLevel === 'SENIOR_ENERGY' && Number(r.siteWorkingDays || 0) > 0).length;
@@ -1810,7 +1816,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                 </div>
               </td>
               <td className="p-2.5 px-5 text-right font-bold text-amber-900 bg-amber-50/40 border-r border-slate-200">
-                ₹{formatMoney(ourQuoteAmount - basePrice)}
+                ₹{formatMoney(effectiveBufferAmount)}
               </td>
               <td></td>
             </tr>
@@ -1820,6 +1826,11 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
               <td colSpan={6} className="p-3.5 px-6 text-right uppercase tracking-wider text-white">
                 <div className="flex items-center justify-end gap-3 flex-wrap">
                   <span>Our Quote Amount (Final Deliverable to Client)</span>
+                  {roundOffAmount > 0 && (
+                    <span className="text-[11px] font-bold text-amber-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                      (+₹{formatMoney(roundOffAmount)} round-off)
+                    </span>
+                  )}
                   {setRoundingNearest && (
                     <div className="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 rounded-lg px-2.5 py-1 text-xs normal-case font-bold">
                       <span className="text-slate-300">Round Off:</span>
@@ -1833,6 +1844,18 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
                         className="w-14 text-center font-black text-emerald-400 bg-transparent focus:outline-none text-xs"
                       />
                       <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5 ml-0.5">
+                        <button
+                          key="exact"
+                          type="button"
+                          onClick={() => setRoundingNearest(1)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer transition-colors ${
+                            (roundingNearest || 100) === 1
+                              ? 'bg-emerald-500 text-slate-950 font-black shadow-xs'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          Exact
+                        </button>
                         {[100, 500, 1000].map((val) => (
                           <button
                             key={val}

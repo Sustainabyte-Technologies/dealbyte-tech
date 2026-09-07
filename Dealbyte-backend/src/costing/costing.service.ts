@@ -990,7 +990,7 @@ export class CostingService {
       subtotalCost: Number(s.subtotalCost || 0),
       marginPct: Number(s.marginPct || 40),
       marginAmount: Number(s.marginAmount || 0),
-      bufferPct: Number(s.bufferPct || 10),
+      bufferPct: s.bufferPct !== undefined && s.bufferPct !== null ? Number(s.bufferPct) : 10,
       bufferAmount: Number(s.bufferAmount || 0),
       finalQuote: Number(s.finalQuote || 0),
     }));
@@ -1006,7 +1006,7 @@ export class CostingService {
       subtotalCost: Number(s.subtotalCost || 0),
       marginPct: Number(s.marginPct || 40),
       marginAmount: Number(s.marginAmount || 0),
-      bufferPct: Number(s.bufferPct || 10),
+      bufferPct: s.bufferPct !== undefined && s.bufferPct !== null ? Number(s.bufferPct) : 10,
       bufferAmount: Number(s.bufferAmount || 0),
       finalQuote: Number(s.finalQuote || 0),
     }));
@@ -1022,7 +1022,7 @@ export class CostingService {
       subtotalCost: Number(s.subtotalCost || 0),
       marginPct: Number(s.marginPct || 40),
       marginAmount: Number(s.marginAmount || 0),
-      bufferPct: Number(s.bufferPct || 10),
+      bufferPct: s.bufferPct !== undefined && s.bufferPct !== null ? Number(s.bufferPct) : 10,
       bufferAmount: Number(s.bufferAmount || 0),
       finalQuote: Number(s.finalQuote || 0),
     }));

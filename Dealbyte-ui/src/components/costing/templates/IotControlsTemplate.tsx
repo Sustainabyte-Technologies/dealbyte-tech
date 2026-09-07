@@ -207,7 +207,7 @@ export const IotControlsTemplate: React.FC<IotControlsTemplateProps> = (props) =
 
   const totalWithBuffer = hardwareContingency + iotEffectivePackagingPrice + (isIrBlaster ? opexContingency : 0);
   const finalCustomerTotal = hardwareRounded + (isIrBlaster ? opexRounded : 0);
-  const totalBufferAmount = finalCustomerTotal - rawTotalBase;
+  const totalBufferAmount = bufferPct === 0 ? 0 : Math.max(0, finalCustomerTotal - rawTotalBase);
 
   return (
     <div className="space-y-8">
