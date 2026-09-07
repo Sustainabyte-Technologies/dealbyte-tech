@@ -3241,9 +3241,11 @@ PAN Number – ABNCS4869A`;
       ? Number(activeCostingSheet.bufferAmount)
       : subtotal > 0
       ? (isEnergyAuditServices
-          ? (bufferPct === 10 || !bufferPct
-              ? Math.round((withMargin / 0.9) - withMargin)
-              : Math.round((withMargin / (Math.max(10, 100 - bufferPct) / 100)) - withMargin))
+          ? (bufferPct === 0
+              ? 0
+              : (bufferPct === 10 || bufferPct === undefined || bufferPct === null)
+                ? Math.round((withMargin / 0.9) - withMargin)
+                : Math.round((withMargin / (Math.max(1, 100 - bufferPct) / 100)) - withMargin))
           : Math.round(withMargin * (bufferPct / 100)))
       : 0;
 

@@ -1588,9 +1588,11 @@ function CostingSheetContent() {
     ? Math.round((costTotal / 0.6) - costTotal)
     : Math.round((costTotal / (Math.max(10, 100 - profitPct) / 100)) - costTotal);
   const basePrice = costTotal + profitAmount;
-  const rawQuoteAmount = bufferPct === 10 || !bufferPct
-    ? Math.round(basePrice / 0.9)
-    : Math.round(basePrice / (Math.max(10, 100 - bufferPct) / 100));
+  const rawQuoteAmount = bufferPct === 0
+    ? basePrice
+    : (bufferPct === 10 || bufferPct === undefined || bufferPct === null)
+      ? Math.round(basePrice / 0.9)
+      : Math.round(basePrice / (Math.max(1, 100 - bufferPct) / 100));
   const ourQuoteAmount = isEnergyAuditCosting
     ? roundToNearest(rawQuoteAmount, roundingNearest)
     : rawQuoteAmount;

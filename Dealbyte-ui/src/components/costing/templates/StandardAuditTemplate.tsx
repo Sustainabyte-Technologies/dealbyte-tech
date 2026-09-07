@@ -1793,7 +1793,7 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
               <td colSpan={6} className="p-2.5 px-6 text-right text-slate-800">
                 <div className="flex items-center justify-end gap-2">
                   <span className="text-[11px] font-semibold text-slate-500 font-mono">
-                    (Total Price / 0.9 − Total Price)
+                    (Total Price / {((100 - bufferPct) / 100).toFixed(2)} − Total Price)
                   </span>
                   <span>Quote Buffer</span>
                   <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">
