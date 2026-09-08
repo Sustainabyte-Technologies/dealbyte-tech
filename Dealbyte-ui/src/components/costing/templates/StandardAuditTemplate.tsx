@@ -1754,21 +1754,48 @@ export const StandardAuditTemplate: React.FC<StandardAuditTemplateProps> = ({
             {/* Profit Margin (Interactive %) */}
             <tr className="border-t border-slate-200 font-bold bg-white">
               <td colSpan={6} className="p-2.5 px-6 text-right text-slate-800">
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-2 flex-wrap">
                   <span className="text-[11px] font-semibold text-slate-500 font-mono">
-                    (Total Cost / 0.6 − Total Cost)
+                    {profitPct === 0
+                      ? '(0% Margin)'
+                      : `(Total Cost / ${((100 - (Number(profitPct) || 0)) / 100).toFixed(2)} − Total Cost)`}
                   </span>
                   <span>Profit Margin</span>
                   <div className="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 rounded px-2 py-0.5">
                     <input
                       type="number"
                       min={0}
-                      max={100}
-                      value={profitPct}
-                      onChange={(e) => setProfitPct(Number(e.target.value))}
+                      max={99}
+                      step="any"
+                      value={profitPct !== undefined && profitPct !== null ? profitPct : 40}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setProfitPct(0);
+                        } else {
+                          const num = Number(val);
+                          setProfitPct(isNaN(num) ? 0 : Math.min(99, Math.max(0, num)));
+                        }
+                      }}
                       className="w-12 text-center font-black text-indigo-700 bg-white border border-indigo-300 rounded px-1 py-0.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     />
                     <span className="text-xs font-bold text-indigo-700">%</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1">
+                    {[0, 20, 30, 40].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setProfitPct(preset)}
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded transition-all ${
+                          Number(profitPct) === preset
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
+                        }`}
+                      >
+                        {preset}%
+                      </button>
+                    ))}
                   </div>
                 </div>
               </td>

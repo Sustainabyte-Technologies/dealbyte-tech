@@ -166,15 +166,15 @@ export class CostingService {
 
     // ─── Costing Formula ──────────────────────────────────────────────────
     const subtotal = this.round(manpowerCost + instrumentCost + hardwareCost + foodTravelCost);
-    const marginPct = input.marginPct;
+    const marginPct = input.marginPct !== undefined && input.marginPct !== null ? input.marginPct : 40;
     const isEnergyAudit = !input.hardware || input.hardware.length === 0;
     const marginAmount = isEnergyAudit
-      ? this.round((subtotal / 0.6) - subtotal)
+      ? (marginPct === 0 ? 0 : this.round((subtotal / ((100 - Math.min(99, Math.max(0, marginPct))) / 100)) - subtotal))
       : this.round(subtotal * (marginPct / 100));
     const withMargin = this.round(subtotal + marginAmount); // Price = Total Cost + Profit Margin
-    const bufferPct = input.bufferPct;
+    const bufferPct = input.bufferPct !== undefined && input.bufferPct !== null ? input.bufferPct : (isEnergyAudit ? 10 : 0);
     const bufferAmount = isEnergyAudit
-      ? this.round((withMargin / 0.9) - withMargin)
+      ? (bufferPct === 0 ? 0 : this.round((withMargin / ((100 - Math.min(99, Math.max(0, bufferPct))) / 100)) - withMargin))
       : this.round(withMargin * (bufferPct / 100));
     const finalQuote = this.round(withMargin + bufferAmount); // Final Quote = Total Price / 0.9
 

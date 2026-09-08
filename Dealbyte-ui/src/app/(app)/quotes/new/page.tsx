@@ -3223,15 +3223,19 @@ PAN Number – ABNCS4869A`;
 
   const isEnergyAuditServices = !isIotOrControls;
 
+  const effectiveMarginPct = marginPct !== undefined && marginPct !== null && !isNaN(Number(marginPct))
+    ? Number(marginPct)
+    : 40;
+
   const marginAmount =
     activeCostingSheet?.marginAmount !== undefined && activeCostingSheet?.marginAmount !== null
       ? Number(activeCostingSheet.marginAmount)
       : subtotal > 0
       ? (isEnergyAuditServices
-          ? (marginPct === 40 || !marginPct
-              ? Math.round((subtotal / 0.6) - subtotal)
-              : Math.round((subtotal / (Math.max(10, 100 - marginPct) / 100)) - subtotal))
-          : Math.round(subtotal * (marginPct / 100)))
+          ? (effectiveMarginPct === 0
+              ? 0
+              : Math.round((subtotal / (Math.max(1, 100 - effectiveMarginPct) / 100)) - subtotal))
+          : Math.round(subtotal * (effectiveMarginPct / 100)))
       : 0;
 
   const withMargin = subtotal + marginAmount; // price = total cost + profit margin

@@ -1579,14 +1579,17 @@ function CostingSheetContent() {
     return Math.ceil(val / step) * step;
   };
 
-  // Profit Margin = (Total Cost / 0.6) - Total Cost
+  // Profit Margin = (Total Cost / ((100 - profitPct) / 100)) - Total Cost
   // Price = Total Cost + Profit Margin
-  // Quote Buffer = (Total Price / 0.9) - Total Price
+  // Quote Buffer = (Total Price / ((100 - bufferPct) / 100)) - Total Price
   // Final Quote Amount = Total Price / 0.9 (with round off)
-  const isEnergyAuditCosting = activeCategoryName === 'Energy Audit Services' || (!isEmsActive && !isIotControlsActive && !isWeldingIotActive && !isCpmActive);
-  const profitAmount = (profitPct === 40 || !profitPct)
-    ? Math.round((costTotal / 0.6) - costTotal)
-    : Math.round((costTotal / (Math.max(10, 100 - profitPct) / 100)) - costTotal);
+  const isEnergyAuditCosting = activeCategoryName === 'Energy Audit Services' || activeCategoryName === 'BMS' || (!isEmsActive && !isIotControlsActive && !isWeldingIotActive && !isCpmActive);
+  const effectiveProfitPct = profitPct !== undefined && profitPct !== null && !isNaN(Number(profitPct))
+    ? Number(profitPct)
+    : 40;
+  const profitAmount = effectiveProfitPct === 0
+    ? 0
+    : Math.round((costTotal / (Math.max(1, 100 - effectiveProfitPct) / 100)) - costTotal);
   const basePrice = costTotal + profitAmount;
   const rawQuoteAmount = (bufferPct === 0)
     ? basePrice

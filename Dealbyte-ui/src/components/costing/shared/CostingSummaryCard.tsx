@@ -6,9 +6,9 @@ import {
 } from 'lucide-react';
 
 export interface CostingSummaryCardProps {
-  activeSubServiceName: string;
-  dbTemplate: any;
-  handleLoadTemplateDB: (template: any) => void;
+  activeSubServiceName?: string;
+  dbTemplate?: any;
+  handleLoadTemplateDB?: (template: any) => void;
   handleSaveMasterTemplateDB: () => void;
   isSavingTemplate: boolean;
   handleSaveCostingSheetDB: () => void;
@@ -18,9 +18,6 @@ export interface CostingSummaryCardProps {
 }
 
 export const CostingSummaryCard: React.FC<CostingSummaryCardProps> = ({
-  activeSubServiceName,
-  dbTemplate,
-  handleLoadTemplateDB,
   handleSaveMasterTemplateDB,
   isSavingTemplate,
   handleSaveCostingSheetDB,
@@ -40,15 +37,6 @@ export const CostingSummaryCard: React.FC<CostingSummaryCardProps> = ({
         )}
       </div>
       <div className="flex items-center gap-3 flex-wrap">
-        {dbTemplate && (
-          <button
-            type="button"
-            onClick={() => handleLoadTemplateDB(dbTemplate)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-xs rounded-xl shadow-2xs transition-all cursor-pointer"
-          >
-            <Sparkles className="h-4 w-4 text-emerald-600" /> Load DB Template ({activeSubServiceName})
-          </button>
-        )}
         <button
           type="button"
           onClick={handleSaveMasterTemplateDB}
