@@ -1674,10 +1674,10 @@ Deliverables:
 7. Implementation & Best Practices Guide: Provides actionable strategies for water conservation, case studies, and technology recommendations to achieve water neutrality and optimize process and domestic water usage.`;
 
 export const DEFAULT_ENERGY_AUDIT_STEP6_TEXT = `Payment Terms:
-• 50% Completion of on-site assessment
-• 50% submission of final report
-• Applicable taxes and duties will be extra
-• Boarding and Travel Expenses are exclusive`;
+• 50% Payment: Completion of on-site assessment.
+• 50% Payment: Submission of final report.
+• Applicable taxes and duties will be extra.
+• Boarding and Travel Expenses are exclusive.`;
 
 export const DEFAULT_AIR_BALANCING_TERMS = [
   'The customer shall provide one technical person/site representative during the air-balancing activity for coordination and assistance.',
@@ -1726,6 +1726,50 @@ export const DEFAULT_ENERGY_AUDIT_SCOPE_CARDS = [
     description: 'Baseline EnPI establishment, industry benchmarking, prioritized ECMs with ROI calculations, and final presentation.',
   },
 ];
+
+export const DEFAULT_ENERGY_AUDIT_KEY_DELIVERABLES = [
+  {
+    id: 'ead-1',
+    title: 'Data Collection Format',
+    description: 'Structured data sheets for system-wise field measurement.',
+  },
+  {
+    id: 'ead-2',
+    title: 'Opening Meeting Presentation',
+    description: 'Kick-off presentation outlining objectives, scope, and methodology.',
+  },
+  {
+    id: 'ead-3',
+    title: 'Preliminary Findings / Closing Presentation',
+    description: 'Summary of key observations and immediate opportunities.',
+  },
+  {
+    id: 'ead-4',
+    title: 'Detailed Audit Report',
+    description: 'Comprehensive report covering observations, engineering analysis, and ECMs.',
+  },
+  {
+    id: 'ead-5',
+    title: 'Backup Calculation Files',
+    description: 'Excel files with system-wise energy & water balance, efficiency, and savings.',
+  },
+  {
+    id: 'ead-6',
+    title: 'Comprehensive Water Assessment Report',
+    description: 'Baseline water mapping, flow/pressure/quality, leakage loss, water balance charts, and high-recycling tech recommendations.',
+  },
+  {
+    id: 'ead-7',
+    title: 'Implementation & Best Practices Guide',
+    description: 'Actionable roadmap for water neutrality, case studies, and conservation.',
+  },
+];
+
+export const DEFAULT_ENERGY_AUDIT_DELIVERABLES_INTRO =
+  'The following structured engineering deliverables will be provided for both Energy and Water Audits:';
+
+export const DEFAULT_ENERGY_AUDIT_COMPETENCIES_TEXT =
+  'Equipped with calibrated Class-A Power Quality Analyzers, Ultrasonic Flowmeters, Ultrasonic Acoustic Leak Detectors, Thermal Imaging Cameras, Anemometers, and Flue Gas Analyzers meeting ASHRAE, ISO 50001, and BEE standards.';
 
 export const ENERGY_AUDIT_TRACK_RECORD_CLIENTS = [
   'Aatral Engineering',

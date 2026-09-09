@@ -376,4 +376,66 @@ export const ASSESSMENT_ASSETS: AssetScopeConfig[] = [
       'Air Balancing Report – Submit a report containing design vs. actual airflow, pressure/temperature readings, adjustments carried out, observations and recommendations.',
     ],
   },
+  {
+    id: 'production_process_systems',
+    name: '33. Production & Process Systems',
+    scopes: [
+      'Specific energy consumption (kWh/unit), induction heaters, heating systems, cranes, and idle run hours optimization.',
+      'Evaluate SEC across key production lines and manufacturing equipment.',
+      'Assess thermal efficiency, operating schedules, and insulation of induction heaters and furnaces.',
+      'Identify opportunities for idle run hours reduction and automated interlocks.',
+    ],
+  },
+  {
+    id: 'electrical_distribution_power_quality',
+    name: '34. Electrical Distribution & Power Quality',
+    scopes: [
+      'Transformer loading, temperature, harmonics, power factor, and APFC capacitor bank adequacy analysis.',
+      'Log voltage and current harmonics (THD-V & THD-I), voltage unbalance, and neutral loading.',
+      'Evaluate capacitor bank health, reactive power charges, and APFC controller tuning.',
+      'Conduct infrared thermography survey on switchgear, busbars, and distribution panels.',
+    ],
+  },
+  {
+    id: 'compressed_air_ultrasonic_leak_tagging',
+    name: '35. Compressed Air & Ultrasonic Leak Tagging',
+    scopes: [
+      'FAD efficiency, pressure drop, demand sequencing, and ultrasonic leak detection with physical ID tags.',
+      'Measure Free Air Delivery (FAD) and specific energy consumption (kW/CFM).',
+      'Conduct ultrasonic acoustic leak detection and affix physical tags with CFM loss & cost quantification.',
+      'Assess header pressure drops, air receiver capacity, and compressor sequencing optimization.',
+    ],
+  },
+  {
+    id: 'hvac_dg_waste_heat_recovery',
+    name: '36. HVAC, DG & Waste Heat Recovery',
+    scopes: [
+      'Split units COP, DG specific fuel consumption (L/kWh), and waste heat recovery from exhaust and compressors.',
+      'Measure DG set specific fuel consumption (kWh/L or L/kWh) across varying operational loads.',
+      'Assess split AC, package units, and central chillers for cooling performance and COP/EER.',
+      'Evaluate waste heat recovery feasibility from DG exhaust, flue gases, and air compressors.',
+    ],
+  },
+  {
+    id: 'pumps_water_systems_water_audit',
+    name: '37. Pumps, Water Systems & Water Audit',
+    scopes: [
+      'Borewell/WTP/RO/STP pump efficiency, VFD potential, ultrasonic water mass balance, and recycling strategies.',
+      'Measure flow, head, and operating efficiency of borewell, raw water, cooling water, RO, and STP pumps.',
+      'Conduct ultrasonic flow measurement to establish facility water mass balance.',
+      'Identify pump throttling/bypass losses and evaluate VFD retrofit potential.',
+    ],
+  },
+  {
+    id: 'enpis_benchmarking_encon_roadmap',
+    name: '38. EnPIs, Benchmarking & ENCON Roadmap',
+    scopes: [
+      'Baseline EnPI establishment, industry benchmarking, prioritized ECMs with ROI calculations, and final presentation.',
+      'Establish baseline Energy Performance Indicators (EnPIs) normalized for production and weather.',
+      'Benchmark facility energy performance against peer industrial standards.',
+      'Develop prioritized Energy Conservation Measures (ECMs) with investment, savings, and payback period.',
+      'Deliver final comprehensive engineering report and executive presentation to plant management.',
+    ],
+  },
 ];
+

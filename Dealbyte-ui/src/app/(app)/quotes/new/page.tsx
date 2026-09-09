@@ -97,6 +97,9 @@ import {
   DEFAULT_COMPRESSOR_ROI_DATA,
   CompressorRoiData,
   DEFAULT_ENERGY_AUDIT_SCOPE_CARDS,
+  DEFAULT_ENERGY_AUDIT_KEY_DELIVERABLES,
+  DEFAULT_ENERGY_AUDIT_DELIVERABLES_INTRO,
+  DEFAULT_ENERGY_AUDIT_COMPETENCIES_TEXT,
   ENERGY_AUDIT_TRACK_RECORD_CLIENTS,
   INITIAL_WATER_MANAGEMENT_GATEWAY_HARDWARE_ROWS,
   INITIAL_WATER_MANAGEMENT_ELECTRICAL_HARDWARE_ROWS,
@@ -245,6 +248,7 @@ function NewQuoteContent() {
   const [clientLogo, setClientLogo] = useState<string | null>(null);
   const [logoInputType, setLogoInputType] = useState<'upload' | 'url'>('upload');
   const [logoUrl, setLogoUrl] = useState('');
+  const [projectTimeline, setProjectTimeline] = useState<string>('1–2 Weeks');
 
   // Default & Custom Client Selection State
   const [clientList] = useState<string[]>(DEFAULT_CLIENTS);
@@ -475,6 +479,73 @@ function NewQuoteContent() {
         qAny.selectedAssetIds;
       if (savedAssets && Array.isArray(savedAssets) && savedAssets.length > 0) {
         setSelectedAssetIds(savedAssets);
+      }
+      if (qAny.serviceId) {
+        setServiceId(qAny.serviceId);
+      }
+      const savedTimeline =
+        qAny.customContent?.projectTimeline ||
+        qAny.proposals?.[0]?.customContent?.projectTimeline;
+      if (savedTimeline) {
+        setProjectTimeline(savedTimeline);
+      }
+      const savedScopeCards =
+        qAny.customContent?.energyAuditScopeCards ||
+        qAny.proposals?.[0]?.customContent?.energyAuditScopeCards;
+      if (savedScopeCards && Array.isArray(savedScopeCards) && savedScopeCards.length > 0) {
+        setEnergyAuditScopeCards(savedScopeCards);
+      } else if (savedAssets && Array.isArray(savedAssets) && savedAssets.length > 0) {
+        setEnergyAuditScopeCards(
+          savedAssets.map((id: string, idx: number) => {
+            const a = ASSESSMENT_ASSETS.find((x) => x.id === id);
+            return {
+              id,
+              title: a ? `${idx + 1}. ${a.name.replace(/^[0-9]+\.\s*/, '')}` : `${idx + 1}. Asset Scope`,
+              description: a ? a.scopes.join(' ') : '',
+            };
+          })
+        );
+      } else {
+        setEnergyAuditScopeCards([]);
+      }
+      const savedTrackClients =
+        qAny.customContent?.energyAuditTrackClients ||
+        qAny.proposals?.[0]?.customContent?.energyAuditTrackClients;
+      if (savedTrackClients && Array.isArray(savedTrackClients) && savedTrackClients.length > 0) {
+        setEnergyAuditTrackClients(savedTrackClients);
+      }
+      const savedDeliverables =
+        qAny.customContent?.energyAuditDeliverables ||
+        qAny.proposals?.[0]?.customContent?.energyAuditDeliverables;
+      if (savedDeliverables && Array.isArray(savedDeliverables) && savedDeliverables.length > 0) {
+        setEnergyAuditDeliverables(savedDeliverables);
+      }
+      const savedDeliverablesIntro =
+        qAny.customContent?.energyAuditDeliverablesIntro ||
+        qAny.proposals?.[0]?.customContent?.energyAuditDeliverablesIntro;
+      if (savedDeliverablesIntro) {
+        setEnergyAuditDeliverablesIntro(savedDeliverablesIntro);
+      }
+      const savedCompetencies =
+        qAny.customContent?.energyAuditCompetenciesText ||
+        qAny.proposals?.[0]?.customContent?.energyAuditCompetenciesText;
+      if (savedCompetencies) {
+        setEnergyAuditCompetenciesText(savedCompetencies);
+      }
+      if (qAny.lineItems && qAny.lineItems.length > 0) {
+        const customItems = qAny.lineItems
+          .filter((item: any) => item.type !== 'MANPOWER' && item.type !== 'INSTRUMENT' && item.type !== 'TRAVEL')
+          .map((item: any, idx: number) => ({
+            id: `quote-item-${idx}`,
+            stepNo: String(idx + 1),
+            description: item.description || 'Scope Item',
+            qty: Number(item.qty || 1),
+            uom: (item as any).uom || 'Nos',
+            customerPrice: Number(item.total || item.unitRate || 0),
+          }));
+        if (customItems.length > 0) {
+          setIotStep5Rows(customItems);
+        }
       }
       hasLoadedExistingQuoteRef.current = true;
     }
@@ -1228,120 +1299,7 @@ PAN Number – ABNCS4869A`;
     return combined;
   }, [dbInstrumentRates]);
 
-  // Auto-populate form states when editing existingQuote
-  useEffect(() => {
-    if (existingQuote) {
-      if (existingQuote.deal?.clientName) {
-        setClientName(existingQuote.deal.clientName);
-      }
-      if (existingQuote.serviceId) {
-        setServiceId(existingQuote.serviceId);
-      }
-      if (existingQuote.proposalNumber) {
-        setProposalNumber(existingQuote.proposalNumber);
-      }
-      if (existingQuote.proposalDate) {
-        try {
-          setProposalDate(new Date(existingQuote.proposalDate).toISOString().split('T')[0]);
-        } catch {}
-      }
-      if (existingQuote.clientLogo) {
-        setClientLogo(existingQuote.clientLogo);
-      }
-      if (existingQuote.siteDays) {
-        setSiteDays(existingQuote.siteDays);
-      }
-      if (existingQuote.reportDays) {
-        setReportDays(existingQuote.reportDays);
-      }
-      if (existingQuote.travelKms !== undefined && existingQuote.travelKms !== null) {
-        setTravelKms(Number(existingQuote.travelKms));
-      }
-      if (existingQuote.travelRatePerKm !== undefined && existingQuote.travelRatePerKm !== null) {
-        setTravelRatePerKm(Number(existingQuote.travelRatePerKm));
-      }
-      if (existingQuote.foodRatePerPersonDay !== undefined && existingQuote.foodRatePerPersonDay !== null) {
-        setFoodRatePerPersonDay(Number(existingQuote.foodRatePerPersonDay));
-      }
-      if (existingQuote.foodTravelCost !== undefined && existingQuote.foodTravelCost !== null) {
-        setFoodTravelCost(Number(existingQuote.foodTravelCost));
-      }
-      if (existingQuote.marginPct !== undefined && existingQuote.marginPct !== null) {
-        setMarginPct(Number(existingQuote.marginPct));
-      }
-      if (existingQuote.bufferPct !== undefined && existingQuote.bufferPct !== null) {
-        setBufferPct(Number(existingQuote.bufferPct));
-      }
 
-      // Pre-populate category and sub-service from existing quote
-      const quoteCat =
-        (existingQuote as any).category ||
-        (existingQuote.service as any)?.category ||
-        (existingQuote.deal?.service as any)?.category ||
-        '';
-      const quoteSub =
-        (existingQuote as any).serviceName ||
-        (existingQuote.service as any)?.name ||
-        (existingQuote.deal?.service as any)?.name ||
-        '';
-
-      if (quoteCat) {
-        setSelectedCategories((prev) =>
-          prev.length === 1 && prev[0] === quoteCat ? prev : [quoteCat]
-        );
-      }
-      if (quoteSub) {
-        setSelectedSubServiceOptions((prev) =>
-          prev.length === 1 && prev[0] === quoteSub ? prev : [quoteSub]
-        );
-      }
-
-      // Pre-populate line items (Manpower & Instruments)
-      if (existingQuote.lineItems && existingQuote.lineItems.length > 0) {
-        const manpowerItems = existingQuote.lineItems
-          .filter((item) => item.type === 'MANPOWER' && item.refId)
-          .map((item) => ({
-            manpowerRateId: item.refId!,
-            siteDays: existingQuote.siteDays,
-            reportDays: existingQuote.reportDays,
-          }));
-
-        const instrumentItems = existingQuote.lineItems
-          .filter((item) => item.type === 'INSTRUMENT' && item.refId)
-          .map((item) => ({
-            instrumentRateId: item.refId!,
-            siteDays: existingQuote.siteDays,
-          }));
-
-        if (manpowerItems.length > 0) {
-          setTeamMembers(manpowerItems);
-        }
-        if (instrumentItems.length > 0) {
-          setInstruments(instrumentItems);
-        }
-
-        // Also pre-populate custom line items into Step 5 / Step 4 breakdown
-        const customItems = existingQuote.lineItems
-          .filter((item) => item.type !== 'MANPOWER' && item.type !== 'INSTRUMENT' && item.type !== 'TRAVEL')
-          .map((item, idx) => ({
-            id: `quote-item-${idx}`,
-            stepNo: String(idx + 1),
-            description: item.description || 'Scope Item',
-            qty: Number(item.qty || 1),
-            uom: (item as any).uom || 'Nos',
-            customerPrice: Number(item.total || item.unitRate || 0),
-          }));
-
-        if (customItems.length > 0) {
-          setIotStep5Rows(customItems);
-        }
-      }
-
-      if (existingQuote.customContent?.scopeOfWork || existingQuote.customContent?.step5Text || existingQuote.scopeDetails) {
-        setEmsStep5Text(existingQuote.customContent?.scopeOfWork || existingQuote.customContent?.step5Text || existingQuote.scopeDetails || '');
-      }
-    }
-  }, [existingQuote]);
 
   // Automatically load company logo when selecting a mapped client, or clear if unmapped
   useEffect(() => {
@@ -2064,21 +2022,27 @@ PAN Number – ABNCS4869A`;
 
   // Auto-switch default texts when Weld Data Digitalized, Welding IoT, Water Management, BMS, EMS/IoT, Dew Point Hardware, Compressor Air Leakage Rectification / Audit, ASHRAE Level 2, HVAC Design, EC Fan, Mixture Gas Leakage Audit, Nitrogen Gas Leakage Audit, or Energy Audit mode changes
   useEffect(() => {
-    const currentSubKey = `${selectedCategories.join(',')}_${selectedSubServiceOptions.join(',')}`;
-    // If editing existing quote and this is the initial load with saved text, do not overwrite with default template
-    if (editQuoteId && existingQuote && hasLoadedExistingQuoteRef.current && lastSubServiceRef.current === '') {
-      lastSubServiceRef.current = currentSubKey;
-      const qAny = existingQuote as any;
-      const hasSavedText =
-        qAny.customContent?.scopeOfWork ||
-        qAny.customContent?.step5Text ||
-        qAny.scopeDetails ||
-        qAny.proposals?.[0]?.customContent?.step5Text ||
-        qAny.proposals?.[0]?.scopeDetails;
-      if (hasSavedText) {
-        return;
-      }
+    // When editing an existing quote, wait until quote is loaded into state
+    if (editQuoteId && !existingQuote) {
+      return;
     }
+    if (editQuoteId && existingQuote && !hasLoadedExistingQuoteRef.current) {
+      return;
+    }
+
+    const currentSubKey = `${selectedCategories.join(',')}_${selectedSubServiceOptions.join(',')}`;
+
+    // If sub-service key hasn't changed, do not reset texts
+    if (lastSubServiceRef.current === currentSubKey) {
+      return;
+    }
+
+    // On initial mount when editing an existing quote, initialize lastSubServiceRef without wiping saved texts
+    if (editQuoteId && existingQuote && lastSubServiceRef.current === '') {
+      lastSubServiceRef.current = currentSubKey;
+      return;
+    }
+
     lastSubServiceRef.current = currentSubKey;
 
     if (isCompressedAirAutomation) {
@@ -2159,7 +2123,7 @@ PAN Number – ABNCS4869A`;
       setStep7SubmittedBy(`Thanakarthik Kumar\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
       setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
     } else if (isAshraeLevel2) {
-      setEmsStep5Text(DEFAULT_ASHRAE_LEVEL_2_STEP5_TEXT);
+      setEmsStep5Text('');
       setEmsStep6Text(DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT);
       setStep7SubmittedBy(`Thanakarthik\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
       setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
@@ -2169,10 +2133,10 @@ PAN Number – ABNCS4869A`;
       setStep7SubmittedBy(`Thanakarthik\nFounder & Managing Director\n+91-8377007638\nthanakarthik@sustainabyte.ai`);
       setStep7BankDetails(`Bank Account details:\nBank – Bank of Baroda\nAccount Number – 35860200000750\nIFSC – BARB0VELACH (fifth letter is ZERO)\nBranch – VELACHERY BRANCH\nGSTIN NO – 33ABNCS4869A1Z7\nPAN Number – ABNCS4869A`);
     } else if (isEnergyAudit) {
-      setEmsStep5Text(DEFAULT_ENERGY_AUDIT_STEP5_TEXT);
+      setEmsStep5Text('');
       setEmsStep6Text(DEFAULT_ENERGY_AUDIT_STEP6_TEXT);
     }
-  }, [isCompressedAirAutomation, isWeldDataDigitalized, isWeldingIot, isWaterManagement, isBms, isIotOrControls, isCpmChillerManagement, isFlangesHardware, isDewPointHardware, isNitrogenGasLeakageAudit, isMixtureGasLeakageAudit, isCompressorAirLeakageRectification, isCompressorAirLeakageAudit, isHvacDesign, isEcFan, isAshraeLevel2, isIso50001, isEnergyAudit, editQuoteId, existingQuote]);
+  }, [isCompressedAirAutomation, isWeldDataDigitalized, isWeldingIot, isWaterManagement, isBms, isIotOrControls, isCpmChillerManagement, isFlangesHardware, isDewPointHardware, isNitrogenGasLeakageAudit, isMixtureGasLeakageAudit, isCompressorAirLeakageRectification, isCompressorAirLeakageAudit, isHvacDesign, isEcFan, isAshraeLevel2, isIso50001, isEnergyAudit, editQuoteId, existingQuote, selectedCategories, selectedSubServiceOptions]);
 
   // When air_balancing asset is selected, ensure Air Balancing terms are added to Step 6 Other Terms and Conditions
   useEffect(() => {
@@ -2299,11 +2263,45 @@ PAN Number – ABNCS4869A`;
   ]);
 
   // Step 3 Energy Audit State (Scope Cards & Track Record Clients)
-  const [energyAuditScopeCards, setEnergyAuditScopeCards] = useState<Array<{ id: string; title: string; description: string }>>(
-    DEFAULT_ENERGY_AUDIT_SCOPE_CARDS
-  );
+  // For Energy Audit, do NOT show default scopes of work; initialize empty and populate from selected assets or user customization
+  const [energyAuditScopeCards, setEnergyAuditScopeCards] = useState<Array<{ id: string; title: string; description: string }>>([]);
+
+  // Helper to sync selected assets to Energy Audit Scope Cards
+  const updateSelectedAssets = (newAssetIds: string[]) => {
+    setSelectedAssetIds(newAssetIds);
+    if (isEnergyAudit) {
+      setEnergyAuditScopeCards((prev) => {
+        // Retain custom cards added manually by the user
+        const customCards = prev.filter(
+          (c) => !ASSESSMENT_ASSETS.some((a) => a.id === c.id)
+        );
+        // Build cards for all selected assets, preserving any custom edits
+        const assetCards = newAssetIds.map((aId, idx) => {
+          const existing = prev.find((c) => c.id === aId);
+          if (existing) return existing;
+          const aObj = ASSESSMENT_ASSETS.find((a) => a.id === aId);
+          const cleanName = aObj ? aObj.name.replace(/^[0-9]+\.\s*/, '') : aId;
+          return {
+            id: aId,
+            title: `${idx + 1}. ${cleanName}`,
+            description: aObj ? aObj.scopes.join(' ') : '',
+          };
+        });
+        return [...assetCards, ...customCards];
+      });
+    }
+  };
   const [energyAuditTrackClients, setEnergyAuditTrackClients] = useState<string[]>(
     ENERGY_AUDIT_TRACK_RECORD_CLIENTS
+  );
+  const [energyAuditDeliverables, setEnergyAuditDeliverables] = useState<
+    Array<{ id: string; title: string; description: string }>
+  >(DEFAULT_ENERGY_AUDIT_KEY_DELIVERABLES);
+  const [energyAuditDeliverablesIntro, setEnergyAuditDeliverablesIntro] = useState<string>(
+    DEFAULT_ENERGY_AUDIT_DELIVERABLES_INTRO
+  );
+  const [energyAuditCompetenciesText, setEnergyAuditCompetenciesText] = useState<string>(
+    DEFAULT_ENERGY_AUDIT_COMPETENCIES_TEXT
   );
   const [isEditingEnergyAuditStep3, setIsEditingEnergyAuditStep3] = useState<boolean>(false);
   const [newClientInput, setNewClientInput] = useState<string>('');
@@ -3322,14 +3320,10 @@ PAN Number – ABNCS4869A`;
           }))
         : undefined;
 
-      let effectiveStep5Text = emsStep5Text;
+      let effectiveStep5Text = (isEnergyAudit || isAshraeLevel2) ? '' : emsStep5Text;
       if (isEnergyAuditCategory && selectedAssetIds && selectedAssetIds.length > 0) {
         const formattedAssetScopes = formatAssetsScopeText(selectedAssetIds);
-        if (!effectiveStep5Text || !effectiveStep5Text.trim()) {
-          effectiveStep5Text = formattedAssetScopes;
-        } else if (!effectiveStep5Text.includes('Scope of Work — Equipment & Asset Assessment Scope:')) {
-          effectiveStep5Text = `${effectiveStep5Text.trim()}\n\n${formattedAssetScopes}`;
-        }
+        effectiveStep5Text = formattedAssetScopes;
       }
 
       const payload: any = {
@@ -3358,6 +3352,15 @@ PAN Number – ABNCS4869A`;
           step6Text: emsStep6Text,
           costingSheet: activeCostingSheet || undefined,
           selectedAssetIds: isEnergyAuditCategory && selectedAssetIds && selectedAssetIds.length > 0 ? selectedAssetIds : undefined,
+          energyAuditScopeCards: isEnergyAudit ? energyAuditScopeCards : undefined,
+          energyAuditTrackClients: isEnergyAudit ? energyAuditTrackClients : undefined,
+          energyAuditDeliverables: isEnergyAudit ? energyAuditDeliverables : undefined,
+          energyAuditDeliverablesIntro: isEnergyAudit ? energyAuditDeliverablesIntro : undefined,
+          energyAuditCompetenciesText: isEnergyAudit ? energyAuditCompetenciesText : undefined,
+          projectTimeline: projectTimeline || '1–2 Weeks',
+          step7SubmittedBy: step7SubmittedBy || undefined,
+          step7BankDetails: step7BankDetails || undefined,
+          compressorRoiData: isCompressorAirLeakageRectification ? compressorRoiData : undefined,
         },
         scopeDetails: effectiveStep5Text || undefined,
       };
@@ -3953,7 +3956,7 @@ PAN Number – ABNCS4869A`;
                   <div className="flex items-center gap-2 text-[11px]">
                     <button
                       type="button"
-                      onClick={() => setSelectedAssetIds(ASSESSMENT_ASSETS.map((a) => a.id))}
+                      onClick={() => updateSelectedAssets(ASSESSMENT_ASSETS.map((a) => a.id))}
                       className="text-indigo-600 hover:underline font-semibold cursor-pointer"
                     >
                       Select All
@@ -3961,7 +3964,7 @@ PAN Number – ABNCS4869A`;
                     <span className="text-slate-300">|</span>
                     <button
                       type="button"
-                      onClick={() => setSelectedAssetIds([])}
+                      onClick={() => updateSelectedAssets([])}
                       className="text-rose-600 hover:underline font-semibold cursor-pointer"
                     >
                       Clear All
@@ -3989,7 +3992,7 @@ PAN Number – ABNCS4869A`;
                               className="h-3 w-3 text-indigo-200 hover:text-white cursor-pointer ml-0.5"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedAssetIds(selectedAssetIds.filter((id) => id !== aId));
+                                updateSelectedAssets(selectedAssetIds.filter((id) => id !== aId));
                               }}
                             />
                           </span>
@@ -4021,9 +4024,9 @@ PAN Number – ABNCS4869A`;
                             key={asset.id}
                             onClick={() => {
                               if (isSelected) {
-                                setSelectedAssetIds(selectedAssetIds.filter((id) => id !== asset.id));
+                                updateSelectedAssets(selectedAssetIds.filter((id) => id !== asset.id));
                               } else {
-                                setSelectedAssetIds([...selectedAssetIds, asset.id]);
+                                updateSelectedAssets([...selectedAssetIds, asset.id]);
                               }
                             }}
                             className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
@@ -4067,15 +4070,7 @@ PAN Number – ABNCS4869A`;
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => syncAssetsToStep5Scope()}
-                          className="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                          Sync to Step 5 Scope
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedAssetIds([])}
+                          onClick={() => updateSelectedAssets([])}
                           className="px-2 py-1 text-xs font-semibold text-rose-600 hover:text-rose-700 bg-white hover:bg-rose-50 border border-rose-200 rounded-lg transition-colors cursor-pointer"
                         >
                           Clear All
@@ -4102,7 +4097,7 @@ PAN Number – ABNCS4869A`;
                               </div>
                               <button
                                 type="button"
-                                onClick={() => setSelectedAssetIds(selectedAssetIds.filter((id) => id !== asset.id))}
+                                onClick={() => updateSelectedAssets(selectedAssetIds.filter((id) => id !== asset.id))}
                                 className="text-slate-400 hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 transition-colors cursor-pointer"
                                 title="Remove asset"
                               >
@@ -4340,9 +4335,25 @@ PAN Number – ABNCS4869A`;
                     <button
                       type="button"
                       onClick={() => {
-                        setEnergyAuditScopeCards(DEFAULT_ENERGY_AUDIT_SCOPE_CARDS);
+                        if (selectedAssetIds.length > 0) {
+                          setEnergyAuditScopeCards(
+                            selectedAssetIds.map((id, idx) => {
+                              const a = ASSESSMENT_ASSETS.find((x) => x.id === id);
+                              return {
+                                id,
+                                title: a ? `${idx + 1}. ${a.name.replace(/^[0-9]+\.\s*/, '')}` : `${idx + 1}. Asset Scope`,
+                                description: a ? a.scopes.join(' ') : '',
+                              };
+                            })
+                          );
+                        } else {
+                          setEnergyAuditScopeCards([]);
+                        }
+                        setEnergyAuditDeliverables(DEFAULT_ENERGY_AUDIT_KEY_DELIVERABLES);
+                        setEnergyAuditDeliverablesIntro(DEFAULT_ENERGY_AUDIT_DELIVERABLES_INTRO);
                         setEnergyAuditTrackClients(ENERGY_AUDIT_TRACK_RECORD_CLIENTS);
-                        toast.success('Reset Step 3 scope & clients to default!');
+                        setEnergyAuditCompetenciesText(DEFAULT_ENERGY_AUDIT_COMPETENCIES_TEXT);
+                        toast.success('Reset Step 3 scope to selected assets (no hardcoded defaults)!');
                       }}
                       className="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
                     >
@@ -4376,27 +4387,36 @@ PAN Number – ABNCS4869A`;
                     <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
                       1. Detailed Scope of Work &amp; Engineering Assessment ({energyAuditScopeCards.length} Methodology Blocks)
                     </label>
-                    {isEditingEnergyAuditStep3 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEnergyAuditScopeCards([
-                            ...energyAuditScopeCards,
-                            {
-                              id: `ea-${Date.now()}`,
-                              title: `${energyAuditScopeCards.length + 1}. Custom Assessment Scope`,
-                              description: 'Custom engineering assessment scope and study details.',
-                            },
-                          ]);
-                        }}
-                        className="text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors cursor-pointer"
-                      >
-                        <Plus className="h-3.5 w-3.5" /> + Add Scope Item
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingEnergyAuditStep3(true);
+                        setEnergyAuditScopeCards([
+                          ...energyAuditScopeCards,
+                          {
+                            id: `ea-${Date.now()}`,
+                            title: `${energyAuditScopeCards.length + 1}. Custom Assessment Scope`,
+                            description: 'Custom engineering assessment scope and study details.',
+                          },
+                        ]);
+                      }}
+                      className="text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> + Add Scope Item
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  {energyAuditScopeCards.length === 0 ? (
+                    <div className="p-6 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center space-y-1.5">
+                      <p className="text-xs font-semibold text-slate-700">
+                        No default scope cards loaded for this service.
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Select equipment categories from <strong>Asset Categories</strong> above to auto-add scope items, or click <strong>+ Add Scope Item</strong> to create custom assessment blocks.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                     {energyAuditScopeCards.map((card, idx) => (
                       <div
                         key={card.id || idx}
@@ -4455,13 +4475,127 @@ PAN Number – ABNCS4869A`;
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+
+                {/* Section 2: Key Deliverables */}
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        2. Key Deliverables ({energyAuditDeliverables.length} Deliverable Items)
+                      </label>
+                      <p className="text-[11px] text-slate-500">
+                        Deliverables provided for the Energy and Water Audit (renders on Proposal Page 3).
+                      </p>
+                    </div>
+                    {isEditingEnergyAuditStep3 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEnergyAuditDeliverables([
+                            ...energyAuditDeliverables,
+                            {
+                              id: `ead-${Date.now()}`,
+                              title: `Deliverable ${energyAuditDeliverables.length + 1}`,
+                              description: 'Structured deliverable description and report details.',
+                            },
+                          ]);
+                        }}
+                        className="text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> + Add Deliverable
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingEnergyAuditStep3 ? (
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          Introductory Note:
+                        </label>
+                        <input
+                          type="text"
+                          value={energyAuditDeliverablesIntro}
+                          onChange={(e) => setEnergyAuditDeliverablesIntro(e.target.value)}
+                          className="w-full bg-white border border-slate-300 rounded px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          placeholder="e.g. The following structured engineering deliverables will be provided..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                        {energyAuditDeliverables.map((item, idx) => (
+                          <div
+                            key={item.id || idx}
+                            className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-1">
+                                <span className="h-5 w-5 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                                  {idx + 1}
+                                </span>
+                                <input
+                                  type="text"
+                                  value={item.title}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setEnergyAuditDeliverables(
+                                      energyAuditDeliverables.map((d, i) => (i === idx ? { ...d, title: val } : d))
+                                    );
+                                  }}
+                                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                  placeholder="Deliverable title..."
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEnergyAuditDeliverables(energyAuditDeliverables.filter((_, i) => i !== idx));
+                                }}
+                                className="text-slate-400 hover:text-rose-600 p-1"
+                                title="Remove deliverable"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            <textarea
+                              rows={2}
+                              value={item.description}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEnergyAuditDeliverables(
+                                  energyAuditDeliverables.map((d, i) => (i === idx ? { ...d, description: val } : d))
+                                );
+                              }}
+                              className="w-full bg-white border border-slate-300 rounded p-2 text-[11px] text-slate-700 leading-relaxed focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              placeholder="Deliverable description details..."
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                      <p className="text-xs text-slate-600 font-medium italic">
+                        {energyAuditDeliverablesIntro}
+                      </p>
+                      <ol className="space-y-1 pl-4 list-decimal text-xs text-slate-800 font-medium">
+                        {energyAuditDeliverables.map((item, idx) => (
+                          <li key={item.id || idx}>
+                            <strong className="text-slate-950">{item.title}:</strong> {item.description}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
                 </div>
 
-                {/* Section 2: Reference Clients Grid */}
+                {/* Section 3: Reference Clients Grid */}
                 <div className="space-y-3 pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
-                      2. Team Expertise &amp; Client Track Record ({energyAuditTrackClients.length} Reference Clients)
+                      3. Team Expertise &amp; Client Track Record ({energyAuditTrackClients.length} Reference Clients)
                     </label>
                     <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
                       Proven Execution Footprint
@@ -4543,6 +4677,28 @@ PAN Number – ABNCS4869A`;
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Section 4: Key Audit Competencies & Instrumentation */}
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      4. Key Audit Competencies &amp; Instrumentation (Proposal Page 3 Note)
+                    </label>
+                  </div>
+                  {isEditingEnergyAuditStep3 ? (
+                    <textarea
+                      rows={3}
+                      value={energyAuditCompetenciesText}
+                      onChange={(e) => setEnergyAuditCompetenciesText(e.target.value)}
+                      className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 leading-relaxed focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      placeholder="Equipped with calibrated Class-A Power Quality Analyzers..."
+                    />
+                  ) : (
+                    <p className="text-xs text-slate-800 leading-relaxed">
+                      {energyAuditCompetenciesText}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -5474,8 +5630,14 @@ PAN Number – ABNCS4869A`;
                             <td className="py-3 px-4 font-semibold text-slate-900 leading-relaxed text-xs">
                               Energy Audit for the scope mentioned above
                             </td>
-                            <td className="py-3 px-3 text-center font-medium text-slate-700">
-                              1–2 Weeks
+                            <td className="py-2.5 px-3 text-center">
+                              <input
+                                type="text"
+                                value={projectTimeline}
+                                onChange={(e) => setProjectTimeline(e.target.value)}
+                                className="w-32 sm:w-36 mx-auto text-center font-bold text-slate-800 bg-white border border-slate-300 hover:border-indigo-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:outline-hidden rounded-lg px-2.5 py-1 text-xs transition-all shadow-2xs"
+                                placeholder="1–2 Weeks"
+                              />
                             </td>
                             <td className="py-3 px-4 text-right font-black text-slate-900 text-sm">
                               ₹{Number(finalQuote || subtotal || 0).toLocaleString('en-IN')}
@@ -5566,7 +5728,8 @@ PAN Number – ABNCS4869A`;
           )}
 
           {/* Step 5: Scope of Work / Key Issues / Assessment Scope (Editable, Row-Wise, Black Text) */}
-          {(isIotOrControls || isBms || isEnergyAudit || isIaqSensor || isEnergyAuditServices || isCompressorAirLeakageAudit || isNitrogenGasLeakageAudit || isMixtureGasLeakageAudit || isAshraeLevel2 || isHvacDesign || isEcFan || isIso50001) && (
+          {/* Step 5 removed for Energy Audit and ASHRAE Level 2 per requirement */}
+          {!isEnergyAudit && !isAshraeLevel2 && (isIotOrControls || isBms || isIaqSensor || isEnergyAuditServices || isCompressorAirLeakageAudit || isNitrogenGasLeakageAudit || isMixtureGasLeakageAudit || isHvacDesign || isEcFan || isIso50001) && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200">
                 <div>

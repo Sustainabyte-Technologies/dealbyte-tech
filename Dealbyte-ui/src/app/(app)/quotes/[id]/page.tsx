@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Share2,
+  Edit3,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { quotesApi } from '@/lib/api/quotes';
@@ -116,6 +117,13 @@ export default function QuoteDetailPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push(`/quotes/new?editQuoteId=${quote.id}`)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-indigo-700 font-extrabold text-xs rounded-xl shadow-xs border border-indigo-200 transition-colors cursor-pointer"
+          >
+            <Edit3 className="h-4 w-4 text-indigo-600" />
+            Edit Quote
+          </button>
           {(quote as any).proposals && (quote as any).proposals.length > 0 ? (
             <button
               onClick={() => router.push(`/proposals/${(quote as any).proposals[0].id}`)}

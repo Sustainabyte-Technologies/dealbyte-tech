@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { costingApi } from '@/lib/api/costing';
 import { Proposal, proposalsApi } from '@/lib/api/proposals';
@@ -8,6 +9,10 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { ASSESSMENT_ASSETS } from '@/lib/constants/assessment-assets';
 import {
   ENERGY_AUDIT_TRACK_RECORD_CLIENTS,
+  DEFAULT_ENERGY_AUDIT_SCOPE_CARDS,
+  DEFAULT_ENERGY_AUDIT_KEY_DELIVERABLES,
+  DEFAULT_ENERGY_AUDIT_DELIVERABLES_INTRO,
+  DEFAULT_ENERGY_AUDIT_COMPETENCIES_TEXT,
   ASHRAE_LEVEL_2_CLIENTS,
   INITIAL_WELDING_HARDWARE_ROWS,
   INITIAL_WELDING_SOFTWARE_ROWS,
@@ -22,11 +27,13 @@ import {
   DEFAULT_IR_BLASTER_STEP5_TEXT,
   DEFAULT_WATER_MANAGEMENT_STEP5_TEXT,
   DEFAULT_ENERGY_AUDIT_STEP5_TEXT,
+  DEFAULT_ENERGY_AUDIT_STEP6_TEXT,
   DEFAULT_COMPRESSOR_AIR_AUDIT_STEP5_TEXT,
   DEFAULT_COMPRESSOR_AIR_LEAKAGE_RECTIFICATION_STEP5_TEXT,
   DEFAULT_NITROGEN_GAS_LEAKAGE_AUDIT_STEP5_TEXT,
   DEFAULT_MIXTURE_GAS_LEAKAGE_AUDIT_STEP5_TEXT,
   DEFAULT_ASHRAE_LEVEL_2_STEP5_TEXT,
+  DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT,
   DEFAULT_HVAC_DESIGN_STEP5_TEXT,
   DEFAULT_EC_FAN_STEP5_TEXT,
   DEFAULT_ISO_50001_STEP5_TEXT,
@@ -38,7 +45,7 @@ import {
   getClientPresetLogo,
 } from '@/components/costing/constants';
 import { clientsApi } from '@/lib/api/clients';
-import { Send, Printer, Download, Loader2, FileText, Edit3, X, Check, Save, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Send, Printer, Download, Loader2, FileText, Edit3, X, Check, Save, Upload, Trash2, Plus, RotateCcw, Image as ImageIcon } from 'lucide-react';
 import { generateWordDocument } from './wordExport';
 import FullPageWatermark from '@/components/common/FullPageWatermark';
 import { toast } from 'sonner';
@@ -518,6 +525,98 @@ export default function ProposalPreview({
     getClientPresetLogo(clientName) ||
     '';
 
+  const router = useRouter();
+
+  const effectiveProjectTimeline =
+    proposal?.customContent?.projectTimeline ||
+    (proposal?.quote as any)?.customContent?.projectTimeline ||
+    '1–2 Weeks';
+
+  const selectedAssetIds: string[] = React.useMemo(() => {
+    const raw =
+      (proposal as any)?.customContent?.selectedAssetIds ||
+      (proposal as any)?.selectedAssetIds ||
+      (proposal?.quote as any)?.customContent?.selectedAssetIds ||
+      (proposal?.quote as any)?.selectedAssetIds ||
+      (quote as any)?.customContent?.selectedAssetIds ||
+      (quote as any)?.selectedAssetIds ||
+      (deal as any)?.customContent?.selectedAssetIds ||
+      (deal as any)?.selectedAssetIds ||
+      [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {}
+    }
+    return [];
+  }, [proposal, quote, deal]);
+
+  const energyAuditScopeCards: Array<{ id: string; title: string; description: string }> = React.useMemo(() => {
+    const rawCards =
+      (proposal?.customContent?.energyAuditScopeCards && Array.isArray(proposal.customContent.energyAuditScopeCards) && proposal.customContent.energyAuditScopeCards.length > 0)
+        ? proposal.customContent.energyAuditScopeCards
+        : ((proposal?.quote as any)?.customContent?.energyAuditScopeCards && Array.isArray((proposal?.quote as any)?.customContent?.energyAuditScopeCards) && (proposal?.quote as any).customContent.energyAuditScopeCards.length > 0)
+        ? (proposal?.quote as any).customContent.energyAuditScopeCards
+        : [];
+    if (rawCards.length > 0) return rawCards;
+
+    // If assets were selected in Asset Categories, dynamically map them to scope cards
+    if (selectedAssetIds && selectedAssetIds.length > 0) {
+      return selectedAssetIds.map((id, idx) => {
+        const asset = ASSESSMENT_ASSETS.find((a) => a.id === id);
+        if (asset) {
+          const cleanName = asset.name.replace(/^[0-9]+\.\s*/, '');
+          return {
+            id: asset.id,
+            title: `${idx + 1}. ${cleanName}`,
+            description: asset.scopes.join(' '),
+          };
+        }
+        return {
+          id,
+          title: `${idx + 1}. Asset Scope`,
+          description: '',
+        };
+      });
+    }
+
+    // For Energy Audit, do NOT show default scopes of work
+    return [];
+  }, [proposal, quote, selectedAssetIds]);
+
+  const energyAuditTrackClients: string[] =
+    (proposal?.customContent?.energyAuditTrackClients && Array.isArray(proposal.customContent.energyAuditTrackClients) && proposal.customContent.energyAuditTrackClients.length > 0)
+      ? proposal.customContent.energyAuditTrackClients
+      : ((proposal?.quote as any)?.customContent?.energyAuditTrackClients && Array.isArray((proposal?.quote as any)?.customContent?.energyAuditTrackClients) && (proposal?.quote as any).customContent.energyAuditTrackClients.length > 0)
+      ? (proposal?.quote as any).customContent.energyAuditTrackClients
+      : ENERGY_AUDIT_TRACK_RECORD_CLIENTS;
+
+  const energyAuditDeliverables: Array<{ id: string; title: string; description: string }> =
+    (proposal?.customContent?.energyAuditDeliverables && Array.isArray(proposal.customContent.energyAuditDeliverables) && proposal.customContent.energyAuditDeliverables.length > 0)
+      ? proposal.customContent.energyAuditDeliverables
+      : ((proposal?.quote as any)?.customContent?.energyAuditDeliverables && Array.isArray((proposal?.quote as any)?.customContent?.energyAuditDeliverables) && (proposal?.quote as any).customContent.energyAuditDeliverables.length > 0)
+      ? (proposal?.quote as any).customContent.energyAuditDeliverables
+      : DEFAULT_ENERGY_AUDIT_KEY_DELIVERABLES;
+
+  const energyAuditDeliverablesIntro: string =
+    proposal?.customContent?.energyAuditDeliverablesIntro ||
+    (proposal?.quote as any)?.customContent?.energyAuditDeliverablesIntro ||
+    DEFAULT_ENERGY_AUDIT_DELIVERABLES_INTRO;
+
+  const energyAuditCompetenciesText: string =
+    proposal?.customContent?.energyAuditCompetenciesText ||
+    (proposal?.quote as any)?.customContent?.energyAuditCompetenciesText ||
+    DEFAULT_ENERGY_AUDIT_COMPETENCIES_TEXT;
+
+  const effectiveEnergyAuditTermsText: string =
+    proposal?.customContent?.step6Text ||
+    proposal?.customContent?.termsAndConditions ||
+    (proposal?.quote as any)?.customContent?.step6Text ||
+    (proposal?.quote as any)?.customContent?.termsAndConditions ||
+    DEFAULT_ENERGY_AUDIT_STEP6_TEXT;
+
   const { data: dbCostingSheet } = useQuery({
     queryKey: ['proposal-costing-sheet', clientName, subServiceTitle, serviceTitle],
     queryFn: async () => {
@@ -564,28 +663,8 @@ export default function ProposalPreview({
     dbCostingSheet ||
     null;
 
-  const selectedAssetIds: string[] = React.useMemo(() => {
-    const raw =
-      (proposal as any)?.customContent?.selectedAssetIds ||
-      (proposal as any)?.selectedAssetIds ||
-      (proposal?.quote as any)?.customContent?.selectedAssetIds ||
-      (proposal?.quote as any)?.selectedAssetIds ||
-      (quote as any)?.customContent?.selectedAssetIds ||
-      (quote as any)?.selectedAssetIds ||
-      (deal as any)?.customContent?.selectedAssetIds ||
-      (deal as any)?.selectedAssetIds ||
-      [];
-    if (Array.isArray(raw)) return raw;
-    if (typeof raw === 'string') {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {}
-    }
-    return [];
-  }, [proposal, quote, deal]);
-
   const selectedAssessmentAssets = React.useMemo(() => {
+    if (isEnergyAudit) return [];
     let ids = [...selectedAssetIds];
     if (ids.length === 0) {
       const textScope =
@@ -614,7 +693,7 @@ export default function ProposalPreview({
       }
     });
     return list;
-  }, [selectedAssetIds, proposal, quote]);
+  }, [selectedAssetIds, proposal, quote, isEnergyAudit]);
 
   const isAirBalancingSelected = React.useMemo(() => {
     if (selectedAssetIds.includes('air_balancing')) return true;
@@ -637,14 +716,14 @@ export default function ProposalPreview({
   }, [selectedAssetIds, selectedAssessmentAssets, proposal, quote]);
 
   const assetChunks = React.useMemo(() => {
-    if (selectedAssessmentAssets.length === 0) return [];
+    if (isEnergyAudit || selectedAssessmentAssets.length === 0) return [];
     const chunks: (typeof selectedAssessmentAssets)[] = [];
     const chunkSize = 4;
     for (let i = 0; i < selectedAssessmentAssets.length; i += chunkSize) {
       chunks.push(selectedAssessmentAssets.slice(i, i + chunkSize));
     }
     return chunks;
-  }, [selectedAssessmentAssets]);
+  }, [isEnergyAudit, selectedAssessmentAssets]);
 
   const extraScopePages = assetChunks.length > 1 ? assetChunks.length - 1 : 0;
 
@@ -700,6 +779,55 @@ export default function ProposalPreview({
   );
   const [editedClientName, setEditedClientName] = React.useState(clientName || deal?.clientName || '');
   const [editedClientLogo, setEditedClientLogo] = React.useState(effectiveClientLogo || '');
+  const [editedProjectTimeline, setEditedProjectTimeline] = React.useState(effectiveProjectTimeline);
+  const [editedEnergyAuditDeliverables, setEditedEnergyAuditDeliverables] = React.useState<Array<{ id: string; title: string; description: string }>>(energyAuditDeliverables);
+  const [editedEnergyAuditDeliverablesIntro, setEditedEnergyAuditDeliverablesIntro] = React.useState<string>(energyAuditDeliverablesIntro);
+  const [editedEnergyAuditScopeCards, setEditedEnergyAuditScopeCards] = React.useState<Array<{ id: string; title: string; description: string }>>(energyAuditScopeCards);
+  const [editedEnergyAuditCompetenciesText, setEditedEnergyAuditCompetenciesText] = React.useState<string>(energyAuditCompetenciesText);
+  const [editedEnergyAuditTermsText, setEditedEnergyAuditTermsText] = React.useState<string>(effectiveEnergyAuditTermsText);
+
+  const defaultAshraeNoteDescription =
+    'From Chennai to Site up and down, local transport, food and accommodation charges will be under client scope.';
+  const defaultAshraeNoteScope = 'At Actual';
+  const defaultAshraeSupportRequired = `• SPOC (Single point of Contact) for support and coordination during installation and Commissioning phase
+• SPOC to review alerts and reports as per requirements
+• Accessibility to each area across the facility.
+• 1 person required from client side with knowledge on electrical routing and provide manual support to lay the cable, if any
+• Boarding, Food and Travel expenses will be under client scope.`;
+
+  const ashraeNoteDescription: string =
+    proposal?.customContent?.ashraeNoteDescription ||
+    (proposal?.quote as any)?.customContent?.ashraeNoteDescription ||
+    defaultAshraeNoteDescription;
+
+  const ashraeNoteScope: string =
+    proposal?.customContent?.ashraeNoteScope ||
+    (proposal?.quote as any)?.customContent?.ashraeNoteScope ||
+    defaultAshraeNoteScope;
+
+  const ashraeSupportRequired: string =
+    proposal?.customContent?.ashraeSupportRequired ||
+    (proposal?.quote as any)?.customContent?.ashraeSupportRequired ||
+    defaultAshraeSupportRequired;
+
+  const ashraeTermsAndConditions: string =
+    proposal?.customContent?.ashraeTermsAndConditions ||
+    proposal?.customContent?.step6Text ||
+    (proposal?.quote as any)?.customContent?.ashraeTermsAndConditions ||
+    (proposal?.quote as any)?.customContent?.step6Text ||
+    DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT;
+
+  const [editedAshraeNoteDescription, setEditedAshraeNoteDescription] = React.useState<string>(ashraeNoteDescription);
+  const [editedAshraeNoteScope, setEditedAshraeNoteScope] = React.useState<string>(ashraeNoteScope);
+  const [editedAshraeSupportRequired, setEditedAshraeSupportRequired] = React.useState<string>(ashraeSupportRequired);
+  const [editedAshraeTermsAndConditions, setEditedAshraeTermsAndConditions] = React.useState<string>(ashraeTermsAndConditions);
+
+  React.useEffect(() => {
+    setEditedAshraeNoteDescription(ashraeNoteDescription);
+    setEditedAshraeNoteScope(ashraeNoteScope);
+    setEditedAshraeSupportRequired(ashraeSupportRequired);
+    setEditedAshraeTermsAndConditions(ashraeTermsAndConditions);
+  }, [ashraeNoteDescription, ashraeNoteScope, ashraeSupportRequired, ashraeTermsAndConditions]);
 
   const handleLogoUploadInModal = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -778,9 +906,94 @@ export default function ProposalPreview({
         step5Text: editedScopeText,
         clientName: editedClientName,
         clientLogo: editedClientLogo,
+        projectTimeline: editedProjectTimeline,
+        ...(isAshraeLevel2 ? {
+          ashraeNoteDescription: editedAshraeNoteDescription,
+          ashraeNoteScope: editedAshraeNoteScope,
+          ashraeSupportRequired: editedAshraeSupportRequired,
+          ashraeTermsAndConditions: editedAshraeTermsAndConditions,
+          step6Text: editedAshraeTermsAndConditions,
+          termsAndConditions: editedAshraeTermsAndConditions,
+        } : {}),
+        ...(isEnergyAudit ? {
+          energyAuditDeliverables: editedEnergyAuditDeliverables,
+          energyAuditDeliverablesIntro: editedEnergyAuditDeliverablesIntro,
+          energyAuditScopeCards: editedEnergyAuditScopeCards,
+          energyAuditCompetenciesText: editedEnergyAuditCompetenciesText,
+          step6Text: editedEnergyAuditTermsText,
+          termsAndConditions: editedEnergyAuditTermsText,
+        } : {}),
       },
       scopeDetails: editedScopeText,
     });
+  };
+
+  const renderFormattedTerms = (text: string) => {
+    if (!text) return null;
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const groups: { type: 'header' | 'bullet' | 'paragraph'; content: string | string[] }[] = [];
+    let currentBullets: string[] = [];
+
+    lines.forEach((line) => {
+      const isBullet = line.startsWith('•') || line.startsWith('●') || line.startsWith('-') || line.startsWith('*');
+      const isHeader = (line.endsWith(':') || line === line.toUpperCase()) && !isBullet && line.length < 60;
+
+      if (isHeader) {
+        if (currentBullets.length > 0) {
+          groups.push({ type: 'bullet', content: currentBullets });
+          currentBullets = [];
+        }
+        groups.push({ type: 'header', content: line });
+      } else if (isBullet) {
+        currentBullets.push(line.replace(/^[•●\-*]\s*/, ''));
+      } else {
+        if (currentBullets.length > 0) {
+          groups.push({ type: 'bullet', content: currentBullets });
+          currentBullets = [];
+        }
+        groups.push({ type: 'paragraph', content: line });
+      }
+    });
+
+    if (currentBullets.length > 0) {
+      groups.push({ type: 'bullet', content: currentBullets });
+    }
+
+    return (
+      <div className="space-y-1.5 text-slate-800 font-normal text-left" style={{ fontSize: isAirBalancingSelected ? '10px' : '12px', lineHeight: isAirBalancingSelected ? '1.45' : '1.65' }}>
+        {groups.map((grp, gIdx) => {
+          if (grp.type === 'header') {
+            return (
+              <p key={gIdx} className="font-bold text-slate-950 text-sm pt-0.5">
+                {grp.content as string}
+              </p>
+            );
+          }
+          if (grp.type === 'bullet') {
+            return (
+              <ul key={gIdx} className="space-y-1 pl-4">
+                {(grp.content as string[]).map((b, bIdx) => {
+                  const colonMatch = b.match(/^(.*?:\s*)(.*)$/);
+                  if (colonMatch) {
+                    return (
+                      <li key={bIdx}>
+                        • <strong className="text-slate-950">{colonMatch[1]}</strong>{colonMatch[2]}
+                      </li>
+                    );
+                  }
+                  return <li key={bIdx}>• {b}</li>;
+                })}
+              </ul>
+            );
+          }
+          return (
+            <p key={gIdx} className="text-slate-800">
+              {grp.content as string}
+            </p>
+          );
+        })}
+      </div>
+    );
   };
 
   const renderFormattedScopeText = (text: string) => {
@@ -1121,11 +1334,29 @@ export default function ProposalPreview({
               );
               setEditedClientName(clientName || deal?.clientName || '');
               setEditedClientLogo(effectiveClientLogo || '');
+              setEditedProjectTimeline(effectiveProjectTimeline);
+              setEditedAshraeNoteDescription(ashraeNoteDescription);
+              setEditedAshraeNoteScope(ashraeNoteScope);
+              setEditedAshraeSupportRequired(ashraeSupportRequired);
+              setEditedAshraeTermsAndConditions(ashraeTermsAndConditions);
+              setEditedEnergyAuditDeliverables(energyAuditDeliverables);
+              setEditedEnergyAuditDeliverablesIntro(energyAuditDeliverablesIntro);
+              setEditedEnergyAuditScopeCards(energyAuditScopeCards);
+              setEditedEnergyAuditCompetenciesText(energyAuditCompetenciesText);
+              setEditedEnergyAuditTermsText(effectiveEnergyAuditTermsText);
               setIsEditModalOpen(true);
             }}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-indigo-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border border-indigo-200 shadow-2xs"
           >
             <Edit3 className="h-3.5 w-3.5 text-indigo-600" /> Edit Proposal Text
+          </button>
+
+          <button
+            onClick={() => router.push(`/quotes/new?editQuoteId=${proposal.quoteId || (proposal.quote as any)?.id}`)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl transition-colors cursor-pointer border border-indigo-200 shadow-2xs"
+            title="Edit Full Quote (Scope, Pricing, Line Items & Timeline)"
+          >
+            <Edit3 className="h-3.5 w-3.5 text-indigo-600" /> Edit Full Quote
           </button>
 
           <button
@@ -2040,7 +2271,7 @@ export default function ProposalPreview({
                         </p>
                       </div>
 
-                      {assetChunks.length > 0 ? (
+                      {assetChunks.length > 0 && (
                         <div className="space-y-2.5 pt-1 text-slate-800 leading-relaxed text-[10px]">
                           {assetChunks[0].map((asset, idx) => {
                             const cleanName = asset.name.replace(/^[0-9]+\.\s*/, '');
@@ -2058,67 +2289,6 @@ export default function ProposalPreview({
                             );
                           })}
                         </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <div>
-                            <p className="font-bold text-slate-950">Data Collection and Review</p>
-                            <p className="text-slate-800">The audit team will collect the last 12 months of electricity bills and district cooling bills for detailed analysis.</p>
-                            <p className="text-slate-800">The team will gather building-related information such as total built-up area, occupancy pattern, and operating hours.</p>
-                            <p className="text-slate-800">The inventory of major equipment including AHUs, FCUs, pumps, heat exchangers, lighting systems, and transformers will be compiled.</p>
-                            <p className="text-slate-800">All available technical documents such as single line diagrams, HVAC schematics, and operation manuals will be reviewed to understand system configuration.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-950">Electricity Bill Analysis</p>
-                            <p className="text-slate-800">The electricity bills will be analyzed to study monthly energy consumption, maximum demand, and power factor trends.</p>
-                            <p className="text-slate-800">The analysis will identify demand peaks, penalties, and opportunities for tariff optimization.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-950">District Cooling Bill Analysis</p>
-                            <p className="text-slate-800">The district cooling billing structure will be reviewed to understand fixed and variable components of the bill.</p>
-                            <p className="text-slate-800">The study will analyze monthly TRh consumption trends and compare them with contracted TR capacity.</p>
-                            <p className="text-slate-800">The assessment will identify any over-contracting or underutilization of cooling capacity.</p>
-                            <p className="text-slate-800">The billed consumption will be validated against actual usage to identify discrepancies or overbilling issues.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-950">CDD-Based Consumption Analysis</p>
-                            <p className="text-slate-800">Cooling Degree Days will be used to normalize cooling consumption and eliminate the impact of weather variations.</p>
-                            <p className="text-slate-800">The study will establish correlation between CDD and cooling energy consumption to identify abnormal performance trends.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-950">AHU Performance Assessment</p>
-                            <p className="text-slate-800">Air Handling Units will be evaluated on a sampling basis covering approximately 20% to 30% of total units. The selection of AHUs will be based on capacity, location, and operational diversity.</p>
-                            <p className="text-slate-800">Where measurement provision is available, airflow, temperature, humidity, and static pressure will be measured. The analysis will assess cooling coil performance, fan efficiency, and filter pressure drop.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-950">FCU and Terminal Equipment Assessment</p>
-                            <p className="text-slate-800">Fan Coil Units and other terminal equipment will be assessed to evaluate temperature control and valve operation. The study will identify issues such as overcooling, improper control, and inefficient operation.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-950">Pump Performance Study</p>
-                            <p className="text-slate-800">Pump systems will be analyzed on a sampling basis covering approximately 20% to 30% of total pumps. Flow rate, head, and power consumption will be measured to calculate pump efficiency. The analysis will identify inefficiencies such as oversizing, throttling losses, and potential for VFD implementation.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-950">Heat Exchanger Efficiency Evaluation &amp; Heat Pump / Boiler Assessment</p>
-                            <p className="text-slate-800">Heat exchangers will be assessed by measuring inlet and outlet temperatures and flow rates to identify degradation due to fouling or scaling. Heat pump / boiler systems will be evaluated under operating conditions to identify optimization and waste heat recovery.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-950">Lighting, Electrical System &amp; Power Quality Study</p>
-                            <p className="text-slate-800">Lux level measurements across retail spaces, corridors, and parking areas compared with standards for LED retrofits. Transformer performance and power quality harmonics, phase imbalance, and system losses.</p>
-                          </div>
-
-                          <div>
-                            <p className="font-bold text-slate-950">Measurement, Instrumentation, ECMs &amp; Deliverables</p>
-                            <p className="text-slate-800">Measurements via calibrated power analyzers, flow meters, anemometers, temperature sensors, and lux meters. Categorized low/medium/high cost ECMs with payback periods and benchmarking (kW/TR, TRh/m²). Detailed audit report along with district cooling analysis, graphical trends, CDD correlation, and executive summary.</p>
-                          </div>
-                        </div>
                       )}
                     </div>
                   ) : (
@@ -2130,94 +2300,17 @@ export default function ProposalPreview({
                         1. Scope of Work &amp; Engineering Assessment:
                       </h3>
                       <p className="text-[10px] text-slate-800 leading-tight font-medium">
-                        {assetChunks.length > 0
-                          ? 'The comprehensive scope of assessment activities for all selected equipment categories is detailed below:'
-                          : 'The Energy Audit evaluates the overall energy performance of the plant across electrical, thermal, process, and utility systems to identify actionable cost reduction, performance improvement, and sustainability opportunities.'}
+                        The Energy Audit evaluates the overall energy performance of the plant across electrical, thermal, process, and utility systems to identify actionable cost reduction, performance improvement, and sustainability opportunities.
                       </p>
 
-                      {assetChunks.length > 0 ? (
-                        <div className="space-y-3 pt-1 text-slate-800 leading-relaxed text-[10.5px]">
-                          {assetChunks[0].map((asset, idx) => {
-                            const cleanName = asset.name.replace(/^[0-9]+\.\s*/, '');
-                            return (
-                              <div key={asset.id} className="space-y-0.5">
-                                <p className="font-bold text-slate-950 text-[10.5px]">
-                                  {idx + 1}. {cleanName}
-                                </p>
-                                <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                                  {asset.scopes.map((scope, sIdx) => (
-                                    <li key={sIdx}>• {scope}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5 pt-0.5 text-slate-800 text-[10px] leading-tight">
-                          {/* 1. Production and Process Systems */}
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-slate-950 text-[10.5px]">1. Production &amp; Process Systems</p>
-                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                              <li>• Specific energy consumption (kWh/unit of production), shift operations, and loading profiles.</li>
-                              <li>• Performance assessment of Induction Electrical Heaters, Heating Systems, and EOT Cranes to eliminate wastage.</li>
-                              <li>• Observation of idle run hours, no-load losses, and equipment scheduling optimization.</li>
-                            </ul>
-                          </div>
-
-                          {/* 2. Electrical Energy Distribution System */}
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-slate-950 text-[10.5px]">2. Electrical Energy Distribution &amp; Power Quality</p>
-                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                              <li>• Transformer Performance: Loading patterns, power factor, voltage unbalance, and temperature rise.</li>
-                              <li>• Power Quality: Harmonics analysis, voltage imbalance, reactive power flow, and APFC capacitor bank adequacy.</li>
-                            </ul>
-                          </div>
-
-                          {/* 3. Compressed Air System */}
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-slate-950 text-[10.5px]">3. Compressed Air System &amp; Ultrasonic Leakage Survey</p>
-                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                              <li>• Free Air Delivery (FAD), discharge pressure, power consumption, operating efficiency, and header pressure drops.</li>
-                              <li>• Ultrasonic leak detection and quantification with physical unique ID tagging labels for structured rectification.</li>
-                            </ul>
-                          </div>
-
-                          {/* 4. Lighting, DG & HVAC Systems */}
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-slate-950 text-[10.5px]">4. Lighting, DG &amp; HVAC Split Units</p>
-                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                              <li>• Lux survey vs IS standards, LED retrofits, DG specific fuel consumption (L/kWh) and exhaust heat recovery.</li>
-                              <li>• Split units cooling capacity, COP calculation, temperature setpoint optimization, and load balancing.</li>
-                            </ul>
-                          </div>
-
-                          {/* 5. Pumps, Water Systems & Waste Heat Recovery */}
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-slate-950 text-[10.5px]">5. Pumps, Water Systems &amp; Waste Heat Recovery</p>
-                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                              <li>• Borewell, WTP, RO, and STP pump efficiency, throttling loss identification, and VFD integration potential.</li>
-                              <li>• Quantification of recoverable heat from DG exhaust, compressor after-coolers, and condensate return units.</li>
-                            </ul>
-                          </div>
-
-                          {/* 6. Comprehensive Water Audit Scope */}
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-slate-950 text-[10.5px]">6. Comprehensive Water Audit Scope</p>
-                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                              <li>• Ultrasonic mass balance, baseline water mapping for process &amp; domestic usage, pressure/quality measurements.</li>
-                              <li>• Water balance charts, wastewater treatment &amp; recycling strategies for high reuse and water neutrality.</li>
-                            </ul>
-                          </div>
-
-                          {/* 7. EnPIs, ENCON & Reporting */}
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-slate-950 text-[10.5px]">7. EnPIs, Benchmarking, Prioritized ENCON Measures &amp; Reporting</p>
-                            <ul className="space-y-0.5 pl-3 text-slate-800 font-normal">
-                              <li>• System-wise Energy Performance Indicators, industry benchmarking, and prioritized ECMs with ROI and payback period.</li>
-                              <li>• Comprehensive audit report, backup calculation sheets, measurement trends, and final executive presentation.</li>
-                            </ul>
-                          </div>
+                      {energyAuditScopeCards.length > 0 && (
+                        <div className="space-y-2.5 pt-1 text-slate-800 text-[10.5px] leading-relaxed">
+                          {energyAuditScopeCards.map((card, idx) => (
+                            <div key={card.id || idx} className="space-y-0.5">
+                              <p className="font-bold text-slate-950 text-[11px]">{card.title}</p>
+                              <p className="text-slate-700 text-[10px] pl-3 leading-snug font-normal">• {card.description}</p>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -2579,158 +2672,151 @@ export default function ProposalPreview({
                       </div>
 
                       <div className="pt-2 border-t border-slate-200">
-                        <h3 className="font-bold text-slate-950 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight text-sm mb-2">
+                        <h3 className="font-bold text-black underline underline-offset-4 decoration-2 decoration-black tracking-tight text-sm mb-1.5">
                           List of Customers:
                         </h3>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[11.5px] text-slate-800">
-                          <p>1. Aatral Engineering</p>
-                          <p>2. Velmurugan Heavy Engineering Industries Private Limited</p>
-                          <p>3. 20cube Logistics Solutions Private Limited</p>
-                          <p>4. Danfoss Industries Private Limited</p>
-                          <p>5. Knowledge Bridge</p>
-                          <p>6. S G Snacks India Pvt. Ltd.</p>
-                          <p>7. 20cube Logistics Solutions Private Limited</p>
-                          <p>8. Parekhplast India Limited</p>
-                          <p>9. PMEL Oragadam Private Limited -Unit 3</p>
-                          <p>10. PMEL Oragadam Private Limited -Unit 4</p>
-                          <p>11. Lucas Tvs Limited-Padi</p>
-                          <p>12. Visalam Technologies LLP</p>
-                          <p>13. Adspaas Polymer Solutions Limited</p>
-                          <p>14. Wheels India Limited</p>
-                          <p>15. India Metal One Steel Plate Processing Pvt. Ltd</p>
-                          <p>16. India Metal One Steel Plate Processing Pvt. Ltd</p>
-                          <p>17. Glow guard (A Unit Of Green Pearl Engineering Construction Corporation Pvt Ltd)</p>
-                          <p>18. Aisan Auto Parts India Private Limited</p>
-                          <p>19. India Metal One Steel Plate Processing Pvt. Ltd</p>
-                          <p>20. Whirlpool of India Limited</p>
-                          <p>21. ITC -Medak Ltd</p>
-                          <p>22. Kone Elevator India Private Limited</p>
-                          <p>23. KPR Mill Limited</p>
-                          <p>24. Arni Engineerig Tech Private Ltd</p>
-                          <p>25. Growserve Enterprises-Ashirwad</p>
-                          <p>26. Vashi Integrated Solution Limited</p>
-                          <p>27. Development Environergy Services Limited -IIT Hyderabad</p>
+                        <div className="space-y-0.5 text-[9.5px] text-black">
+                          <p className="leading-snug">1. Aatral Engineering</p>
+                          <p className="leading-snug">2. Velmurugan Heavy Engineering Industries Private Limited</p>
+                          <p className="leading-snug">3. 20cube Logistics Solutions Private Limited</p>
+                          <p className="leading-snug">4. Danfoss Industries Private Limited</p>
+                          <p className="leading-snug">5. Knowledge Bridge</p>
+                          <p className="leading-snug">6. S G Snacks India Pvt. Ltd.</p>
+                          <p className="leading-snug">7. 20cube Logistics Solutions Private Limited</p>
+                          <p className="leading-snug">8. Parekhplast India Limited</p>
+                          <p className="leading-snug">9. PMEL Oragadam Private Limited -Unit 3</p>
+                          <p className="leading-snug">10. PMEL Oragadam Private Limited -Unit 4</p>
+                          <p className="leading-snug">11. Lucas Tvs Limited-Padi</p>
+                          <p className="leading-snug">12. Visalam Technologies LLP</p>
+                          <p className="leading-snug">13. Adspaas Polymer Solutions Limited</p>
+                          <p className="leading-snug">14. Wheels India Limited</p>
+                          <p className="leading-snug">15. India Metal One Steel Plate Processing Pvt. Ltd</p>
+                          <p className="leading-snug">16. India Metal One Steel Plate Processing Pvt. Ltd</p>
+                          <p className="leading-snug">17. Glow guard (A Unit Of Green Pearl Engineering Construction Corporation Pvt Ltd)</p>
+                          <p className="leading-snug">18. Aisan Auto Parts India Private Limited</p>
+                          <p className="leading-snug">19. India Metal One Steel Plate Processing Pvt. Ltd</p>
+                          <p className="leading-snug">20. Whirlpool of India Limited</p>
+                          <p className="leading-snug">21. ITC -Medak Ltd</p>
+                          <p className="leading-snug">22. Kone Elevator India Private Limited</p>
+                          <p className="leading-snug">23. KPR Mill Limited</p>
+                          <p className="leading-snug">24. Arni Engineerig Tech Private Ltd</p>
+                          <p className="leading-snug">25. Growserve Enterprises-Ashirwad</p>
+                          <p className="leading-snug">26. Vashi Integrated Solution Limited</p>
+                          <p className="leading-snug">27. Development Environergy Services Limited -IIT Hyderabad</p>
                         </div>
                       </div>
                     </div>
                   ) : (isAshraeLevel2 || isEcFan) ? (
-                    /* ASHRAE Level 2 & EC Fan Page 3: Team Expertise's & Other Costumers (Row-wise, no boxes) */
+                    /* ASHRAE Level 2 & EC Fan Page 3: Team Expertise's & Other Costumers (Row-wise full width, black text) */
                     <div
-                      className="space-y-4 text-left font-normal"
-                      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif", fontSize: '12px', lineHeight: '1.6' }}
+                      className="space-y-3.5 text-left font-normal"
+                      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif", fontSize: '11px', lineHeight: '1.4' }}
                     >
                       <div>
-                        <h3 className="font-bold text-slate-950 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight text-sm mb-2">
+                        <h3 className="font-bold text-black underline underline-offset-4 decoration-2 decoration-black tracking-tight text-sm mb-1.5">
                           Team Expertise’s
                         </h3>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[10.5px] text-slate-800">
-                          <p>1. Mazaya Business Avenue ,Dubai</p>
-                          <p>2. ASHRAE Level 2 audit at 6 Commercial Building ,Dubai</p>
-                          <p>3. Danat Al Emarat Hospital , Dubai by Aatral</p>
-                          <p>4. Capital Land by orien Energy</p>
-                          <p>5. Casagrand Eco tech ,Sollinganallur</p>
-                          <p>6. Tidal Park ,Pattabiram</p>
-                          <p>7. TNQ software Tharamani,</p>
-                          <p>8. Embassy Tech village Kadu bisenahalli Bengaluru</p>
-                          <p>9. Embassy ETZ pune</p>
-                          <p>10. First source Limited Vijayawada</p>
-                          <p>11. First source Limited ,Hyderabad</p>
-                          <p>12. First source Limited Chennai</p>
-                          <p>13. Valeo software Sholinganallur</p>
-                          <p>14. Soildpro ,Chennai</p>
-                          <p>15. SRM University Chennai</p>
-                          <p>16. Development Environergy Services Limited -IIT Hyderabad</p>
+                        <div className="space-y-0.5 text-[9px] text-black">
+                          <p className="leading-snug">1. Mazaya Business Avenue ,Dubai</p>
+                          <p className="leading-snug">2. ASHRAE Level 2 audit at 6 Commercial Building ,Dubai</p>
+                          <p className="leading-snug">3. Danat Al Emarat Hospital , Dubai by Aatral</p>
+                          <p className="leading-snug">4. Capital Land by orien Energy</p>
+                          <p className="leading-snug">5. Casagrand Eco tech ,Sollinganallur</p>
+                          <p className="leading-snug">6. Tidal Park ,Pattabiram</p>
+                          <p className="leading-snug">7. TNQ software Tharamani,</p>
+                          <p className="leading-snug">8. Embassy Tech village Kadu bisenahalli Bengaluru</p>
+                          <p className="leading-snug">9. Embassy ETZ pune</p>
+                          <p className="leading-snug">10. First source Limited Vijayawada</p>
+                          <p className="leading-snug">11. First source Limited ,Hyderabad</p>
+                          <p className="leading-snug">12. First source Limited Chennai</p>
+                          <p className="leading-snug">13. Valeo software Sholinganallur</p>
+                          <p className="leading-snug">14. Soildpro ,Chennai</p>
+                          <p className="leading-snug">15. SRM University Chennai</p>
+                          <p className="leading-snug">16. Development Environergy Services Limited -IIT Hyderabad</p>
                         </div>
                       </div>
 
                       <div className="pt-2 border-t border-slate-200">
-                        <h3 className="font-bold text-slate-950 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight text-sm mb-2">
+                        <h3 className="font-bold text-black underline underline-offset-4 decoration-2 decoration-black tracking-tight text-sm mb-1.5">
                           Other Costumers:
                         </h3>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[10px] text-slate-800">
-                          <p>17. Aatral Engineering</p>
-                          <p>18. Velmurugan Heavy Engineering Industries Private Limited</p>
-                          <p>19. 20cube Logistics Solutions Private Limited</p>
-                          <p>20. Danfoss Industries Private Limited</p>
-                          <p>21. Knowledge Bridge</p>
-                          <p>22. S G Snacks India Pvt. Ltd.</p>
-                          <p>23. 20cube Logistics Solutions Private Limited</p>
-                          <p>24. Parekhplast India Limited</p>
-                          <p>25. PMEL Oragadam Private Limited -Unit 3 &amp; 4</p>
-                          <p>26. Lucas Tvs Limited-Padi</p>
-                          <p>27. Visalam Technologies LLP</p>
-                          <p>28. Adspaas Polymer Solutions Limited</p>
-                          <p>29. Wheels India Limited</p>
-                          <p>30. India Metal One Steel Plate Processing Pvt. Ltd</p>
-                          <p>31. Aisan Auto Parts India Private Limited</p>
-                          <p>32. Whirlpool of India Limited</p>
-                          <p>33. ITC -Medak Ltd</p>
-                          <p>34. Kone Elevator India Private Limited</p>
-                          <p>35. KPR Mill Limited</p>
-                          <p>36. Concorde Textiles ltd</p>
-                          <p>37. Arni Engineerig Tech Private Ltd</p>
-                          <p>38. Growserve Enterprises-Ashirwad</p>
-                          <p>39. Vashi Integrated Solution Limited</p>
-                          <p>40. Ahlstrom Fiber composite Pvt Ltd</p>
+                        <div className="space-y-0.5 text-[9px] text-black">
+                          <p className="leading-snug">17. Aatral Engineering</p>
+                          <p className="leading-snug">18. Velmurugan Heavy Engineering Industries Private Limited</p>
+                          <p className="leading-snug">19. 20cube Logistics Solutions Private Limited</p>
+                          <p className="leading-snug">20. Danfoss Industries Private Limited</p>
+                          <p className="leading-snug">21. Knowledge Bridge</p>
+                          <p className="leading-snug">22. S G Snacks India Pvt. Ltd.</p>
+                          <p className="leading-snug">23. 20cube Logistics Solutions Private Limited</p>
+                          <p className="leading-snug">24. Parekhplast India Limited</p>
+                          <p className="leading-snug">25. PMEL Oragadam Private Limited -Unit 3 &amp; 4</p>
+                          <p className="leading-snug">26. Lucas Tvs Limited-Padi</p>
+                          <p className="leading-snug">27. Visalam Technologies LLP</p>
+                          <p className="leading-snug">28. Adspaas Polymer Solutions Limited</p>
+                          <p className="leading-snug">29. Wheels India Limited</p>
+                          <p className="leading-snug">30. India Metal One Steel Plate Processing Pvt. Ltd</p>
+                          <p className="leading-snug">31. Aisan Auto Parts India Private Limited</p>
+                          <p className="leading-snug">32. Whirlpool of India Limited</p>
+                          <p className="leading-snug">33. ITC -Medak Ltd</p>
+                          <p className="leading-snug">34. Kone Elevator India Private Limited</p>
+                          <p className="leading-snug">35. KPR Mill Limited</p>
+                          <p className="leading-snug">36. Concorde Textiles ltd</p>
+                          <p className="leading-snug">37. Arni Engineerig Tech Private Ltd</p>
+                          <p className="leading-snug">38. Growserve Enterprises-Ashirwad</p>
+                          <p className="leading-snug">39. Vashi Integrated Solution Limited</p>
+                          <p className="leading-snug">40. Ahlstrom Fiber composite Pvt Ltd</p>
                         </div>
                       </div>
                     </div>
                   ) : isEnergyAudit ? (
-                    /* Energy Audit Page 3: Deliverables & Client Track Record (27 Reference Clients) */
-                    <div className="space-y-3">
+                    /* Energy Audit Page 3: Deliverables & Client Track Record (27 Reference Clients - Row-wise, no boxes, black text) */
+                    <div
+                      className="space-y-3.5 text-left font-normal"
+                      style={{ fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif", fontSize: '12px', lineHeight: '1.6' }}
+                    >
                       {/* Deliverables */}
                       <div className="space-y-1">
                         <h3
-                          className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
+                          className="font-bold text-black underline underline-offset-4 decoration-2 decoration-black tracking-tight"
                           style={{ fontSize: '15px' }}
                         >
                           2. Key Deliverables:
                         </h3>
-                        <p className="text-[9.5px] text-slate-600 font-medium">
-                          The following structured engineering deliverables will be provided for both Energy and Water Audits:
+                        <p className="text-[10px] text-black font-medium">
+                          {energyAuditDeliverablesIntro}
                         </p>
-                        <ol className="space-y-0.5 pl-4 list-decimal text-[9.5px] text-slate-800 font-medium">
-                          <li><strong className="text-slate-950">Data Collection Format:</strong> Structured data sheets for system-wise field measurement.</li>
-                          <li><strong className="text-slate-950">Opening Meeting Presentation:</strong> Kick-off presentation outlining objectives, scope, and methodology.</li>
-                          <li><strong className="text-slate-950">Preliminary Findings / Closing Presentation:</strong> Summary of key observations and immediate opportunities.</li>
-                          <li><strong className="text-slate-950">Detailed Audit Report:</strong> Comprehensive report covering observations, engineering analysis, and ECMs.</li>
-                          <li><strong className="text-slate-950">Backup Calculation Files:</strong> Excel files with system-wise energy &amp; water balance, efficiency, and savings.</li>
-                          <li><strong className="text-slate-950">Comprehensive Water Assessment Report:</strong> Baseline water mapping, flow/pressure/quality, leakage loss, water balance charts, and high-recycling tech recommendations.</li>
-                          <li><strong className="text-slate-950">Implementation &amp; Best Practices Guide:</strong> Actionable roadmap for water neutrality, case studies, and conservation.</li>
+                        <ol className="space-y-0.5 pl-4 list-decimal text-[10px] text-black font-medium">
+                          {energyAuditDeliverables.map((item, idx) => (
+                            <li key={item.id || idx}>
+                              <strong className="text-black">{item.title}:</strong> {item.description}
+                            </li>
+                          ))}
                         </ol>
                       </div>
 
-                      {/* 27 Client Credentials Grid */}
-                      <div className="space-y-1 pt-1 border-t border-slate-200">
+                      {/* 27 Client Credentials (Row-wise, no boxes, pure black text) */}
+                      <div className="pt-2 border-t border-slate-200">
                         <h3
-                          className="font-bold text-slate-900 underline underline-offset-4 decoration-2 decoration-slate-900 tracking-tight"
-                          style={{ fontSize: '15px' }}
+                          className="font-bold text-black underline underline-offset-4 decoration-2 decoration-black tracking-tight text-sm mb-2"
                         >
-                          3. Proven Track Record &amp; Reference Clients:
+                          3. Proven Track Record &amp; Reference Clients ({energyAuditTrackClients.length} Reference Clients):
                         </h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 pt-0.5 text-[9px]">
-                          {ENERGY_AUDIT_TRACK_RECORD_CLIENTS.map((client, idx) => (
-                            <div
-                              key={idx}
-                              className="p-1 px-1.5 bg-slate-50 border border-slate-200/80 rounded-md flex items-center gap-1 shadow-2xs"
-                            >
-                              <span className="h-3.5 w-3.5 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[7.5px] shrink-0">
-                                {idx + 1}
-                              </span>
-                              <span className="font-semibold text-slate-800 truncate" title={client}>
-                                {client}
-                              </span>
-                            </div>
+                        <div className="space-y-0.5 text-[9.5px] text-black">
+                          {energyAuditTrackClients.map((client, idx) => (
+                            <p key={idx} className="leading-snug">
+                              {idx + 1}. {client}
+                            </p>
                           ))}
                         </div>
                       </div>
 
-                      <div className="p-2 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-0.5 mt-1">
-                        <p className="text-[9.5px] font-bold text-emerald-950 uppercase tracking-wider">
-                          Key Audit Competencies &amp; Instrumentation
-                        </p>
-                        <p className="text-[9px] text-emerald-900 leading-tight">
-                          Equipped with calibrated Class-A Power Quality Analyzers, Ultrasonic Flowmeters, Ultrasonic Acoustic Leak Detectors, Thermal Imaging Cameras, Anemometers, and Flue Gas Analyzers meeting ASHRAE, ISO 50001, and BEE standards.
+                      {/* Key Audit Competencies & Instrumentation (No green colors, pure black text) */}
+                      <div className="pt-2 border-t border-slate-200 space-y-1">
+                        <h4 className="font-bold text-black uppercase tracking-wider text-[10.5px]">
+                          Key Audit Competencies &amp; Instrumentation:
+                        </h4>
+                        <p className="text-[10px] text-black leading-relaxed font-normal">
+                          {energyAuditCompetenciesText}
                         </p>
                       </div>
                     </div>
@@ -3815,7 +3901,7 @@ export default function ProposalPreview({
                                 Energy Audit for the scope mentioned above
                               </td>
                               <td className="py-3 px-3 text-center font-medium text-slate-700 text-[11px]">
-                                1–2 Weeks
+                                {effectiveProjectTimeline}
                               </td>
                               <td className="py-3 px-4 text-right font-black text-slate-950 text-sm">
                                 {formatCurrency(finalPrice)}
@@ -3896,9 +3982,13 @@ export default function ProposalPreview({
                             <tr>
                               <td className="py-2.5 px-3 text-center font-bold">1</td>
                               <td className="py-2.5 px-4 font-medium">
-                                From Chennai to Site up and down, local transport, food and accommodation charges will be under client scope.
+                                {isAshraeLevel2
+                                  ? ashraeNoteDescription
+                                  : 'From Chennai to Site up and down, local transport, food and accommodation charges will be under client scope.'}
                               </td>
-                              <td className="py-2.5 px-4 text-right font-bold text-slate-900">At Actual</td>
+                              <td className="py-2.5 px-4 text-right font-bold text-slate-900">
+                                {isAshraeLevel2 ? ashraeNoteScope : 'At Actual'}
+                              </td>
                             </tr>
                           </tbody>
                         </table>
@@ -3912,7 +4002,23 @@ export default function ProposalPreview({
                       >
                         Support required from the client:
                       </h3>
-                      {isWeldDataDigitalized ? (
+                      {isAshraeLevel2 ? (
+                        <ul
+                          className="space-y-1.5 pl-4 text-slate-800 font-normal text-left"
+                          style={{ fontSize: '12px', lineHeight: '1.65' }}
+                        >
+                          {ashraeSupportRequired
+                            .split('\n')
+                            .map((l) => l.trim())
+                            .filter(Boolean)
+                            .map((line, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <span className="font-bold text-slate-900">•</span>
+                                <span>{line.replace(/^[•●\-*]\s*/, '')}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      ) : isWeldDataDigitalized ? (
                         <ul
                           className="space-y-1.5 pl-4 text-slate-800 font-normal text-left"
                           style={{ fontSize: '12px', lineHeight: '1.65' }}
@@ -4073,7 +4179,7 @@ export default function ProposalPreview({
                                 Compressor Air Leakage Audit for the scope mentioned above
                               </td>
                               <td className="py-2.5 px-3 text-center font-medium text-slate-700">
-                                1–2 Weeks
+                                {effectiveProjectTimeline}
                               </td>
                               <td className="py-2.5 px-4 text-right font-black text-slate-950 text-sm">
                                 {formatCurrency(finalPrice)}
@@ -4174,45 +4280,25 @@ export default function ProposalPreview({
                       className="space-y-2 text-slate-800 font-normal text-left"
                       style={{ fontSize: isAirBalancingSelected ? '9.5px' : '11px', lineHeight: isAirBalancingSelected ? '1.4' : '1.55' }}
                     >
-                      <div className="space-y-0.5">
-                        <p className="font-bold text-slate-950 text-xs">Payment Terms:</p>
-                        <ul className="space-y-0.5 pl-4">
-                          <li>• <strong>40% advance</strong> against receipt of Purchase Order (PO)</li>
-                          <li>• <strong>30% payment</strong> upon completion of site assessment</li>
-                          <li>• <strong>15% payment</strong> upon Submission of Draft Report</li>
-                          <li>• <strong>15% payment</strong> upon submission of the final report</li>
-                          <li>• Applicable taxes and duties shall be charged extra, as applicable</li>
-                          <li>• All lodging, boarding, and travel expenses are included</li>
-                          <li>• The quote is valid for 45 days from the date of submission</li>
-                          <li>• Payment within 15 days from the date of invoice</li>
-                        </ul>
-                      </div>
+                      {renderFormattedTerms(ashraeTermsAndConditions)}
 
-                      <div className="space-y-0.5 pt-1.5 border-t border-slate-100">
-                        <p className="font-bold text-slate-950 text-xs">Other Terms and Conditions:</p>
-                        <ul className="space-y-0.5 pl-4 text-slate-800">
-                          <li>• The customer shall be responsible for facilitating work visa applications and issuance, including managing all required documentation and bearing the associated application fees, as well as handling customs clearance of instruments.</li>
-                          {isAirBalancingSelected &&
-                            DEFAULT_AIR_BALANCING_TERMS.map((term, tIdx) => (
+                      {isAirBalancingSelected && !ashraeTermsAndConditions.includes('air-balancing') && (
+                        <div className="space-y-0.5 pt-1.5 border-t border-slate-100">
+                          <p className="font-bold text-slate-950 text-xs">Other Terms and Conditions:</p>
+                          <ul className="space-y-0.5 pl-4 text-slate-800">
+                            {DEFAULT_AIR_BALANCING_TERMS.map((term, tIdx) => (
                               <li key={`ab-term-${tIdx}`}>• {term}</li>
                             ))}
-                        </ul>
-                      </div>
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   ) : isEnergyAudit ? (
                     <div
                       className="space-y-2.5 text-slate-800 font-normal text-left"
                       style={{ fontSize: isAirBalancingSelected ? '10px' : '12px', lineHeight: isAirBalancingSelected ? '1.45' : '1.65' }}
                     >
-                      <div className="space-y-1">
-                        <p className="font-bold text-slate-950 text-sm">Payment Terms:</p>
-                        <ul className="space-y-1 pl-4">
-                          <li>• <strong>50% Payment:</strong> Completion of on-site assessment.</li>
-                          <li>• <strong>50% Payment:</strong> Submission of final report.</li>
-                          <li>• Applicable taxes and duties will be extra.</li>
-                          <li>• Boarding and Travel Expenses are exclusive.</li>
-                        </ul>
-                      </div>
+                      {renderFormattedTerms(effectiveEnergyAuditTermsText)}
 
                       {isAirBalancingSelected && (
                         <div className="space-y-1 pt-2 border-t border-slate-100">
@@ -4482,7 +4568,7 @@ export default function ProposalPreview({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Proposal Reference Number
@@ -4506,32 +4592,385 @@ export default function ProposalPreview({
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Project Timeline
+                  </label>
+                  <input
+                    type="text"
+                    value={editedProjectTimeline}
+                    onChange={(e) => setEditedProjectTimeline(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800"
+                    placeholder="e.g. 1–2 Weeks"
+                  />
+                </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Scope of Work, Deliverables &amp; Solution Details
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setEditedScopeText(getDefaultScopeText())}
-                    className="text-[11px] text-indigo-600 hover:underline font-semibold cursor-pointer"
-                  >
-                    Reset to Default Text
-                  </button>
+              {isAshraeLevel2 ? (
+                /* ASHRAE Level 2 Specific Section Editors */
+                <div className="space-y-5 pt-2 border-t border-slate-200">
+                  {/* 1. NOTE Table Editor */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-900">
+                          1. NOTE (Travel &amp; Logistics Table — Page 4)
+                        </label>
+                        <p className="text-[11px] text-slate-500">
+                          Edit the description and scope shown in the NOTE table on Page 4.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditedAshraeNoteDescription(defaultAshraeNoteDescription);
+                          setEditedAshraeNoteScope(defaultAshraeNoteScope);
+                          toast.success('Reset NOTE table to default');
+                        }}
+                        className="text-[11px] text-indigo-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        Reset Note to Default
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      <div className="sm:col-span-3">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">Description:</label>
+                        <textarea
+                          rows={2}
+                          value={editedAshraeNoteDescription}
+                          onChange={(e) => setEditedAshraeNoteDescription(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium text-slate-800"
+                          placeholder="From Chennai to Site up and down..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">Scope:</label>
+                        <input
+                          type="text"
+                          value={editedAshraeNoteScope}
+                          onChange={(e) => setEditedAshraeNoteScope(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-bold text-slate-900"
+                          placeholder="At Actual"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Support Required from Client Editor */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-900">
+                          2. Support Required from the Client (Page 4)
+                        </label>
+                        <p className="text-[11px] text-slate-500">
+                          Edit the client responsibilities, SPOC coordination, and site requirements.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditedAshraeSupportRequired(defaultAshraeSupportRequired);
+                          toast.success('Reset Support Required to default');
+                        }}
+                        className="text-[11px] text-indigo-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        Reset Support to Default
+                      </button>
+                    </div>
+                    <textarea
+                      rows={6}
+                      value={editedAshraeSupportRequired}
+                      onChange={(e) => setEditedAshraeSupportRequired(e.target.value)}
+                      className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono text-slate-800 leading-relaxed"
+                      placeholder="• SPOC (Single point of Contact)...&#10;• Accessibility to each area..."
+                    />
+                  </div>
+
+                  {/* 3. Terms and Conditions / Payment Terms Editor */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-900">
+                          3. Terms and Conditions &amp; Payment Terms (Page 4)
+                        </label>
+                        <p className="text-[11px] text-slate-500">
+                          Edit payment milestones (advance, report submission), taxes, expenses, validity, and other terms.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditedAshraeTermsAndConditions(DEFAULT_ASHRAE_LEVEL_2_STEP6_TEXT);
+                          toast.success('Reset Terms & Conditions to default');
+                        }}
+                        className="text-[11px] text-indigo-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        Reset Terms to Default
+                      </button>
+                    </div>
+                    <textarea
+                      rows={10}
+                      value={editedAshraeTermsAndConditions}
+                      onChange={(e) => setEditedAshraeTermsAndConditions(e.target.value)}
+                      className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono text-slate-800 leading-relaxed"
+                      placeholder="Payment Terms:&#10;• 40% advance...&#10;&#10;Other Terms and Conditions:&#10;• The customer shall..."
+                    />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 mb-2">
-                  Separate distinct sections or headings with blank lines. Headings ending in a colon (:) or bullet points (•) will be cleanly formatted.
-                </p>
-                <textarea
-                  rows={14}
-                  value={editedScopeText}
-                  onChange={(e) => setEditedScopeText(e.target.value)}
-                  className="w-full p-3 text-xs border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono leading-relaxed resize-y bg-slate-50/50"
-                  placeholder="Enter proposal scope of work, deliverables, and technical specifications..."
-                />
-              </div>
+              ) : isEnergyAudit ? (
+                /* Energy Audit Specific Section Editors */
+                <div className="space-y-5 pt-2 border-t border-slate-200">
+                  {/* Page 3: Key Deliverables Editor */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-900">
+                          2. Key Deliverables (Page 3 — {editedEnergyAuditDeliverables.length} Deliverable Items)
+                        </label>
+                        <p className="text-[11px] text-slate-500">
+                          Edit the introductory description and each individual deliverable item.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditedEnergyAuditDeliverables(DEFAULT_ENERGY_AUDIT_KEY_DELIVERABLES);
+                            setEditedEnergyAuditDeliverablesIntro(DEFAULT_ENERGY_AUDIT_DELIVERABLES_INTRO);
+                            setEditedEnergyAuditCompetenciesText(DEFAULT_ENERGY_AUDIT_COMPETENCIES_TEXT);
+                            toast.success('Reset deliverables & competencies to defaults');
+                          }}
+                          className="text-[11px] text-slate-600 hover:text-slate-900 flex items-center gap-1 font-medium bg-white px-2 py-1 rounded border border-slate-300"
+                        >
+                          <RotateCcw className="h-3 w-3" /> Reset Defaults
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditedEnergyAuditDeliverables([
+                              ...editedEnergyAuditDeliverables,
+                              {
+                                id: `ead-${Date.now()}`,
+                                title: `Custom Deliverable ${editedEnergyAuditDeliverables.length + 1}`,
+                                description: 'Detailed specification of deliverable.',
+                              },
+                            ]);
+                          }}
+                          className="text-xs font-bold text-indigo-700 bg-white hover:bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> + Add Deliverable
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">Introductory Sentence:</label>
+                      <input
+                        type="text"
+                        value={editedEnergyAuditDeliverablesIntro}
+                        onChange={(e) => setEditedEnergyAuditDeliverablesIntro(e.target.value)}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
+                        placeholder="e.g. The following structured engineering deliverables will be provided..."
+                      />
+                    </div>
+
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                      {editedEnergyAuditDeliverables.map((item, idx) => (
+                        <div key={item.id || idx} className="p-2.5 bg-white border border-slate-200 rounded-lg space-y-1.5 shadow-2xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="h-5 w-5 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                                {idx + 1}
+                              </span>
+                              <input
+                                type="text"
+                                value={item.title}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditedEnergyAuditDeliverables(
+                                    editedEnergyAuditDeliverables.map((d, i) => (i === idx ? { ...d, title: val } : d))
+                                  );
+                                }}
+                                className="w-full px-2 py-1 text-xs font-bold text-slate-900 border border-slate-300 rounded focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                                placeholder="Deliverable title..."
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditedEnergyAuditDeliverables(editedEnergyAuditDeliverables.filter((_, i) => i !== idx));
+                              }}
+                              className="text-slate-400 hover:text-rose-600 p-1"
+                              title="Delete deliverable"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          <textarea
+                            rows={2}
+                            value={item.description}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEditedEnergyAuditDeliverables(
+                                editedEnergyAuditDeliverables.map((d, i) => (i === idx ? { ...d, description: val } : d))
+                              );
+                            }}
+                            className="w-full px-2 py-1 text-[11px] text-slate-700 border border-slate-300 rounded leading-relaxed focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                            placeholder="Deliverable description details..."
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Page 2: Scope of Work Methodology Cards Editor */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-900">
+                          1. Detailed Scope of Work &amp; Assessment Methodology (Page 2 — {editedEnergyAuditScopeCards.length} Methodology Blocks)
+                        </label>
+                        <p className="text-[11px] text-slate-500">
+                          Customize the methodology cards rendered on Page 2.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditedEnergyAuditScopeCards([
+                            ...editedEnergyAuditScopeCards,
+                            {
+                              id: `ea-${Date.now()}`,
+                              title: `${editedEnergyAuditScopeCards.length + 1}. Custom Assessment Scope`,
+                              description: 'Custom engineering assessment study details.',
+                            },
+                          ]);
+                        }}
+                        className="text-xs font-bold text-indigo-700 bg-white hover:bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> + Add Scope Block
+                      </button>
+                    </div>
+
+                    {editedEnergyAuditScopeCards.length === 0 ? (
+                      <div className="p-4 bg-white border border-dashed border-slate-300 rounded-lg text-center text-xs text-slate-500">
+                        No methodology scope blocks currently added. Click &quot;+ Add Scope Block&quot; above to create one.
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                      {editedEnergyAuditScopeCards.map((card, idx) => (
+                        <div key={card.id || idx} className="p-2.5 bg-white border border-slate-200 rounded-lg space-y-1.5 shadow-2xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <input
+                              type="text"
+                              value={card.title}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditedEnergyAuditScopeCards(
+                                  editedEnergyAuditScopeCards.map((c, i) => (i === idx ? { ...c, title: val } : c))
+                                );
+                              }}
+                              className="w-full px-2 py-1 text-xs font-bold text-slate-900 border border-slate-300 rounded focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                              placeholder="Scope block title..."
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditedEnergyAuditScopeCards(editedEnergyAuditScopeCards.filter((_, i) => i !== idx));
+                              }}
+                              className="text-slate-400 hover:text-rose-600 p-1"
+                              title="Delete scope block"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          <textarea
+                            rows={2}
+                            value={card.description}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEditedEnergyAuditScopeCards(
+                                editedEnergyAuditScopeCards.map((c, i) => (i === idx ? { ...c, description: val } : c))
+                              );
+                            }}
+                            className="w-full px-2 py-1 text-[11px] text-slate-700 border border-slate-300 rounded leading-relaxed focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+                            placeholder="Scope details..."
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                  {/* Competencies Text */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <label className="block text-xs font-bold text-slate-900">
+                      Key Audit Competencies &amp; Instrumentation (Page 3)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editedEnergyAuditCompetenciesText}
+                      onChange={(e) => setEditedEnergyAuditCompetenciesText(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-slate-800 leading-relaxed"
+                      placeholder="Equipped with calibrated Class-A Power Quality Analyzers..."
+                    />
+                  </div>
+
+                  {/* Page 4: Terms and Conditions / Payment Terms Editor */}
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-900">
+                          4. Payment Terms &amp; Conditions (Page 4)
+                        </label>
+                        <p className="text-[11px] text-slate-500">
+                          Customize payment milestones, taxes, and travel expenses shown on Page 4.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditedEnergyAuditTermsText(DEFAULT_ENERGY_AUDIT_STEP6_TEXT)}
+                        className="text-[11px] text-indigo-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        Reset Terms to Default
+                      </button>
+                    </div>
+                    <textarea
+                      rows={5}
+                      value={editedEnergyAuditTermsText}
+                      onChange={(e) => setEditedEnergyAuditTermsText(e.target.value)}
+                      className="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono text-slate-800 leading-relaxed"
+                      placeholder="Payment Terms:&#10;• 50% Payment: Completion of on-site assessment.&#10;• 50% Payment: Submission of final report.&#10;• Applicable taxes and duties will be extra.&#10;• Boarding and Travel Expenses are exclusive."
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Scope of Work, Deliverables &amp; Solution Details
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setEditedScopeText(getDefaultScopeText())}
+                      className="text-[11px] text-indigo-600 hover:underline font-semibold cursor-pointer"
+                    >
+                      Reset to Default Text
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mb-2">
+                    Separate distinct sections or headings with blank lines. Headings ending in a colon (:) or bullet points (•) will be cleanly formatted.
+                  </p>
+                  <textarea
+                    rows={14}
+                    value={editedScopeText}
+                    onChange={(e) => setEditedScopeText(e.target.value)}
+                    className="w-full p-3 text-xs border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono leading-relaxed resize-y bg-slate-50/50"
+                    placeholder="Enter proposal scope of work, deliverables, and technical specifications..."
+                  />
+                </div>
+              )}
 
               {/* Modal Footer */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
